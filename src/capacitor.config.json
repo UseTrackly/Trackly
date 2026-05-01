@@ -1,0 +1,8 @@
+{
+  "appId": "com.usetrackly.app",
+  "appName": "Trackly",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

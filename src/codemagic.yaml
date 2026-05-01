@@ -15,8 +15,12 @@ workflows:
         script: npm install
       - name: Build web app
         script: npm run build
-      - name: Sync Capacitor iOS
-        script: npx cap sync ios
+      - name: Add and sync Capacitor iOS
+        script: |
+          # Remove any incomplete ios folder and re-add fresh
+          rm -rf ios
+          npx cap add ios
+          npx cap sync ios
       - name: Install CocoaPods
         script: cd ios/App && pod install
       - name: Build iOS

@@ -20,7 +20,7 @@ workflows:
       - name: Sync Capacitor iOS
         script: npx cap sync ios
       - name: Install CocoaPods
-        script: pod install --project-directory=ios/App
+        script: cd ios/App && pod install
       - name: Build iOS
         script: |
           xcode-project build-ipa \

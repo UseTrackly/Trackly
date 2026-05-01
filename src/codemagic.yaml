@@ -15,10 +15,10 @@ workflows:
         script: npm install
       - name: Build web app
         script: npm run build
-      - name: Add & Sync Capacitor iOS
-        script: |
-          npx cap add ios
-          npx cap sync ios
+      - name: Add Capacitor iOS platform
+        script: npx cap add ios
+      - name: Sync Capacitor iOS
+        script: npx cap sync ios
       - name: Install CocoaPods
         script: pod install --project-directory=ios/App
       - name: Build iOS

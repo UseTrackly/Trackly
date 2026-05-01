@@ -1,0 +1,257 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', sans-serif;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --card: 0 0% 97%;
+    --card-foreground: 0 0% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 15%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 160 84% 39%;
+    --chart-1: 160 84% 39%;
+    --chart-2: 200 80% 50%;
+    --chart-3: 280 65% 60%;
+    --chart-4: 40 90% 55%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 160 84% 39%;
+  }
+
+  .dark {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 160 84% 39%;
+    --chart-1: 160 84% 39%;
+    --chart-2: 200 80% 50%;
+    --chart-3: 280 65% 60%;
+    --chart-4: 40 90% 55%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 14%;
+    --sidebar-ring: 160 84% 39%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  p, h1, h2, h3, h4, h5, h6, span.selectable, .content-text,
+  input, textarea, select, [contenteditable] {
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
+  }
+}
+
+/* ─── Mobile Touch: prevent scroll from triggering hover states ── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  /* Disable hover background changes on non-interactive elements during scroll */
+  div:hover,
+  section:hover,
+  article:hover,
+  li:hover {
+    background-color: inherit !important;
+    background: inherit !important;
+  }
+  /* Re-enable for actual buttons and links */
+  button:active,
+  a:active,
+  [role="button"]:active {
+    background-color: unset !important;
+    background: unset !important;
+  }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 25%);
+  border-radius: 4px;
+}
+
+/* Number input no spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Optimized animations using GPU acceleration */
+@keyframes gradient-shift {
+  0%, 100% { 
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% { 
+    transform: translate3d(30%, -20%, 0) scale(1.1);
+  }
+  66% { 
+    transform: translate3d(-20%, 30%, 0) scale(0.9);
+  }
+}
+
+@keyframes gradient-shift-reverse {
+  0%, 100% { 
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% { 
+    transform: translate3d(-30%, 20%, 0) scale(0.9);
+  }
+  66% { 
+    transform: translate3d(20%, -30%, 0) scale(1.1);
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10%, 90% {
+    opacity: 1;
+  }
+  50% { 
+    transform: translate3d(var(--float-x, 20px), var(--float-y, -100px), 0);
+  }
+}
+
+@keyframes wave {
+  0% { 
+    transform: translateX(0) translateZ(0);
+  }
+  100% { 
+    transform: translateX(-50%) translateZ(0);
+  }
+}
+
+@keyframes wave-reverse {
+  0% { 
+    transform: translateX(0) translateZ(0);
+  }
+  100% { 
+    transform: translateX(50%) translateZ(0);
+  }
+}
+
+.animate-gradient-shift {
+  animation: gradient-shift 20s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-gradient-shift-reverse {
+  animation: gradient-shift-reverse 25s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-float {
+  animation: float 15s ease-in-out infinite;
+  will-change: transform, opacity;
+  --float-x: 20px;
+  --float-y: -100px;
+}
+
+.animate-wave {
+  animation: wave 15s linear infinite;
+  will-change: transform;
+}
+
+.animate-wave-reverse {
+  animation: wave-reverse 20s linear infinite;
+  will-change: transform;
+}
+
+/* ─── Reduced Motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-gradient-shift,
+  .animate-gradient-shift-reverse,
+  .animate-float,
+  .animate-wave,
+  .animate-wave-reverse {
+    animation: none !important;
+  }
+}
+
+/* ─── High Contrast ──────────────────────────────────────── */
+@media (prefers-contrast: more) {
+  :root {
+    --muted-foreground: 0 0% 35%;
+    --border: 0 0% 60%;
+  }
+  .dark {
+    --muted-foreground: 0 0% 70%;
+    --border: 0 0% 45%;
+  }
+}

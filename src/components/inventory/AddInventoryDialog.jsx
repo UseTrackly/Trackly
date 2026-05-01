@@ -1,0 +1,371 @@
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Upload, Loader2, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
+
+const CATEGORIES = [
+  { value: 'cards', label: 'Cards' },
+  { value: 'sneakers', label: 'Sneakers' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'electronics', label: 'Electronics' },
+  { value: 'collectibles', label: 'Collectibles' },
+  { value: 'games', label: 'Games' },
+  { value: 'technology', label: 'Technology' },
+  { value: 'vintage', label: 'Vintage' },
+  { value: 'other', label: 'Other' },
+];
+
+const CONDITIONS = [
+  { value: 'new', label: 'New' },
+  { value: 'like_new', label: 'Like New' },
+  { value: 'excellent', label: 'Excellent' },
+  { value: 'good', label: 'Good' },
+  { value: 'fair', label: 'Fair' },
+  { value: 'poor', label: 'Poor' },
+];
+
+export default function AddInventoryDialog({ open, onClose, editingItem }) {
+  const [itemName, setItemName] = useState('');
+  const [category, setCategory] = useState('other');
+  const [costBasis, setCostBasis] = useState('');
+  const [dateAcquired, setDateAcquired] = useState(new Date().toISOString().split('T')[0]);
+  const [condition, setCondition] = useState('good');
+  const [notes, setNotes] = useState('');
+  const [quantity, setQuantity] = useState('1');
+  const [location, setLocation] = useState('');
+  const [targetPrice, setTargetPrice] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
+  const [showConditionDrawer, setShowConditionDrawer] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (editingItem) {
+      setItemName(editingItem.item_name || '');
+      setCategory(editingItem.category || 'other');
+      setCostBasis(editingItem.cost_basis?.toString() || '');
+      setDateAcquired(editingItem.date_acquired || new Date().toISOString().split('T')[0]);
+      setCondition(editingItem.condition || 'good');
+      setNotes(editingItem.notes || '');
+      setQuantity(editingItem.quantity?.toString() || '1');
+      setLocation(editingItem.location || '');
+      setTargetPrice(editingItem.target_price?.toString() || '');
+    } else {
+      resetForm();
+    }
+  }, [editingItem, open]);
+
+  const resetForm = () => {
+    setItemName('');
+    setCategory('other');
+    setCostBasis('');
+    setDateAcquired(new Date().toISOString().split('T')[0]);
+    setCondition('good');
+    setNotes('');
+    setQuantity('1');
+    setLocation('');
+    setTargetPrice('');
+    setImageFile(null);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async (data) => {
+      let imageUrl = editingItem?.image_url || null;
+      
+      if (imageFile) {
+        setUploading(true);
+        const result = await base44.integrations.Core.UploadFile({ file: imageFile });
+        imageUrl = result.file_url;
+        setUploading(false);
+      }
+
+      const itemData = {
+        ...data,
+        image_url: imageUrl,
+      };
+
+      if (editingItem) {
+        await base44.entities.Inventory.update(editingItem.id, itemData);
+      } else {
+        await base44.entities.Inventory.create(itemData);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.success(editingItem ? 'Item updated' : 'Item added to inventory');
+      handleClose();
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!itemName || !costBasis || !dateAcquired) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    saveMutation.mutate({
+      item_name: itemName,
+      category,
+      cost_basis: parseFloat(costBasis),
+      date_acquired: dateAcquired,
+      condition,
+      notes,
+      quantity: parseInt(quantity) || 1,
+      location,
+      target_price: targetPrice ? parseFloat(targetPrice) : undefined,
+    });
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md mx-auto bg-card border-border max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-lg">
+            {editingItem ? 'Edit Item' : 'Add to Inventory'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {/* Item Name */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Item Name *
+            </label>
+            <Input
+              value={itemName}
+              onChange={(e) => setItemName(e.target.value)}
+              placeholder="e.g. Jordan 4 Retro"
+              className="bg-background"
+            />
+          </div>
+
+          {/* Category & Condition */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Category *
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCategoryDrawer(true)}
+                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <span>{CATEGORIES.find(c => c.value === category)?.label || 'Select'}</span>
+                <span className="text-muted-foreground opacity-50">▾</span>
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Condition
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowConditionDrawer(true)}
+                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <span>{CONDITIONS.find(c => c.value === condition)?.label || 'Select'}</span>
+                <span className="text-muted-foreground opacity-50">▾</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Category Drawer */}
+          <Drawer open={showCategoryDrawer} onOpenChange={setShowCategoryDrawer}>
+            <DrawerContent className="bg-card">
+              <DrawerHeader><DrawerTitle>Select Category</DrawerTitle></DrawerHeader>
+              <div className="px-4 pb-6 space-y-1">
+                {CATEGORIES.map(c => (
+                  <button
+                    key={c.value}
+                    onClick={() => { setCategory(c.value); setShowCategoryDrawer(false); }}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors ${
+                      category === c.value ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-secondary'
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </DrawerContent>
+          </Drawer>
+
+          {/* Condition Drawer */}
+          <Drawer open={showConditionDrawer} onOpenChange={setShowConditionDrawer}>
+            <DrawerContent className="bg-card">
+              <DrawerHeader><DrawerTitle>Select Condition</DrawerTitle></DrawerHeader>
+              <div className="px-4 pb-6 space-y-1">
+                {CONDITIONS.map(c => (
+                  <button
+                    key={c.value}
+                    onClick={() => { setCondition(c.value); setShowConditionDrawer(false); }}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-colors ${
+                      condition === c.value ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-secondary'
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </DrawerContent>
+          </Drawer>
+
+          {/* Cost & Quantity */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Cost Basis *
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  value={costBasis}
+                  onChange={(e) => setCostBasis(e.target.value)}
+                  placeholder="0.00"
+                  className="bg-background pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Quantity
+              </label>
+              <Input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="1"
+                className="bg-background"
+              />
+            </div>
+          </div>
+
+          {/* Date & Target Price */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Date Acquired *
+              </label>
+              <Input
+                type="date"
+                value={dateAcquired}
+                onChange={(e) => setDateAcquired(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Target Price
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  value={targetPrice}
+                  onChange={(e) => setTargetPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="bg-background pl-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Storage Location
+            </label>
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g. Shelf A, Box 3"
+              className="bg-background"
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Notes
+            </label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Condition details, flaws, or other notes..."
+              className="bg-background min-h-[80px]"
+            />
+          </div>
+
+          {/* Image */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Image
+            </label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                className="hidden"
+                id="inventory-image"
+              />
+              <label
+                htmlFor="inventory-image"
+                className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
+              >
+                <Upload className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {imageFile ? imageFile.name : editingItem?.image_url ? 'Change image' : 'Upload image'}
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            className="flex-1"
+            disabled={saveMutation.isPending || uploading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            className="flex-1 bg-primary hover:bg-primary/90"
+            disabled={saveMutation.isPending || uploading}
+          >
+            {saveMutation.isPending || uploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {uploading ? 'Uploading...' : 'Saving...'}
+              </>
+            ) : (
+              editingItem ? 'Update Item' : 'Add Item'
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

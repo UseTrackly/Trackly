@@ -15,23 +15,10 @@ workflows:
         script: npm install
       - name: Build web app
         script: npm run build
-      - name: Add Capacitor iOS platform
-        script: npx cap add ios || true
       - name: Sync Capacitor iOS
         script: npx cap sync ios
-      - name: Debug - list ios directory
-        script: |
-          echo "=== Root listing ===" && ls -la
-          echo "=== iOS dir ===" && ls -la ios/ || echo "No ios/ directory"
-          echo "=== iOS/App dir ===" && ls -la ios/App/ || echo "No ios/App directory"
-          find ios -name "Podfile" 2>/dev/null || echo "No Podfile found"
       - name: Install CocoaPods
-        script: |
-          PODFILE_DIR=$(find ios -name "Podfile" -exec dirname {} \; | head -1)
-          echo "Podfile found at: $PODFILE_DIR"
-          cd "$PODFILE_DIR" && pod install
-      - name: List iOS workspace files
-        script: find ios -name "*.xcworkspace" | head -20
+        script: cd ios/App && pod install
       - name: Build iOS
         script: |
           xcode-project build-ipa \

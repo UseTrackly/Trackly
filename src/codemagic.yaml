@@ -17,7 +17,7 @@ workflows:
         script: npm run build
       - name: Add and sync Capacitor iOS
         script: |
-          # Remove any incomplete ios folder and re-add fresh
+          npm install @capacitor/cli @capacitor/core @capacitor/ios
           rm -rf ios
           npx cap add ios
           npx cap sync ios

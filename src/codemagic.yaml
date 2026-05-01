@@ -15,17 +15,26 @@ workflows:
         script: npm install
       - name: Build web app
         script: npm run build
-      - name: Add and sync Capacitor iOS + CocoaPods
+      - name: Install Capacitor CLI
         script: |
           npm install @capacitor/cli @capacitor/core @capacitor/ios
+      - name: Add Capacitor iOS platform
+        script: |
           rm -rf ios
-          npx cap add ios || { echo "cap add ios failed"; exit 1; }
-          npx cap sync ios || { echo "cap sync ios failed"; exit 1; }
-          ls -la ios/App/
-          if [ ! -f ios/App/Podfile ]; then
-            echo "ERROR: Podfile not found after cap add ios"
-            exit 1
-          fi
+          npx cap add ios
+          echo "--- ls ios/ ---"
+          ls -la ios/ || true
+          echo "--- ls ios/App/ ---"
+          ls -la ios/App/ || true
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+          echo "--- ls ios/App/ after sync ---"
+          ls -la ios/App/ || true
+      - name: Install CocoaPods
+        script: |
+          echo "--- Podfile check ---"
+          find ios -name "Podfile" || echo "NO PODFILE FOUND ANYWHERE"
           cd ios/App && pod install
       - name: Build iOS
         script: |

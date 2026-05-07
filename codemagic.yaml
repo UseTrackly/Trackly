@@ -15,17 +15,36 @@ workflows:
         script: npm install
       - name: Build web app
         script: npm run build
+      - name: Install Capacitor CLI
+        script: |
+          npm install @capacitor/cli @capacitor/core @capacitor/ios
       - name: Add Capacitor iOS platform
-        script: npx cap add ios || true
-      - name: Sync Capacitor iOS
-        script: npx cap sync ios
-      - name: List iOS workspace files
-        script: find ios -name "*.xcworkspace" -o -name "*.xcodeproj" | head -20
+        script: |
+          git rm -rf ios --ignore-unmatch || true
+          rm -rf ios
+          npx cap add ios
+      - name: Sync Capacitor
+        script: |
+          npx cap sync ios
+      - name: Verify project structure
+        script: |
+          echo "--- Full ios/ tree ---"
+          find ios -maxdepth 4 | sort
       - name: Build iOS
         script: |
-          xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
-            --scheme "App"
+          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" | head -1)
+          PROJECT=$(find ios -name "*.xcodeproj" -not -path "*/xcuserdata/*" | head -1)
+          echo "Workspace: $WORKSPACE"
+          echo "Project:   $PROJECT"
+          if [ -n "$WORKSPACE" ]; then
+            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "App"
+          elif [ -n "$PROJECT" ]; then
+            xcode-project build-ipa --project "$PROJECT" --scheme "App"
+          else
+            echo "ERROR: No .xcworkspace or .xcodeproj found"
+            find ios -type f | sort
+            exit 1
+          fi
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:

@@ -30,21 +30,17 @@ workflows:
         script: |
           echo "--- Full ios/ tree ---"
           find ios -maxdepth 4 | sort
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
       - name: Build iOS
         script: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" | head -1)
-          PROJECT=$(find ios -name "*.xcodeproj" -not -path "*/xcuserdata/*" | head -1)
-          echo "Workspace: $WORKSPACE"
-          echo "Project:   $PROJECT"
-          if [ -n "$WORKSPACE" ]; then
-            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "App"
-          elif [ -n "$PROJECT" ]; then
-            xcode-project build-ipa --project "$PROJECT" --scheme "App"
-          else
-            echo "ERROR: No .xcworkspace or .xcodeproj found"
-            find ios -type f | sort
-            exit 1
-          fi
+          echo "Building workspace: $WORKSPACE"
+          xcode-project build-ipa \
+            --workspace "$WORKSPACE" \
+            --scheme "App" \
+            --export-options-plist /Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:

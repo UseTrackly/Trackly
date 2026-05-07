@@ -37,8 +37,10 @@ workflows:
           find ios -name "*.xcodeproj" | head -5
       - name: Build iOS
         script: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" | head -1)
+          echo "Using workspace: $WORKSPACE"
           xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
+            --workspace "$WORKSPACE" \
             --scheme "App"
     artifacts:
       - build/ios/ipa/*.ipa

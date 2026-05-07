@@ -2,6 +2,8 @@ workflows:
   ios-workflow:
     name: Trackly iOS
     max_build_duration: 60
+    integrations:
+      app_store_connect: Codemagic
     environment:
       xcode: latest
       node: 24.15.0

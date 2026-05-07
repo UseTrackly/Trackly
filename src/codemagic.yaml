@@ -18,31 +18,23 @@ workflows:
       - name: Install Capacitor CLI
         script: |
           npm install @capacitor/cli @capacitor/core @capacitor/ios
-      - name: Show capacitor config
-        script: |
-          echo "--- PWD ---"
-          pwd
-          echo "--- capacitor.config.json ---"
-          cat capacitor.config.json || echo "FILE NOT FOUND"
-          echo "--- dist/ exists? ---"
-          ls -la dist/ || echo "NO DIST FOLDER"
       - name: Add Capacitor iOS platform
         script: |
+          git rm -rf ios --ignore-unmatch || true
           rm -rf ios
           npx cap add ios
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-      - name: Verify Podfile exists
+      - name: Verify project structure
         script: |
-          echo "--- Full ios/ tree ---"
-          find ios -type f | head -50
-          echo "--- Podfile check ---"
-          find ios -name "Podfile"
-          test -f ios/App/Podfile || (echo "PODFILE MISSING - cap add ios failed" && exit 1)
-      - name: Install CocoaPods
-        script: |
-          cd ios/App && pod install
+          echo "--- ios/App contents ---"
+          ls -la ios/App/
+          echo "--- Podfile? ---"
+          ls ios/App/Podfile || echo "No Podfile (SPM project)"
+          echo "--- xcworkspace? ---"
+          find ios -name "*.xcworkspace" | head -5
+          find ios -name "*.xcodeproj" | head -5
       - name: Build iOS
         script: |
           xcode-project build-ipa \

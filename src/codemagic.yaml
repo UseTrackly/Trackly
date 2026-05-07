@@ -28,20 +28,23 @@ workflows:
           npx cap sync ios
       - name: Verify project structure
         script: |
-          echo "--- ios/App contents ---"
-          ls -la ios/App/
-          echo "--- Podfile? ---"
-          ls ios/App/Podfile || echo "No Podfile (SPM project)"
-          echo "--- xcworkspace? ---"
-          find ios -name "*.xcworkspace" | head -5
-          find ios -name "*.xcodeproj" | head -5
+          echo "--- Full ios/ tree ---"
+          find ios -maxdepth 4 | sort
       - name: Build iOS
         script: |
-          WORKSPACE=$(find ios -name "*.xcworkspace" | head -1)
-          echo "Using workspace: $WORKSPACE"
-          xcode-project build-ipa \
-            --workspace "$WORKSPACE" \
-            --scheme "App"
+          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" | head -1)
+          PROJECT=$(find ios -name "*.xcodeproj" -not -path "*/xcuserdata/*" | head -1)
+          echo "Workspace: $WORKSPACE"
+          echo "Project:   $PROJECT"
+          if [ -n "$WORKSPACE" ]; then
+            xcode-project build-ipa --workspace "$WORKSPACE" --scheme "App"
+          elif [ -n "$PROJECT" ]; then
+            xcode-project build-ipa --project "$PROJECT" --scheme "App"
+          else
+            echo "ERROR: No .xcworkspace or .xcodeproj found"
+            find ios -type f | sort
+            exit 1
+          fi
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:

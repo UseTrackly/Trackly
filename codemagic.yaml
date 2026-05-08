@@ -5,6 +5,8 @@ workflows:
     environment:
       xcode: latest
       node: 24.15.0
+      groups:
+        - app_store
       vars:
         BUNDLE_ID: com.base69bfd92e3db7d48eec6c8062.app
       ios_signing:
@@ -45,7 +47,7 @@ workflows:
       - build/ios/ipa/*.ipa
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        api_key: $APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true

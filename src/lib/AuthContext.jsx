@@ -4,6 +4,8 @@ import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { initRevenueCat } from '@/lib/iap';
 
+
+
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
+          setAuthError({ type: 'auth_required', message: 'Login required' });
         }
         setIsLoadingPublicSettings(false);
       } catch (appError) {

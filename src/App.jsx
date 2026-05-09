@@ -40,8 +40,20 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
+      return (
+        <div className="fixed inset-0 flex flex-col items-center justify-center bg-background gap-6 px-8">
+          <div className="text-center space-y-2">
+            <p className="text-2xl font-bold tracking-tight">Trackly</p>
+            <p className="text-sm text-muted-foreground">Built for Resellers</p>
+          </div>
+          <button
+            onClick={navigateToLogin}
+            className="w-full max-w-xs py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
+          >
+            Sign In
+          </button>
+        </div>
+      );
     }
   }
 

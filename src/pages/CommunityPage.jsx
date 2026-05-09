@@ -40,29 +40,37 @@ export default function CommunityPage() {
     queryFn: () => base44.entities.CommunityFlip.list('-created_date', 100),
   });
 
+  const requireAuth = () => {
+    if (!user) {
+      base44.auth.redirectToLogin(window.location.href);
+      return false;
+    }
+    return true;
+  };
+
   const interestMutation = useMutation({
     mutationFn: async (flipId) => {
       const flip = communityFlips.find(f => f.id === flipId);
       const interested = flip.interested_users || [];
-      const isInterested = interested.includes(user.email);
+      const isInterested = interested.includes(user?.email);
       const updated = isInterested
-        ? interested.filter(e => e !== user.email)
-        : [...interested, user.email];
+        ? interested.filter(e => e !== user?.email)
+        : [...interested, user?.email];
       await base44.entities.CommunityFlip.update(flipId, { interested_users: updated });
     },
     onMutate: async (flipId) => {
       await queryClient.cancelQueries({ queryKey: ['communityFlips'] });
       const previous = queryClient.getQueryData(['communityFlips']);
       queryClient.setQueryData(['communityFlips'], (old = []) =>
-        old.map(f => {
-          if (f.id !== flipId) return f;
-          const interested = f.interested_users || [];
-          const isInterested = interested.includes(user.email);
+      old.map(f => {
+        if (f.id !== flipId) return f;
+        const interested = f.interested_users || [];
+        const isInterested = interested.includes(user?.email);
           return {
             ...f,
             interested_users: isInterested
-              ? interested.filter(e => e !== user.email)
-              : [...interested, user.email],
+            ? interested.filter(e => e !== user?.email)
+            : [...interested, user?.email],
           };
         })
       );
@@ -167,7 +175,7 @@ export default function CommunityPage() {
 
           {/* Post Button */}
           <Button
-        onClick={() => setShowPost(true)}
+        onClick={() => requireAuth() && setShowPost(true)}
         className="w-full h-9 text-sm font-semibold bg-primary hover:bg-primary/90 rounded-lg"
       >
             <Plus className="w-4 h-4 mr-2" />
@@ -199,7 +207,7 @@ export default function CommunityPage() {
               title="No flips in this category yet"
               description="Be the first to share a flip opportunity."
               action={
-                <Button onClick={() => setShowPost(true)} className="bg-primary hover:bg-primary/90">
+                <Button onClick={() => requireAuth() && setShowPost(true)} className="bg-primary hover:bg-primary/90">
                   Post Your First Flip
                 </Button>
               }
@@ -208,7 +216,7 @@ export default function CommunityPage() {
             <div className="grid grid-cols-2 gap-1.5">
           <AnimatePresence>
             {filteredFlips.map((flip, i) => {
-              const isInterested = flip.interested_users?.includes(user.email);
+              const isInterested = flip.interested_users?.includes(user?.email);
               const interestCount = flip.interested_users?.length || 0;
               const buyPrice = flip.price * 0.6;
               const margin = ((flip.price - buyPrice) / buyPrice * 100).toFixed(0);
@@ -295,10 +303,10 @@ export default function CommunityPage() {
                     {/* Actions */}
                     <div className="flex gap-1 pt-1">
                       <Button
-                        variant={isInterested ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => interestMutation.mutate(flip.id)}
-                        className="flex-1 h-6 text-[10px]"
+                       variant={isInterested ? "default" : "outline"}
+                       size="sm"
+                       onClick={() => requireAuth() && interestMutation.mutate(flip.id)}
+                       className="flex-1 h-6 text-[10px]"
                       >
                         <Heart className={`w-3 h-3 mr-0.5 ${isInterested ? 'fill-current' : ''}`} />
                         Interested
@@ -309,7 +317,7 @@ export default function CommunityPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setSelectedFlip(flip)}
+                        onClick={() => requireAuth() && setSelectedFlip(flip)}
                         className="h-6 w-6 p-0"
                       >
                         <MessageCircle className="w-3 h-3" />

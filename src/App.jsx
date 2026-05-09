@@ -24,7 +24,7 @@ import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, checkAppState } = useAuth();
+  const { isLoadingAuth, authError, checkAppState } = useAuth();
 
   // When user returns to the app after external login, re-check auth
   useEffect(() => {
@@ -37,7 +37,7 @@ const AuthenticatedApp = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [authError, checkAppState]);
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  if (isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -59,11 +59,7 @@ const AuthenticatedApp = () => {
             <p className="text-sm text-muted-foreground">Built for Resellers</p>
           </div>
           <button
-            onClick={() => {
-              // Use the app's base URL so Base44 can redirect back with the token
-              const appBaseUrl = import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;
-              base44.auth.redirectToLogin(appBaseUrl);
-            }}
+            onClick={() => base44.auth.redirectToLogin(window.location.href)}
             className="w-full max-w-xs py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
           >
             Sign In

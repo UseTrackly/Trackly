@@ -7,17 +7,20 @@ import { initRevenueCat } from '@/lib/iap';
 // Must match the bundle ID in capacitor.config.json / Info.plist.
 const IOS_SCHEME = 'com.base69bfd92e3db7d48eec6c8062.app';
 
-// On iOS/Capacitor the app runs at https://app (iosScheme+hostname).
-// We use the bundle-ID scheme for the login callback so iOS delivers it
-// as a deep-link via Capacitor's App.addListener('appUrlOpen', …) instead
-// of navigating the webview.
+// Base44's redirectToLogin(callbackUrl) sends the user to the login page,
+// then redirects back to callbackUrl with ?access_token= appended.
+// On iOS native, window.location.href = "https://app/" — Base44's server
+// won't redirect back to that internal hostname.
+// 
+// The correct approach: pass the app's real published URL as the callback.
+// When Base44 redirects to e.g. https://trackly.base44.app?access_token=XXX,
+// Capacitor's WKWebView intercepts that navigation and the page re-loads
+// with the token in the URL — app-params.js scrapes it on load.
 const getLoginRedirectUrl = () => {
-  // Check if running inside Capacitor (native iOS/Android)
-  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-  if (isNative) {
-    return `${IOS_SCHEME}://auth/callback`;
+  const appBaseUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL;
+  if (appBaseUrl) {
+    return appBaseUrl;
   }
-  // Web: use the current page URL as normal
   return window.location.href;
 };
 
@@ -97,12 +100,14 @@ export const AuthProvider = ({ children }) => {
     setIsLoadingAuth(true);
     setAuthError(null);
 
-    // First check if there's a token in the current URL (web flow)
+    // app-params.js already scraped ?access_token= from the URL at module load
+    // and saved it to localStorage as base44_access_token.
+    // But also check the current URL in case we're being called after a navigation
+    // that app-params.js didn't catch (e.g. hash-based token).
     const urlToken = extractToken(window.location.href);
     if (urlToken) {
       localStorage.setItem('base44_access_token', urlToken);
       reinitializeBase44Token(urlToken);
-      // Clean the URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 

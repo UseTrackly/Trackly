@@ -1,12 +1,46 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { base44, reinitializeBase44Token } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { initRevenueCat } from '@/lib/iap';
 
-// Get the freshest token: appParams already scraped URL + localStorage at module load.
-// On visibility change (returning from login), check localStorage again for a new token.
-const getFreshToken = () => {
-  return localStorage.getItem('base44_access_token') || appParams.token;
+// The custom URL scheme used as the OAuth callback on iOS.
+// Must match the bundle ID in capacitor.config.json / Info.plist.
+const IOS_SCHEME = 'com.base69bfd92e3db7d48eec6c8062.app';
+
+// On iOS/Capacitor the app runs at https://app (iosScheme+hostname).
+// We use the bundle-ID scheme for the login callback so iOS delivers it
+// as a deep-link via Capacitor's App.addListener('appUrlOpen', …) instead
+// of navigating the webview.
+const getLoginRedirectUrl = () => {
+  // Check if running inside Capacitor (native iOS/Android)
+  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if (isNative) {
+    return `${IOS_SCHEME}://auth/callback`;
+  }
+  // Web: use the current page URL as normal
+  return window.location.href;
+};
+
+// Extract access_token from a URL string (query param or hash fragment)
+const extractToken = (url) => {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    // Check query string first
+    const qToken = urlObj.searchParams.get('access_token');
+    if (qToken) return qToken;
+    // Check hash fragment (Supabase-style: #access_token=...)
+    const hash = urlObj.hash.startsWith('#') ? urlObj.hash.slice(1) : urlObj.hash;
+    const hashParams = new URLSearchParams(hash);
+    return hashParams.get('access_token') || null;
+  } catch {
+    return null;
+  }
+};
+
+// Get the freshest stored token
+const getStoredToken = () => {
+  return localStorage.getItem('base44_access_token') || appParams.token || null;
 };
 
 const AuthContext = createContext();
@@ -16,25 +50,72 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const checkingRef = useRef(false);
 
+  // Run auth check on mount
   useEffect(() => {
     checkAppState();
   }, []);
 
+  // Listen for Capacitor deep-link (iOS: app opened via custom URL scheme after login)
+  useEffect(() => {
+    if (!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App)) return;
+
+    const CapApp = window.Capacitor.Plugins.App;
+    let handle;
+
+    const setupListener = async () => {
+      handle = await CapApp.addListener('appUrlOpen', (event) => {
+        const token = extractToken(event.url);
+        if (token) {
+          localStorage.setItem('base44_access_token', token);
+          reinitializeBase44Token(token);
+          checkAppState();
+        }
+      });
+    };
+
+    setupListener();
+    return () => { if (handle) handle.remove(); };
+  }, []);
+
+  // Also re-check when app becomes visible (Safari/browser OAuth flow)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && !isAuthenticated) {
+        checkAppState();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isAuthenticated]);
+
   const checkAppState = async () => {
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+
     setIsLoadingAuth(true);
     setAuthError(null);
 
-    const token = getFreshToken();
+    // First check if there's a token in the current URL (web flow)
+    const urlToken = extractToken(window.location.href);
+    if (urlToken) {
+      localStorage.setItem('base44_access_token', urlToken);
+      reinitializeBase44Token(urlToken);
+      // Clean the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    const token = getStoredToken();
 
     if (!token) {
       setIsAuthenticated(false);
       setIsLoadingAuth(false);
       setAuthError({ type: 'auth_required', message: 'Login required' });
+      checkingRef.current = false;
       return;
     }
 
-    // Make sure the client has the latest token
     reinitializeBase44Token(token);
 
     try {
@@ -42,28 +123,28 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setIsAuthenticated(true);
       setAuthError(null);
-      // Initialize RevenueCat
       await initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
     } catch (error) {
       console.error('Auth check failed:', error);
       setIsAuthenticated(false);
       setUser(null);
-      // Clear bad token
       localStorage.removeItem('base44_access_token');
       setAuthError({ type: 'auth_required', message: 'Session expired' });
     } finally {
       setIsLoadingAuth(false);
+      checkingRef.current = false;
     }
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
+    localStorage.removeItem('base44_access_token');
     base44.auth.logout('/');
   };
 
   const navigateToLogin = () => {
-    base44.auth.redirectToLogin(window.location.href);
+    base44.auth.redirectToLogin(getLoginRedirectUrl());
   };
 
   return (
@@ -71,11 +152,12 @@ export const AuthProvider = ({ children }) => {
       user,
       isAuthenticated,
       isLoadingAuth,
-      isLoadingPublicSettings: false, // no longer needed
+      isLoadingPublicSettings: false,
       authError,
       logout,
       navigateToLogin,
-      checkAppState
+      checkAppState,
+      getLoginRedirectUrl,
     }}>
       {children}
     </AuthContext.Provider>

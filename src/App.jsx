@@ -24,7 +24,7 @@ import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, authError, checkAppState } = useAuth();
+  const { isLoadingAuth, authError, checkAppState, getLoginRedirectUrl } = useAuth();
 
   // When user returns to the app after external login, re-check auth
   useEffect(() => {
@@ -59,7 +59,7 @@ const AuthenticatedApp = () => {
             <p className="text-sm text-muted-foreground">Built for Resellers</p>
           </div>
           <button
-            onClick={() => base44.auth.redirectToLogin(window.location.href)}
+            onClick={() => base44.auth.redirectToLogin(getLoginRedirectUrl())}
             className="w-full max-w-xs py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
           >
             Sign In

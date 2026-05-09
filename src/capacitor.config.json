@@ -11,6 +11,7 @@
     "contentInset": "automatic",
     "allowsLinkPreview": false,
     "scrollEnabled": true,
-    "limitsNavigationsToAppBoundDomains": false
+    "limitsNavigationsToAppBoundDomains": false,
+    "scheme": "com.base69bfd92e3db7d48eec6c8062.app"
   }
 }

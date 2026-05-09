@@ -9,7 +9,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import AppBackground from '@/components/background/AppBackground';
 import SplashScreen from '@/components/SplashScreen';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import AppLayout from '@/components/layout/AppLayout';
 import Onboarding from '@/pages/Onboarding';
@@ -27,7 +27,7 @@ const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, checkAppState } = useAuth();
 
   // When user returns to the app after external login, re-check auth
-  React.useEffect(() => {
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && authError?.type === 'auth_required') {
         checkAppState();

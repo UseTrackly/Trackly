@@ -36,6 +36,8 @@ workflows:
         script: |
           echo "--- Full ios/ tree ---"
           find ios -maxdepth 4 | sort
+          echo "--- Web assets in bundle ---"
+          ls ios/App/App/public/ | head -20 || echo "WARNING: No web assets found!"
       - name: Set build number
         script: |
           BUILD_NUM=$((BUILD_NUMBER + 3))

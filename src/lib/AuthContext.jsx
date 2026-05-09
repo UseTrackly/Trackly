@@ -1,8 +1,25 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, reinitializeBase44Token } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { initRevenueCat } from '@/lib/iap';
+
+// Always read the freshest token — appParams is frozen at module load,
+// but app-params.js writes the token into localStorage when it sees it in the URL.
+const getFreshToken = () => {
+  // First check the URL (in case we just returned from login)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlToken = urlParams.get('access_token');
+  if (urlToken) {
+    localStorage.setItem('base44_access_token', urlToken);
+    // Remove from URL cleanly
+    urlParams.delete('access_token');
+    const newUrl = `${window.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ''}${window.location.hash}`;
+    window.history.replaceState({}, document.title, newUrl);
+    return urlToken;
+  }
+  return localStorage.getItem('base44_access_token');
+};
 
 
 
@@ -24,6 +41,8 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);
+
+      const freshToken = getFreshToken();
       
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
@@ -32,7 +51,7 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'X-App-Id': appParams.appId
         },
-        token: appParams.token, // Include token if available
+        token: freshToken,
         interceptResponses: true
       });
       
@@ -41,8 +60,8 @@ export const AuthProvider = ({ children }) => {
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
+        if (freshToken) {
+          await checkUserAuth(freshToken);
         } else {
           setIsLoadingAuth(false);
           setIsAuthenticated(false);
@@ -92,10 +111,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const checkUserAuth = async () => {
+  const checkUserAuth = async (token) => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
+      // If a fresh token was just picked up, reinitialize the client with it
+      if (token && token !== appParams.token) {
+        reinitializeBase44Token(token);
+      }
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);

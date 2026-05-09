@@ -1,3 +1,4 @@
+import { base44 } from '@/api/base44Client';
 import { Toaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -47,7 +48,11 @@ const AuthenticatedApp = () => {
             <p className="text-sm text-muted-foreground">Built for Resellers</p>
           </div>
           <button
-            onClick={navigateToLogin}
+            onClick={() => {
+              // Use the app's base URL so Base44 can redirect back with the token
+              const appBaseUrl = import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;
+              base44.auth.redirectToLogin(appBaseUrl);
+            }}
             className="w-full max-w-xs py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
           >
             Sign In

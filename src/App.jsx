@@ -1,4 +1,3 @@
-import { base44 } from '@/api/base44Client';
 import { Toaster } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -24,30 +23,21 @@ import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, authError, checkAppState, getLoginRedirectUrl } = useAuth();
+  const { isLoadingAuth, authError, checkAppState } = useAuth();
 
   // When user returns to the app after external login, re-check auth
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && authError?.type === 'auth_required') {
+      if (document.visibilityState === 'visible') {
         checkAppState();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [authError, checkAppState]);
+  }, [checkAppState]);
 
-  if (isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-muted-foreground font-medium tracking-wider uppercase">Trackly</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Don't block — let the app render even while loading auth
+  // The individual pages handle the unauthenticated state gracefully
   if (authError?.type === 'user_not_registered') {
     return <UserNotRegisteredError />;
   }
@@ -78,6 +68,7 @@ function App() {
     <AuthProvider>
       <ThemeProvider>
         <QueryClientProvider client={queryClientInstance}>
+          {/* Splash overlays the app — app mounts immediately underneath */}
           {!splashDone && <SplashScreen onComplete={() => setSplashDone(true)} />}
           <Router>
             <AppBackground />

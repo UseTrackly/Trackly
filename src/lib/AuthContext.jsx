@@ -100,45 +100,56 @@ export const AuthProvider = ({ children }) => {
     setIsLoadingAuth(true);
     setAuthError(null);
 
-    // app-params.js already scraped ?access_token= from the URL at module load
-    // and saved it to localStorage as base44_access_token.
-    // But also check the current URL in case we're being called after a navigation
-    // that app-params.js didn't catch (e.g. hash-based token).
-    const urlToken = extractToken(window.location.href);
-    if (urlToken) {
-      localStorage.setItem('base44_access_token', urlToken);
-      reinitializeBase44Token(urlToken);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
-    const token = getStoredToken();
-
-    if (!token) {
-      // No token — allow guest access, don't block the app
-      setIsAuthenticated(false);
-      setUser(null);
-      setAuthError(null);
-      setIsLoadingAuth(false);
-      checkingRef.current = false;
-      return;
-    }
-
-    reinitializeBase44Token(token);
+    // Safety timeout — never block the app more than 4 seconds
+    const safetyTimer = setTimeout(() => {
+      if (checkingRef.current) {
+        setIsLoadingAuth(false);
+        setIsAuthenticated(false);
+        setUser(null);
+        checkingRef.current = false;
+      }
+    }, 4000);
 
     try {
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setAuthError(null);
-      await initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      // Token invalid/expired — fall back to guest mode, don't block
-      setIsAuthenticated(false);
-      setUser(null);
-      localStorage.removeItem('base44_access_token');
-      setAuthError(null);
+      // app-params.js already scraped ?access_token= from the URL at module load
+      // and saved it to localStorage as base44_access_token.
+      // But also check the current URL in case we're being called after a navigation
+      // that app-params.js didn't catch (e.g. hash-based token).
+      const urlToken = extractToken(window.location.href);
+      if (urlToken) {
+        localStorage.setItem('base44_access_token', urlToken);
+        reinitializeBase44Token(urlToken);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      const token = getStoredToken();
+
+      if (!token) {
+        // No token — allow guest access, don't block the app
+        setIsAuthenticated(false);
+        setUser(null);
+        setAuthError(null);
+        return;
+      }
+
+      reinitializeBase44Token(token);
+
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+        setIsAuthenticated(true);
+        setAuthError(null);
+        await initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        // Token invalid/expired — fall back to guest mode, don't block
+        setIsAuthenticated(false);
+        setUser(null);
+        localStorage.removeItem('base44_access_token');
+        setAuthError(null);
+      }
     } finally {
+      clearTimeout(safetyTimer);
       setIsLoadingAuth(false);
       checkingRef.current = false;
     }

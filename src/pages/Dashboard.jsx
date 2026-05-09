@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -24,14 +25,18 @@ export default function Dashboard() {
   const { pullDistance, isRefreshing, onTouchStart, onTouchMove, onTouchEnd } = usePullToRefresh(handleRefresh);
   const navigate = useNavigate();
 
+  const { isAuthenticated } = useAuth();
+
   const { data: allFlips = [], isLoading } = useQuery({
     queryKey: ['flips'],
     queryFn: () => base44.entities.Flip.list('-created_date', 500),
+    enabled: isAuthenticated,
   });
 
   const { data: user } = useQuery({
     queryKey: ['me'],
     queryFn: () => base44.auth.me(),
+    enabled: isAuthenticated,
   });
 
   const { data: communityFlips = [] } = useQuery({

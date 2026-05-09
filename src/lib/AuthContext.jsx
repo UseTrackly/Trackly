@@ -114,9 +114,11 @@ export const AuthProvider = ({ children }) => {
     const token = getStoredToken();
 
     if (!token) {
+      // No token — allow guest access, don't block the app
       setIsAuthenticated(false);
+      setUser(null);
+      setAuthError(null);
       setIsLoadingAuth(false);
-      setAuthError({ type: 'auth_required', message: 'Login required' });
       checkingRef.current = false;
       return;
     }
@@ -131,10 +133,11 @@ export const AuthProvider = ({ children }) => {
       await initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
     } catch (error) {
       console.error('Auth check failed:', error);
+      // Token invalid/expired — fall back to guest mode, don't block
       setIsAuthenticated(false);
       setUser(null);
       localStorage.removeItem('base44_access_token');
-      setAuthError({ type: 'auth_required', message: 'Session expired' });
+      setAuthError(null);
     } finally {
       setIsLoadingAuth(false);
       checkingRef.current = false;

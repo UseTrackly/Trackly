@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/lib/currencyFormatter';
@@ -68,9 +69,12 @@ export default function ProfilePage() {
   const [uploadingBg, setUploadingBg] = useState(false);
   const queryClient = useQueryClient();
 
+  const { isAuthenticated, navigateToLogin } = useAuth();
+
   const { data: user } = useQuery({
     queryKey: ['me'],
-    queryFn: () => base44.auth.me()
+    queryFn: () => base44.auth.me(),
+    enabled: isAuthenticated,
   });
 
   const { data: flips = [] } = useQuery({
@@ -206,6 +210,33 @@ export default function ProfilePage() {
       setUploadingBg(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="px-3 py-4 space-y-4 pb-20">
+        <h1 className="text-lg font-bold tracking-tight">Profile</h1>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card border border-border rounded-xl p-6 flex flex-col items-center gap-4 text-center"
+        >
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="w-8 h-8 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-base">Sign in to unlock everything</p>
+            <p className="text-sm text-muted-foreground mt-1">Save flips, track history, access community & Pro features.</p>
+          </div>
+          <button
+            onClick={navigateToLogin}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
+          >
+            Sign In / Create Account
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-3 py-4 space-y-4 pb-20">

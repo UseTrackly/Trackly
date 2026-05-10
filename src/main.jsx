@@ -8,10 +8,12 @@ const banner = document.getElementById('pre-react-banner');
 const bannerStatus = document.getElementById('pre-react-status');
 if (bannerStatus) bannerStatus.textContent = 'Modules loaded — mounting React...';
 
-// If React hasn't mounted within 8s, show a timeout diagnostic
+// If React hasn't mounted within 8s AND the error boundary hasn't shown anything, show timeout diagnostic
 window.__tracklyMountWatchdog = setTimeout(() => {
   const root = document.getElementById('root');
-  if (root && root.children.length === 0) {
+  // Only fire if root appears empty (no visible text/content rendered by React)
+  const hasContent = root && root.innerText && root.innerText.trim().length > 0;
+  if (!hasContent) {
     root.innerHTML = `
       <div style="background:#0a0a0a;color:#fff;min-height:100vh;padding:32px 24px;font-family:system-ui,sans-serif;box-sizing:border-box;">
         <div style="max-width:480px;margin:0 auto;">
@@ -64,9 +66,17 @@ window.onerror = (message, source, lineno, colno, error) => {
   return false;
 };
 
-window.onunhandledrejection = (event) => {
-  window.onerror(String(event.reason), '', 0, 0, event.reason);
-};
+window.addEventListener('unhandledrejection', (event) => {
+  // Only show the overlay if React hasn't rendered anything yet
+  const root = document.getElementById('root');
+  const hasContent = root && root.innerText && root.innerText.trim().length > 0;
+  if (!hasContent) {
+    window.onerror(String(event.reason), '', 0, 0, event.reason);
+  } else {
+    // React is running — just log it, let the error boundary handle render errors
+    console.error('[Trackly] Unhandled rejection:', event.reason);
+  }
+});
 
 const rootEl = document.getElementById('root');
 rootEl.style.paddingTop = '';

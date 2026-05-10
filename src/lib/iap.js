@@ -27,11 +27,10 @@ function getPlugin() {
 }
 
 /**
- * Poll for the plugin up to ~2s — the native bridge may not register
- * synchronously by the time the first render runs.
+ * Poll for the plugin up to ~1s — fail fast if unavailable.
  */
-async function waitForPlugin(timeoutMs = 2000) {
-  const interval = 100;
+async function waitForPlugin(timeoutMs = 1000) {
+  const interval = 50;
   let elapsed = 0;
   while (elapsed < timeoutMs) {
     const p = getPlugin();
@@ -50,7 +49,9 @@ let _rcConfigured = false;
  */
 async function ensureConfigured() {
   const plugin = await waitForPlugin();
-  if (!plugin) throw new Error('IAP plugin not available — make sure @revenuecat/purchases-capacitor is synced into the iOS project (npx cap sync)');
+  if (!plugin) {
+    throw new Error('In-App Purchases not available. Please ensure the app is running on a physical iOS device with App Store configured.');
+  }
   if (_rcConfigured) return plugin;
   // Re-configure with stored key/userId in case initRevenueCat ran before user loaded
   const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';

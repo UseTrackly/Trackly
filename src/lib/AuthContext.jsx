@@ -183,19 +183,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = async () => {
-    const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
-    if (isCapacitor) {
-      // Build the Base44 login URL manually so we can open it in Safari
-      // via @capacitor/browser — this ensures the trackly:// deep-link
-      // fires appUrlOpen when Base44 redirects back after login.
-      const appId = import.meta.env.VITE_BASE44_APP_ID || '69bfd92e3db7d48eec6c8062';
-      const callbackUrl = encodeURIComponent(IOS_CALLBACK_URL);
-      // Try the standard /login endpoint with app_id as query param
-      const loginUrl = `https://base44.com/login?app_id=${appId}&next=${callbackUrl}`;
-      await Browser.open({ url: loginUrl, presentationStyle: 'fullscreen' });
-    } else {
-      base44.auth.redirectToLogin(getLoginRedirectUrl());
-    }
+    // Use Base44 SDK's redirectToLogin — it handles the correct endpoint
+    // and handles the callback URL properly
+    base44.auth.redirectToLogin(getLoginRedirectUrl());
   };
 
   return (

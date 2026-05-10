@@ -191,7 +191,7 @@ export const AuthProvider = ({ children }) => {
       const appId = import.meta.env.VITE_BASE44_APP_ID;
       const callbackUrl = encodeURIComponent(IOS_CALLBACK_URL);
       const loginUrl = `https://base44.com/login?app_id=${appId}&next=${callbackUrl}`;
-      await Browser.open({ url: loginUrl, presentationStyle: 'popover' });
+      await Browser.open({ url: loginUrl, presentationStyle: 'fullscreen' });
     } else {
       base44.auth.redirectToLogin(getLoginRedirectUrl());
     }

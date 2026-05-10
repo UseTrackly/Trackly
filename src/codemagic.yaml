@@ -16,7 +16,10 @@ workflows:
       - name: Install dependencies
         script: npm install
       - name: Build web app
-        script: npm run build
+        script: |
+          VITE_BASE44_APP_ID=69bfd92e3db7d48eec6c8062 \
+          VITE_BASE44_APP_BASE_URL=https://usetrackly.base44.app \
+          npm run build
       - name: Install Capacitor CLI
         script: |
           npm install @capacitor/cli @capacitor/core @capacitor/ios

@@ -3,10 +3,13 @@ import { appParams } from '@/lib/app-params';
 
 const { appId, functionsVersion, appBaseUrl } = appParams;
 
-// appParams already reads access_token from URL (and removes it) + localStorage at module load.
-// So appParams.token is always the freshest token available at startup.
+// Hardcode the app ID as a fallback — it's a public value, not a secret.
+// This ensures the Capacitor/iOS build works even when VITE_BASE44_APP_ID
+// is not injected by the CI environment.
+const HARDCODED_APP_ID = '69bfd92e3db7d48eec6c8062';
+
 export const base44 = createClient({
-  appId,
+  appId: appId || HARDCODED_APP_ID,
   token: appParams.token,
   functionsVersion,
   serverUrl: '',

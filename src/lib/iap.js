@@ -19,6 +19,22 @@ function getPlugin() {
   return plugin;
 }
 
+/**
+ * Poll for the plugin up to ~2s — the native bridge may not register
+ * synchronously by the time the first render runs.
+ */
+async function waitForPlugin(timeoutMs = 2000) {
+  const interval = 100;
+  let elapsed = 0;
+  while (elapsed < timeoutMs) {
+    const p = getPlugin();
+    if (p) return p;
+    await new Promise(r => setTimeout(r, interval));
+    elapsed += interval;
+  }
+  return null;
+}
+
 let _rcConfigured = false;
 
 /**
@@ -26,8 +42,8 @@ let _rcConfigured = false;
  * Safe to call multiple times — only configures once.
  */
 async function ensureConfigured() {
-  const plugin = getPlugin();
-  if (!plugin) throw new Error('IAP plugin not available');
+  const plugin = await waitForPlugin();
+  if (!plugin) throw new Error('IAP plugin not available — make sure @revenuecat/purchases-capacitor is synced into the iOS project (npx cap sync)');
   if (_rcConfigured) return plugin;
   // Re-configure with stored key/userId in case initRevenueCat ran before user loaded
   const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
@@ -48,8 +64,8 @@ async function ensureConfigured() {
  * Wrapped in a 3s timeout so it never blocks the auth flow.
  */
 export async function initRevenueCat(apiKey, userId) {
-  const plugin = getPlugin();
-  if (!plugin) return;
+  const plugin = await waitForPlugin(3000);
+  if (!plugin) { console.warn('[IAP] initRevenueCat: plugin not found after 3s'); return; }
   try {
     await Promise.race([
       plugin.configure({ apiKey, appUserID: userId }),

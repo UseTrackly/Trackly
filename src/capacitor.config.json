@@ -4,7 +4,6 @@
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
-    "iosScheme": "https",
     "hostname": "app"
   },
   "ios": {
@@ -12,7 +11,7 @@
     "allowsLinkPreview": false,
     "scrollEnabled": true,
     "limitsNavigationsToAppBoundDomains": false,
-    "scheme": "com.base69bfd92e3db7d48eec6c8062.app",
+    "scheme": "trackly",
     "backgroundColor": "#0a0a0a"
   }
 }

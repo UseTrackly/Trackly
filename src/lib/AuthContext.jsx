@@ -3,32 +3,22 @@ import { base44, reinitializeBase44Token } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { initRevenueCat } from '@/lib/iap';
 
-// The custom URL scheme used as the OAuth callback on iOS.
-// Must match the bundle ID in capacitor.config.json / Info.plist.
-const IOS_SCHEME = 'com.base69bfd92e3db7d48eec6c8062.app';
+// Custom URL scheme registered in capacitor.config.json ios.scheme = "trackly"
+// Capacitor automatically registers "trackly://" in Info.plist CFBundleURLSchemes.
+// When Base44 redirects to trackly://app?access_token=XXX, iOS intercepts it
+// and fires appUrlOpen inside the Capacitor app with that URL — no Safari
+// hand-off problem.
+const IOS_CALLBACK_URL = 'trackly://app';
 
-// Base44's redirectToLogin(callbackUrl) sends the user to the login page,
-// then redirects back to callbackUrl with ?access_token= appended.
-// On iOS native, window.location.href = "https://app/" — Base44's server
-// won't redirect back to that internal hostname.
-// 
-// The correct approach: pass the app's real published URL as the callback.
-// When Base44 redirects to e.g. https://trackly.base44.app?access_token=XXX,
-// Capacitor's WKWebView intercepts that navigation and the page re-loads
-// with the token in the URL — app-params.js scrapes it on load.
 const getLoginRedirectUrl = () => {
-  // On iOS Capacitor, window.location.href is capacitor://localhost/...
-  // Base44's server can't redirect back to that scheme, so always use the
-  // published web URL. After login Base44 redirects to this URL with
-  // ?access_token=... and Capacitor's WKWebView loads it, allowing AuthContext
-  // to scrape the token on visibilitychange / appUrlOpen.
+  const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
+  if (isCapacitor) {
+    // Use the custom scheme so Base44's redirect comes back INTO the app
+    // instead of staying in Safari.
+    return IOS_CALLBACK_URL;
+  }
   const appBaseUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL;
   if (appBaseUrl) return appBaseUrl;
-
-  // Hardcoded fallback for iOS TestFlight builds where env vars may not be set
-  const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
-  if (isCapacitor) return 'https://usetrackly.base44.app';
-
   return window.location.href;
 };
 
@@ -82,7 +72,8 @@ export const AuthProvider = ({ children }) => {
     return () => { if (handle) handle.remove(); };
   }, []);
 
-  // Listen for Capacitor deep-link (iOS: app opened via custom URL scheme after login)
+  // Listen for Capacitor deep-link (iOS: app opened via trackly:// scheme after login)
+  // Base44 redirects to trackly://app?access_token=XXX which iOS routes here.
   useEffect(() => {
     if (!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App)) return;
 
@@ -91,10 +82,14 @@ export const AuthProvider = ({ children }) => {
 
     const setupListener = async () => {
       handle = await CapApp.addListener('appUrlOpen', (event) => {
+        console.log('[Auth] appUrlOpen:', event.url);
         const token = extractToken(event.url);
         if (token) {
           localStorage.setItem('base44_access_token', token);
           reinitializeBase44Token(token);
+          checkAppState();
+        } else {
+          // URL opened but no token yet — re-check in case session was set server-side
           checkAppState();
         }
       });

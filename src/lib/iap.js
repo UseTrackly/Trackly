@@ -11,10 +11,34 @@ export const PRODUCT_IDS = {
 
 function getPlugin() {
   const plugins = window?.Capacitor?.Plugins ?? {};
-  // Try all known RevenueCat plugin registration names
-  const plugin = plugins.PurchasesPlugin ?? plugins.Purchases ?? plugins.RevenueCat ?? null;
+  // @revenuecat/purchases-capacitor v10+ registers as "Purchases"
+  const plugin = plugins.Purchases ?? plugins.PurchasesPlugin ?? plugins.RevenueCat ?? null;
   if (!plugin) {
     console.warn('[IAP] RevenueCat plugin not found. Available plugins:', Object.keys(plugins));
+  }
+  return plugin;
+}
+
+let _rcConfigured = false;
+
+/**
+ * Ensure RevenueCat is configured before any purchase call.
+ * Safe to call multiple times — only configures once.
+ */
+async function ensureConfigured() {
+  const plugin = getPlugin();
+  if (!plugin) throw new Error('IAP plugin not available');
+  if (_rcConfigured) return plugin;
+  // Re-configure with stored key/userId in case initRevenueCat ran before user loaded
+  const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
+  try {
+    // getAppUserID throws if not configured yet
+    await plugin.getAppUserID();
+    _rcConfigured = true;
+  } catch {
+    // Not configured — configure now
+    await plugin.configure({ apiKey });
+    _rcConfigured = true;
   }
   return plugin;
 }
@@ -31,6 +55,7 @@ export async function initRevenueCat(apiKey, userId) {
       plugin.configure({ apiKey, appUserID: userId }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('RevenueCat init timeout')), 3000)),
     ]);
+    _rcConfigured = true;
   } catch (e) {
     console.warn('[IAP] initRevenueCat failed or timed out:', e?.message);
   }
@@ -40,8 +65,7 @@ export async function initRevenueCat(apiKey, userId) {
  * Load offerings from RevenueCat
  */
 export async function loadProducts() {
-  const plugin = getPlugin();
-  if (!plugin) throw new Error('IAP plugin not available');
+  const plugin = await ensureConfigured();
   const { offerings } = await plugin.getOfferings();
   return offerings?.current?.availablePackages ?? [];
 }
@@ -58,8 +82,7 @@ const PACKAGE_TYPES = {
  * Returns the appUserID so the backend can verify via RevenueCat REST API
  */
 export async function purchasePlan(plan) {
-  const plugin = getPlugin();
-  if (!plugin) throw new Error('IAP plugin not available');
+  const plugin = await ensureConfigured();
 
   // Get current offerings
   const { offerings } = await plugin.getOfferings();
@@ -114,8 +137,7 @@ export async function purchasePlan(plan) {
  * Restore previous purchases — returns customerInfo
  */
 export async function restorePurchases() {
-  const plugin = getPlugin();
-  if (!plugin) throw new Error('IAP plugin not available');
+  const plugin = await ensureConfigured();
   const { customerInfo } = await plugin.restorePurchases();
   return customerInfo;
 }

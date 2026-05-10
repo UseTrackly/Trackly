@@ -17,10 +17,18 @@ const IOS_SCHEME = 'com.base69bfd92e3db7d48eec6c8062.app';
 // Capacitor's WKWebView intercepts that navigation and the page re-loads
 // with the token in the URL — app-params.js scrapes it on load.
 const getLoginRedirectUrl = () => {
+  // On iOS Capacitor, window.location.href is capacitor://localhost/...
+  // Base44's server can't redirect back to that scheme, so always use the
+  // published web URL. After login Base44 redirects to this URL with
+  // ?access_token=... and Capacitor's WKWebView loads it, allowing AuthContext
+  // to scrape the token on visibilitychange / appUrlOpen.
   const appBaseUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL;
-  if (appBaseUrl) {
-    return appBaseUrl;
-  }
+  if (appBaseUrl) return appBaseUrl;
+
+  // Hardcoded fallback for iOS TestFlight builds where env vars may not be set
+  const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
+  if (isCapacitor) return 'https://usetrackly.base44.app';
+
   return window.location.href;
 };
 
@@ -58,6 +66,20 @@ export const AuthProvider = ({ children }) => {
   // Run auth check on mount
   useEffect(() => {
     checkAppState();
+  }, []);
+
+  // Listen for Capacitor App becoming active (foreground resume after Safari login)
+  useEffect(() => {
+    if (!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App)) return;
+    const CapApp = window.Capacitor.Plugins.App;
+    let handle;
+    const setup = async () => {
+      handle = await CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) checkAppState();
+      });
+    };
+    setup();
+    return () => { if (handle) handle.remove(); };
   }, []);
 
   // Listen for Capacitor deep-link (iOS: app opened via custom URL scheme after login)

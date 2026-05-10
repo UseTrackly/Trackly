@@ -3,6 +3,34 @@ import ReactDOM from 'react-dom/client'
 import App from '@/App.jsx'
 import '@/index.css'
 
+// Update the pre-react banner to show modules loaded OK
+const banner = document.getElementById('pre-react-banner');
+const bannerStatus = document.getElementById('pre-react-status');
+if (bannerStatus) bannerStatus.textContent = 'Modules loaded — mounting React...';
+
+// If React hasn't mounted within 6s, show a timeout diagnostic
+const mountWatchdog = setTimeout(() => {
+  const root = document.getElementById('root');
+  if (root && root.children.length === 0) {
+    root.innerHTML = `
+      <div style="background:#0a0a0a;color:#fff;min-height:100vh;padding:32px 24px;font-family:system-ui,sans-serif;box-sizing:border-box;">
+        <div style="max-width:480px;margin:0 auto;">
+          <div style="color:#f59e0b;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;">TRACKLY — MOUNT TIMEOUT</div>
+          <h1 style="font-size:20px;font-weight:700;margin:0 0 16px;">React did not mount</h1>
+          <p style="color:#999;font-size:14px;margin:0 0 16px;">JS executed but ReactDOM.render() never completed. This usually means a crash in App.jsx or one of its top-level imports.</p>
+          <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:16px;">
+            <div style="font-size:12px;color:#999;margin-bottom:6px;">Build Config (baked in at build time)</div>
+            <div style="font-size:12px;color:#ccc;font-family:monospace;line-height:1.8;">
+              APP_ID: ${import.meta.env.VITE_BASE44_APP_ID || '(not set — CHECK CODEMAGIC)'}<br/>
+              BASE_URL: ${import.meta.env.VITE_BASE44_APP_BASE_URL || '(not set)'}<br/>
+              FN_VER: ${import.meta.env.VITE_BASE44_FUNCTIONS_VERSION || '(not set)'}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+}, 6000);
+
 // Global error boundary — catches any crash before/during React mount
 // and renders a visible error screen instead of a black screen.
 window.onerror = (message, source, lineno, colno, error) => {
@@ -40,6 +68,11 @@ window.onunhandledrejection = (event) => {
   window.onerror(String(event.reason), '', 0, 0, event.reason);
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <App />
-)
+const rootEl = document.getElementById('root');
+rootEl.style.paddingTop = ''; // remove pre-react spacing
+const reactRoot = ReactDOM.createRoot(rootEl);
+reactRoot.render(<App />);
+
+// React mounted — clear watchdog and remove diagnostic banner
+clearTimeout(mountWatchdog);
+if (banner) banner.remove();

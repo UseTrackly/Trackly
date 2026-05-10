@@ -8,7 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { ThemeProvider } from '@/lib/ThemeContext';
 import AppBackground from '@/components/background/AppBackground';
 import SplashScreen from '@/components/SplashScreen';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 import AppLayout from '@/components/layout/AppLayout';
 import Onboarding from '@/pages/Onboarding';
@@ -62,14 +62,12 @@ const AuthenticatedApp = () => {
 };
 
 function App() {
-  const [splashDone, setSplashDone] = useState(false);
-
   return (
     <AuthProvider>
       <ThemeProvider>
         <QueryClientProvider client={queryClientInstance}>
-          {/* Splash overlays the app — app mounts immediately underneath */}
-          {!splashDone && <SplashScreen onComplete={() => setSplashDone(true)} />}
+          {/* Splash is a pure overlay — app always renders underneath */}
+          <SplashScreen onComplete={() => {}} />
           <Router>
             <AppBackground />
             <AuthenticatedApp />

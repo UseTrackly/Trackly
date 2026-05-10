@@ -2,16 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SplashScreen({ onComplete }) {
-  const [phase, setPhase] = useState('enter'); // enter → hold → exit
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const holdTimer = setTimeout(() => setPhase('exit'), 1800);
-    return () => clearTimeout(holdTimer);
+    // Hide splash after 1.8s, then call onComplete 500ms later (fade duration)
+    // Hard fallback at 3s in case AnimatePresence onExitComplete never fires
+    const hideTimer = setTimeout(() => setVisible(false), 1800);
+    const fallbackTimer = setTimeout(() => onComplete?.(), 3000);
+    return () => {
+      clearTimeout(hideTimer);
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   return (
-    <AnimatePresence onExitComplete={onComplete}>
-      {phase !== 'exit' && (
+    <AnimatePresence onExitComplete={() => onComplete?.()}>
+      {visible && (
         <motion.div
           key="splash"
           initial={{ opacity: 1 }}
@@ -41,7 +47,6 @@ export default function SplashScreen({ onComplete }) {
               alt="Trackly"
               className="h-20 w-auto"
             />
-
             <motion.p
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}

@@ -10,7 +10,11 @@ export const PRODUCT_IDS = {
   lifetime: 'trackly.pro.lifetime',
 };
 
+const isNative = () => !!(window?.Capacitor?.isNativePlatform?.());
+
 function getPlugin() {
+  // Only use IAP on native — RevenueCat throws "not implemented on web" otherwise
+  if (!isNative()) return null;
   // Use the directly imported Purchases plugin (self-registers on native bridge)
   if (Purchases) return Purchases;
   // Fallback to Capacitor.Plugins registry

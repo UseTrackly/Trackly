@@ -20,9 +20,10 @@ workflows:
           VITE_BASE44_APP_ID=69bfd92e3db7d48eec6c8062 \
           VITE_BASE44_APP_BASE_URL=https://usetrackly.base44.app \
           npm run build
-      - name: Install Capacitor CLI
+      - name: Install Capacitor CLI and plugins
         script: |
           npm install @capacitor/cli @capacitor/core @capacitor/ios
+          npm install @revenuecat/purchases-capacitor@^10.4.0
       - name: Add Capacitor iOS platform
         script: |
           git rm -rf ios --ignore-unmatch || true
@@ -31,6 +32,21 @@ workflows:
       - name: Sync Capacitor
         script: |
           npx cap sync ios
+      - name: Register trackly:// URL scheme for OAuth deep-link
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          # Add CFBundleURLTypes array if missing
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$PLIST" 2>/dev/null || true
+          # Add first entry (dict) if missing
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string trackly" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLName trackly" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string trackly" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 trackly" "$PLIST"
+          echo "--- URL schemes registered ---"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$PLIST"
+
       - name: Set export compliance
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \

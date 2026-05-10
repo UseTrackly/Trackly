@@ -2,6 +2,7 @@
  * In-App Purchase bridge using @revenuecat/purchases-capacitor
  * Falls back gracefully if the plugin isn't available (web).
  */
+import { Purchases } from '@revenuecat/purchases-capacitor';
 
 export const PRODUCT_IDS = {
   monthly: 'trackly.pro.monthly',
@@ -10,9 +11,11 @@ export const PRODUCT_IDS = {
 };
 
 function getPlugin() {
+  // Use the directly imported Purchases plugin (self-registers on native bridge)
+  if (Purchases) return Purchases;
+  // Fallback to Capacitor.Plugins registry
   const plugins = window?.Capacitor?.Plugins ?? {};
-  // @revenuecat/purchases-capacitor v10+ registers as "Purchases"
-  const plugin = plugins.Purchases ?? plugins.PurchasesPlugin ?? plugins.RevenueCat ?? null;
+  const plugin = plugins.Purchases ?? plugins.PurchasesPlugin ?? null;
   if (!plugin) {
     console.warn('[IAP] RevenueCat plugin not found. Available plugins:', Object.keys(plugins));
   }

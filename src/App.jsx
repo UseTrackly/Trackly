@@ -36,8 +36,14 @@ const AuthenticatedApp = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [checkAppState]);
 
-  // Don't block — let the app render even while loading auth
-  // The individual pages handle the unauthenticated state gracefully
+  if (isLoadingAuth) {
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (authError?.type === 'user_not_registered') {
     return <UserNotRegisteredError />;
   }

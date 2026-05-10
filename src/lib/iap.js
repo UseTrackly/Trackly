@@ -21,11 +21,19 @@ function getPlugin() {
 
 /**
  * Initialize RevenueCat — call this once on app start (inside native only)
+ * Wrapped in a 3s timeout so it never blocks the auth flow.
  */
 export async function initRevenueCat(apiKey, userId) {
   const plugin = getPlugin();
   if (!plugin) return;
-  await plugin.configure({ apiKey, appUserID: userId });
+  try {
+    await Promise.race([
+      plugin.configure({ apiKey, appUserID: userId }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('RevenueCat init timeout')), 3000)),
+    ]);
+  } catch (e) {
+    console.warn('[IAP] initRevenueCat failed or timed out:', e?.message);
+  }
 }
 
 /**

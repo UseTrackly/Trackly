@@ -139,7 +139,8 @@ export const AuthProvider = ({ children }) => {
         setUser(currentUser);
         setIsAuthenticated(true);
         setAuthError(null);
-        await initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
+        // Fire-and-forget — don't await so it never blocks auth resolution
+        initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
       } catch (error) {
         console.error('Auth check failed:', error);
         // Token invalid/expired — fall back to guest mode, don't block

@@ -24,6 +24,7 @@ workflows:
         script: |
           npm install @capacitor/cli @capacitor/core @capacitor/ios
           npm install @revenuecat/purchases-capacitor@^10.4.0
+          npm install @capacitor/browser
       - name: Add Capacitor iOS platform
         script: |
           git rm -rf ios --ignore-unmatch || true
@@ -32,6 +33,7 @@ workflows:
       - name: Sync Capacitor
         script: |
           npx cap sync ios
+          cd ios/App && pod install --repo-update
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
           PLIST="ios/App/App/Info.plist"

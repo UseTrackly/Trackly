@@ -7,6 +7,7 @@ workflows:
       node: 24.15.0
       groups:
         - app_store
+        - vite
       vars:
         BUNDLE_ID: com.base69bfd92e3db7d48eec6c8062.app
       ios_signing:

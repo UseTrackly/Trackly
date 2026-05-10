@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useRef } from 'r
 import { base44, reinitializeBase44Token } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { initRevenueCat } from '@/lib/iap';
+import { Browser } from '@capacitor/browser';
 
 // Custom URL scheme registered in capacitor.config.json ios.scheme = "trackly"
 // Capacitor automatically registers "trackly://" in Info.plist CFBundleURLSchemes.
@@ -81,15 +82,16 @@ export const AuthProvider = ({ children }) => {
     let handle;
 
     const setupListener = async () => {
-      handle = await CapApp.addListener('appUrlOpen', (event) => {
+      handle = await CapApp.addListener('appUrlOpen', async (event) => {
         console.log('[Auth] appUrlOpen:', event.url);
+        // Close the in-app browser if it's still open
+        try { await Browser.close(); } catch (_) {}
         const token = extractToken(event.url);
         if (token) {
           localStorage.setItem('base44_access_token', token);
           reinitializeBase44Token(token);
           checkAppState();
         } else {
-          // URL opened but no token yet — re-check in case session was set server-side
           checkAppState();
         }
       });
@@ -180,8 +182,19 @@ export const AuthProvider = ({ children }) => {
     base44.auth.logout('/');
   };
 
-  const navigateToLogin = () => {
-    base44.auth.redirectToLogin(getLoginRedirectUrl());
+  const navigateToLogin = async () => {
+    const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
+    if (isCapacitor) {
+      // Build the Base44 login URL manually so we can open it in Safari
+      // via @capacitor/browser — this ensures the trackly:// deep-link
+      // fires appUrlOpen when Base44 redirects back after login.
+      const appId = import.meta.env.VITE_BASE44_APP_ID;
+      const callbackUrl = encodeURIComponent(IOS_CALLBACK_URL);
+      const loginUrl = `https://base44.com/login?app_id=${appId}&next=${callbackUrl}`;
+      await Browser.open({ url: loginUrl, presentationStyle: 'popover' });
+    } else {
+      base44.auth.redirectToLogin(getLoginRedirectUrl());
+    }
   };
 
   return (

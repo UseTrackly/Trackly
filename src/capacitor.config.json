@@ -12,6 +12,7 @@
     "allowsLinkPreview": false,
     "scrollEnabled": true,
     "limitsNavigationsToAppBoundDomains": false,
-    "scheme": "com.base69bfd92e3db7d48eec6c8062.app"
+    "scheme": "com.base69bfd92e3db7d48eec6c8062.app",
+    "backgroundColor": "#0a0a0a"
   }
 }

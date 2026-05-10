@@ -25,6 +25,16 @@ import PrivacyPolicy from '@/pages/PrivacyPolicy';
 const AuthenticatedApp = () => {
   const { isLoadingAuth, authError, checkAppState } = useAuth();
 
+  // Signal to main.jsx that React has mounted and is rendering
+  useEffect(() => {
+    // Clear the pre-react diagnostic banner and watchdog
+    if (typeof window.__tracklyMountWatchdog !== 'undefined') {
+      clearTimeout(window.__tracklyMountWatchdog);
+    }
+    const banner = document.getElementById('pre-react-banner');
+    if (banner) banner.remove();
+  }, []);
+
   // When user returns to the app after external login, re-check auth
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -38,8 +48,14 @@ const AuthenticatedApp = () => {
 
   if (isLoadingAuth) {
     return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div style={{ position: 'fixed', inset: 0, background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <img
+          src="https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/c29d404d0_logo_no_bg_final.png"
+          alt="Trackly"
+          style={{ height: 48, width: 'auto' }}
+        />
+        <div style={{ width: 24, height: 24, border: '2px solid #22c55e', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }

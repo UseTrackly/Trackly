@@ -8,8 +8,8 @@ const banner = document.getElementById('pre-react-banner');
 const bannerStatus = document.getElementById('pre-react-status');
 if (bannerStatus) bannerStatus.textContent = 'Modules loaded — mounting React...';
 
-// If React hasn't mounted within 6s, show a timeout diagnostic
-const mountWatchdog = setTimeout(() => {
+// If React hasn't mounted within 8s, show a timeout diagnostic
+window.__tracklyMountWatchdog = setTimeout(() => {
   const root = document.getElementById('root');
   if (root && root.children.length === 0) {
     root.innerHTML = `
@@ -69,10 +69,7 @@ window.onunhandledrejection = (event) => {
 };
 
 const rootEl = document.getElementById('root');
-rootEl.style.paddingTop = ''; // remove pre-react spacing
+rootEl.style.paddingTop = '';
 const reactRoot = ReactDOM.createRoot(rootEl);
 reactRoot.render(<App />);
-
-// React mounted — clear watchdog and remove diagnostic banner
-clearTimeout(mountWatchdog);
-if (banner) banner.remove();
+// NOTE: render() is async — banner/watchdog are cleared by App itself via window.__tracklyReactReady()

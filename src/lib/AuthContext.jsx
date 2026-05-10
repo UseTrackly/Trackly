@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
     setIsLoadingAuth(true);
     setAuthError(null);
 
-    // Safety timeout — never block the app more than 4 seconds
+    // Safety timeout — never block the app more than 2.5 seconds
     const safetyTimer = setTimeout(() => {
       if (checkingRef.current) {
         setIsLoadingAuth(false);
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         checkingRef.current = false;
       }
-    }, 4000);
+    }, 2500);
 
     try {
       // app-params.js already scraped ?access_token= from the URL at module load

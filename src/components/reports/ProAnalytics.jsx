@@ -19,7 +19,9 @@ function SectionTitle({ children }) {
   );
 }
 
-export default function ProAnalytics({ flips = [], currency }) {
+export default function ProAnalytics({ flips: flipsProp = [], currency }) {
+  const flips = Array.isArray(flipsProp) ? flipsProp : [];
+
   // Weekly profit trend (last 8 weeks)
   const weeklyData = useMemo(() => {
     const weeks = eachWeekOfInterval({ start: subDays(new Date(), 56), end: new Date() });

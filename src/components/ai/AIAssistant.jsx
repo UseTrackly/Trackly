@@ -162,7 +162,7 @@ User: ${userMessage}`,
         date_sold: new Date().toISOString().split('T')[0],
         created_date: new Date().toISOString(),
       };
-      queryClient.setQueryData(['flips'], (old = []) => [optimistic, ...old]);
+      queryClient.setQueryData(['flips'], (old) => [optimistic, ...(Array.isArray(old) ? old : [])]);
       return { previous };
     },
     onSuccess: () => {

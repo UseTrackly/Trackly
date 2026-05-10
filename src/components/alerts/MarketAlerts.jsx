@@ -41,11 +41,13 @@ export default function MarketAlerts() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: alerts = [], isLoading } = useQuery({
+  const { data: alertsRaw, isLoading } = useQuery({
     queryKey: ['marketAlerts'],
     queryFn: () => base44.entities.MarketAlert.filter({ user_email: user.email }, '-created_date', 50),
     enabled: !!user,
+    initialData: [],
   });
+  const alerts = Array.isArray(alertsRaw) ? alertsRaw : [];
 
   const createMutation = useMutation({
     mutationFn: async (alertData) => {

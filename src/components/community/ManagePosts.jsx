@@ -43,13 +43,15 @@ export default function ManagePosts() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: myPosts = [], isLoading } = useQuery({
+  const { data: myPostsRaw, isLoading } = useQuery({
     queryKey: ['myPosts'],
     queryFn: () => base44.entities.CommunityFlip.filter({
       posted_by: user.email
     }, '-created_date', 100),
     enabled: !!user,
+    initialData: [],
   });
+  const myPosts = Array.isArray(myPostsRaw) ? myPostsRaw : [];
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.CommunityFlip.delete(id),

@@ -63,8 +63,8 @@ export default function CommunityPage() {
     onMutate: async (flipId) => {
       await queryClient.cancelQueries({ queryKey: ['communityFlips'] });
       const previous = queryClient.getQueryData(['communityFlips']);
-      queryClient.setQueryData(['communityFlips'], (old = []) =>
-      old.map(f => {
+      queryClient.setQueryData(['communityFlips'], (old) =>
+      (Array.isArray(old) ? old : []).map(f => {
         if (f.id !== flipId) return f;
         const interested = f.interested_users || [];
         const isInterested = interested.includes(user?.email);
@@ -88,11 +88,12 @@ export default function CommunityPage() {
 
   // Sort by user's categories first, then by date
   const sortedFlips = useMemo(() => {
-    if (!user?.selected_categories) return communityFlips;
-    
+    const cats = Array.isArray(user?.selected_categories) ? user.selected_categories : [];
+    if (!cats.length) return communityFlips;
+
     return [...communityFlips].sort((a, b) => {
-      const aMatch = user.selected_categories.includes(a.category);
-      const bMatch = user.selected_categories.includes(b.category);
+      const aMatch = cats.includes(a.category);
+      const bMatch = cats.includes(b.category);
       if (aMatch && !bMatch) return -1;
       if (!aMatch && bMatch) return 1;
       return 0;

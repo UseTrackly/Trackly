@@ -2,7 +2,8 @@ import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { PLATFORMS } from '@/lib/platformFees';
 
-export default function PlatformChart({ flips }) {
+export default function PlatformChart({ flips: flipsProp }) {
+  const flips = Array.isArray(flipsProp) ? flipsProp : [];
   const platformData = {};
   flips.forEach(flip => {
     const p = flip.platform;

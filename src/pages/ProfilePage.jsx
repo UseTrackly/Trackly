@@ -77,10 +77,12 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
-  const { data: flips = [] } = useQuery({
+  const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],
-    queryFn: () => base44.entities.Flip.list('-created_date', 500)
+    queryFn: () => base44.entities.Flip.list('-created_date', 500),
+    initialData: [],
   });
+  const flips = Array.isArray(flipsRaw) ? flipsRaw : [];
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (updates) => {

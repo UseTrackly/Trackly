@@ -55,10 +55,12 @@ export default function HistoryPage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: flips = [], isLoading } = useQuery({
+  const { data: flipsRaw, isLoading } = useQuery({
     queryKey: ['flips'],
     queryFn: () => base44.entities.Flip.list('-created_date', 500),
+    initialData: [],
   });
+  const flips = Array.isArray(flipsRaw) ? flipsRaw : [];
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Flip.delete(id),

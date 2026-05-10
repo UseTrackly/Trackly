@@ -46,15 +46,19 @@ export default function InventoryPage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: itemsRaw, isLoading } = useQuery({
     queryKey: ['inventory'],
     queryFn: () => base44.entities.Inventory.list('-created_date', 500),
+    initialData: [],
   });
+  const items = Array.isArray(itemsRaw) ? itemsRaw : [];
 
-  const { data: expenses = [] } = useQuery({
+  const { data: expensesRaw } = useQuery({
     queryKey: ['expenses'],
     queryFn: () => base44.entities.Expense.list('-date', 500),
+    initialData: [],
   });
+  const expenses = Array.isArray(expensesRaw) ? expensesRaw : [];
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Inventory.delete(id),

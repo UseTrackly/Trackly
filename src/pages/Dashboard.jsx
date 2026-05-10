@@ -27,11 +27,13 @@ export default function Dashboard() {
 
   const { isAuthenticated } = useAuth();
 
-  const { data: allFlips = [], isLoading } = useQuery({
+  const { data: allFlipsRaw, isLoading } = useQuery({
     queryKey: ['flips'],
     queryFn: () => base44.entities.Flip.list('-created_date', 500),
     enabled: isAuthenticated,
+    initialData: [],
   });
+  const allFlips = Array.isArray(allFlipsRaw) ? allFlipsRaw : [];
 
   const { data: user } = useQuery({
     queryKey: ['me'],
@@ -39,10 +41,12 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
-  const { data: communityFlips = [] } = useQuery({
+  const { data: communityFlipsRaw } = useQuery({
     queryKey: ['communityFlips'],
     queryFn: () => base44.entities.CommunityFlip.list('-created_date', 10),
+    initialData: [],
   });
+  const communityFlips = Array.isArray(communityFlipsRaw) ? communityFlipsRaw : [];
 
   const todayFlips = useMemo(() => {
     return allFlips.filter(f => {

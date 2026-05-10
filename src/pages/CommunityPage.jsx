@@ -35,10 +35,12 @@ export default function CommunityPage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: communityFlips = [], isLoading } = useQuery({
+  const { data: communityFlipsRaw, isLoading } = useQuery({
     queryKey: ['communityFlips'],
     queryFn: () => base44.entities.CommunityFlip.list('-created_date', 100),
+    initialData: [],
   });
+  const communityFlips = Array.isArray(communityFlipsRaw) ? communityFlipsRaw : [];
 
   const requireAuth = () => {
     if (!user) {

@@ -49,10 +49,12 @@ export default function CalculatorPage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: flips = [] } = useQuery({
+  const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],
     queryFn: () => base44.entities.Flip.list('-created_date', 500),
+    initialData: [],
   });
+  const flips = Array.isArray(flipsRaw) ? flipsRaw : [];
 
   const todayCount = countTodayFlips(flips);
   const flipAllowed = canSaveFlip(user, flips);

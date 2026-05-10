@@ -23,14 +23,16 @@ export default function NotificationBell() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: notifications = [] } = useQuery({
+  const { data: notificationsRaw } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => base44.entities.Notification.filter({
       user_email: user.email
     }, '-created_date', 50),
     enabled: !!user,
+    initialData: [],
     refetchInterval: 10000, // Poll every 10 seconds
   });
+  const notifications = Array.isArray(notificationsRaw) ? notificationsRaw : [];
 
   // Subscribe to real-time updates
   useEffect(() => {

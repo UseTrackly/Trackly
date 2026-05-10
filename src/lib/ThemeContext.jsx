@@ -5,10 +5,14 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('trackly-theme');
-      if (saved) return saved;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('trackly-theme');
+        if (saved) return saved;
+        return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light';
+      }
+    } catch {
+      // ignore — fall back to dark
     }
     return 'dark';
   });
@@ -54,7 +58,7 @@ export function ThemeProvider({ children }) {
   }, [customBackground]);
 
   useEffect(() => {
-    applyColorTheme(colorTheme);
+    try { applyColorTheme(colorTheme); } catch { /* ignore */ }
     localStorage.setItem('trackly-color-theme', colorTheme);
   }, [colorTheme]);
 

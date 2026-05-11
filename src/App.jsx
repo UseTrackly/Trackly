@@ -79,7 +79,7 @@ import CommunityPage from '@/pages/CommunityPage';
 import ProfilePage from '@/pages/ProfilePage';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
-import AuthCallback from '@/pages/AuthCallback.jsx';
+import AuthCallback from '@/pages/AuthCallback';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, authError, checkAppState } = useAuth();

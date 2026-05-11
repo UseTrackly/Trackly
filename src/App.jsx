@@ -69,6 +69,7 @@ class AppErrorBoundary extends React.Component {
 }
 
 import AppLayout from '@/components/layout/AppLayout';
+import NativeAuthScreen from '@/components/auth/NativeAuthScreen';
 import Onboarding from '@/pages/Onboarding';
 import OnboardingCategories from '@/pages/OnboardingCategories';
 import Dashboard from '@/pages/Dashboard';
@@ -82,7 +83,7 @@ import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import AuthCallback from '@/pages/AuthCallback';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, authError, checkAppState } = useAuth();
+  const { isLoadingAuth, authError, checkAppState, showNativeAuth, setShowNativeAuth } = useAuth();
 
   // Signal to main.jsx that React has mounted and is rendering
   useEffect(() => {
@@ -121,6 +122,18 @@ const AuthenticatedApp = () => {
 
   if (authError?.type === 'user_not_registered') {
     return <UserNotRegisteredError />;
+  }
+
+  // Native in-app auth screen (Capacitor iOS — replaces browser flow)
+  if (showNativeAuth) {
+    return (
+      <NativeAuthScreen
+        onSuccess={() => {
+          setShowNativeAuth(false);
+          checkAppState();
+        }}
+      />
+    );
   }
 
   return (

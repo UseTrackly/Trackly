@@ -2,33 +2,25 @@ import React, { createContext, useState, useContext, useEffect, useRef } from 'r
 import { base44, reinitializeBase44Token } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { initRevenueCat } from '@/lib/iap';
-import { Browser } from '@capacitor/browser';
 
-const getLoginRedirectUrl = () => {
-  return appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.href;
-};
+const isCapacitorNative = () => !!(window?.Capacitor?.isNativePlatform?.());
 
 // Extract access_token from a URL string (query param or hash fragment)
 const extractToken = (url) => {
   if (!url) return null;
   try {
     const urlObj = new URL(url);
-    // Check query string first
     const qToken = urlObj.searchParams.get('access_token');
     if (qToken) return qToken;
-    // Check hash fragment (Supabase-style: #access_token=...)
     const hash = urlObj.hash.startsWith('#') ? urlObj.hash.slice(1) : urlObj.hash;
-    const hashParams = new URLSearchParams(hash);
-    return hashParams.get('access_token') || null;
+    return new URLSearchParams(hash).get('access_token') || null;
   } catch {
     return null;
   }
 };
 
-// Get the freshest stored token
-const getStoredToken = () => {
-  return localStorage.getItem('base44_access_token') || appParams.token || null;
-};
+const getStoredToken = () =>
+  localStorage.getItem('base44_access_token') || appParams.token || null;
 
 const AuthContext = createContext();
 
@@ -37,49 +29,17 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
+  // Controls whether the native in-app auth screen is shown (Capacitor only)
+  const [showNativeAuth, setShowNativeAuth] = useState(false);
   const checkingRef = useRef(false);
 
-  // Run auth check on mount
   useEffect(() => {
     checkAppState();
   }, []);
 
-  // Listen for the trackly:// deep link fired by AuthCallback page.
-  // AuthCallback writes token to localStorage then redirects to
-  // trackly://auth-callback?access_token=XXX — iOS intercepts the custom
-  // scheme, fires appUrlOpen in the Capacitor WebView, we close the browser
-  // overlay and authenticate.
+  // Web-only: re-check on tab visibility change (OAuth redirect flow)
   useEffect(() => {
-    const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
-    if (!isCapacitor) return;
-    if (!(window?.Capacitor?.Plugins?.App)) return;
-
-    const CapApp = window.Capacitor.Plugins.App;
-    let handle;
-
-    const setup = async () => {
-      handle = await CapApp.addListener('appUrlOpen', async (event) => {
-        console.log('[Auth] appUrlOpen:', event.url);
-        // Close the in-app browser overlay from the native side
-        try { await Browser.close(); } catch (_) {}
-        // Small delay for the browser dismiss animation
-        await new Promise(r => setTimeout(r, 300));
-
-        const token = extractToken(event.url);
-        if (token) {
-          localStorage.setItem('base44_access_token', token);
-          reinitializeBase44Token(token);
-        }
-        checkAppState();
-      });
-    };
-
-    setup();
-    return () => { if (handle) handle.remove(); };
-  }, []);
-
-  // Also re-check when app becomes visible (Safari/browser OAuth flow)
-  useEffect(() => {
+    if (isCapacitorNative()) return;
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && !isAuthenticated) {
         checkAppState();
@@ -92,11 +52,9 @@ export const AuthProvider = ({ children }) => {
   const checkAppState = async () => {
     if (checkingRef.current) return;
     checkingRef.current = true;
-
     setIsLoadingAuth(true);
     setAuthError(null);
 
-    // Safety timeout — never block the app more than 2.5 seconds
     const safetyTimer = setTimeout(() => {
       if (checkingRef.current) {
         setIsLoadingAuth(false);
@@ -107,10 +65,7 @@ export const AuthProvider = ({ children }) => {
     }, 2500);
 
     try {
-      // app-params.js already scraped ?access_token= from the URL at module load
-      // and saved it to localStorage as base44_access_token.
-      // But also check the current URL in case we're being called after a navigation
-      // that app-params.js didn't catch (e.g. hash-based token).
+      // Pick up token from URL (web redirect flow)
       const urlToken = extractToken(window.location.href);
       if (urlToken) {
         localStorage.setItem('base44_access_token', urlToken);
@@ -119,12 +74,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       const token = getStoredToken();
-
       if (!token) {
-        // No token — allow guest access, don't block the app
         setIsAuthenticated(false);
         setUser(null);
-        setAuthError(null);
         return;
       }
 
@@ -134,16 +86,13 @@ export const AuthProvider = ({ children }) => {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
         setIsAuthenticated(true);
-        setAuthError(null);
-        // Fire-and-forget — don't await so it never blocks auth resolution
+        setShowNativeAuth(false);
+        // Init RevenueCat fire-and-forget
         initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        // Token invalid/expired — fall back to guest mode, don't block
+      } catch {
         setIsAuthenticated(false);
         setUser(null);
         localStorage.removeItem('base44_access_token');
-        setAuthError(null);
       }
     } finally {
       clearTimeout(safetyTimer);
@@ -156,19 +105,18 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('base44_access_token');
-    base44.auth.logout('/');
+    if (isCapacitorNative()) {
+      // Native: just show the in-app auth screen again
+      setShowNativeAuth(true);
+    } else {
+      base44.auth.logout('/');
+    }
   };
 
   const navigateToLogin = async () => {
-    const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
-    if (isCapacitor) {
-      // Open login in the in-app browser. After login, Base44 redirects to
-      // /auth-callback which writes the token to localStorage then redirects
-      // to trackly:// — iOS fires appUrlOpen here, we close the browser and auth.
-      const appId = '69bfd92e3db7d48eec6c8062';
-      const callbackUrl = 'https://usetrackly.base44.app/auth-callback';
-      const loginUrl = `https://usetrackly.base44.app/login?next=${encodeURIComponent(callbackUrl)}&app_id=${appId}`;
-      await Browser.open({ url: loginUrl, presentationStyle: 'fullscreen' });
+    if (isCapacitorNative()) {
+      // Show the native in-app email/password screen — no browser needed
+      setShowNativeAuth(true);
     } else {
       const callbackUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;
       base44.auth.redirectToLogin(callbackUrl);
@@ -182,10 +130,11 @@ export const AuthProvider = ({ children }) => {
       isLoadingAuth,
       isLoadingPublicSettings: false,
       authError,
+      showNativeAuth,
+      setShowNativeAuth,
       logout,
       navigateToLogin,
       checkAppState,
-      getLoginRedirectUrl,
     }}>
       {children}
     </AuthContext.Provider>
@@ -194,8 +143,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

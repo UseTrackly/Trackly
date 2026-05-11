@@ -1,6 +1,11 @@
 /**
  * In-App Purchase bridge using @revenuecat/purchases-capacitor
- * Falls back gracefully if the plugin isn't available (web).
+ *
+ * The error "Purchases plugin is not implemented on iOS" means the native
+ * plugin wasn't linked into the Xcode build. We guard every call with
+ * isPluginAvailable() so the app never crashes — it throws a clear message
+ * instead. After running `npx cap sync ios` and rebuilding the Xcode project
+ * the plugin will be available and these calls will work.
  */
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 
@@ -10,9 +15,6 @@ export const PRODUCT_IDS = {
   lifetime: 'trackly.pro.lifetime',
 };
 
-const isNative = () => !!(window?.Capacitor?.isNativePlatform?.());
-
-// RevenueCat package type identifiers
 const PACKAGE_TYPES = {
   monthly: '$rc_monthly',
   yearly: '$rc_annual',
@@ -21,15 +23,30 @@ const PACKAGE_TYPES = {
 
 let _rcConfigured = false;
 
+const isNative = () => !!(window?.Capacitor?.isNativePlatform?.());
+
+/**
+ * Returns true only if the RevenueCat native plugin is actually registered.
+ * The plugin is registered when the Capacitor iOS build includes the pod.
+ */
+const isPluginAvailable = () => {
+  if (!isNative()) return false;
+  // Capacitor registers plugins on window.Capacitor.Plugins
+  return !!(window?.Capacitor?.Plugins?.Purchases);
+};
+
 /**
  * Initialize RevenueCat — call once on app start (native only).
- * Safe to call multiple times.
  */
 export async function initRevenueCat(apiKey, userId) {
-  if (!isNative()) return;
+  if (!isPluginAvailable()) {
+    console.warn('[IAP] RevenueCat plugin not available — skipping init. Run `npx cap sync ios` and rebuild.');
+    return;
+  }
+  if (_rcConfigured) return;
   try {
     await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
-    await Purchases.configure({ apiKey, appUserID: userId });
+    await Purchases.configure({ apiKey, appUserID: userId || undefined });
     _rcConfigured = true;
     console.log('[IAP] RevenueCat configured for user:', userId);
   } catch (e) {
@@ -38,16 +55,21 @@ export async function initRevenueCat(apiKey, userId) {
 }
 
 /**
- * Ensure RevenueCat is configured. Throws if not on native.
+ * Ensure the plugin is available and configured. Throws with actionable messages.
  */
-async function ensureConfigured() {
+async function ensureReady() {
   if (!isNative()) {
     throw new Error('In-App Purchases are only available on iOS.');
   }
+  if (!isPluginAvailable()) {
+    throw new Error(
+      'The RevenueCat plugin is not linked in this build.\n' +
+      'Run: npx cap sync ios\n' +
+      'Then rebuild in Xcode.'
+    );
+  }
   if (!_rcConfigured) {
-    // Configure without userId — will be anonymous
-    const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
-    await Purchases.configure({ apiKey });
+    await Purchases.configure({ apiKey: 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ' });
     _rcConfigured = true;
   }
 }
@@ -56,7 +78,7 @@ async function ensureConfigured() {
  * Load available packages from RevenueCat offerings.
  */
 export async function loadProducts() {
-  await ensureConfigured();
+  await ensureReady();
   const { offerings } = await Purchases.getOfferings();
   return offerings?.current?.availablePackages ?? [];
 }
@@ -66,16 +88,13 @@ export async function loadProducts() {
  * Returns the RevenueCat appUserID for server-side verification.
  */
 export async function purchasePlan(plan) {
-  await ensureConfigured();
+  await ensureReady();
 
   const { offerings } = await Purchases.getOfferings();
   let packages = offerings?.current?.availablePackages ?? [];
 
-  // Fallback: collect from all offerings
   if (packages.length === 0 && offerings?.all) {
-    packages = Object.values(offerings.all).flatMap(o =>
-      (o.availablePackages ?? [])
-    );
+    packages = Object.values(offerings.all).flatMap(o => o.availablePackages ?? []);
   }
 
   if (packages.length === 0) {
@@ -90,7 +109,6 @@ export async function purchasePlan(plan) {
   const packageType = PACKAGE_TYPES[plan];
   const productId = PRODUCT_IDS[plan];
 
-  // Match by package type, then by product identifier
   let pkg = packages.find(p => p.packageType === packageType || p.identifier === packageType);
   if (!pkg) {
     pkg = packages.find(p =>
@@ -100,11 +118,13 @@ export async function purchasePlan(plan) {
   }
 
   if (!pkg) {
-    throw new Error(`Product "${productId}" not found. Available: ${packages.map(p => p.product?.productIdentifier).join(', ')}`);
+    throw new Error(
+      `Product "${productId}" not found.\n` +
+      `Available: ${packages.map(p => p.product?.productIdentifier).join(', ')}`
+    );
   }
 
   const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-
   if (!customerInfo) throw new Error('Purchase failed or was cancelled.');
 
   const { appUserID } = await Purchases.getAppUserID();
@@ -115,7 +135,7 @@ export async function purchasePlan(plan) {
  * Restore previous purchases.
  */
 export async function restorePurchases() {
-  await ensureConfigured();
+  await ensureReady();
   const { customerInfo } = await Purchases.restorePurchases();
   return customerInfo;
 }
@@ -124,7 +144,7 @@ export async function restorePurchases() {
  * Get the current RevenueCat app user ID.
  */
 export async function getAppUserID() {
-  await ensureConfigured();
+  await ensureReady();
   const { appUserID } = await Purchases.getAppUserID();
   return appUserID;
 }

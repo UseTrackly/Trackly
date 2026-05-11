@@ -61,7 +61,7 @@ workflows:
           ls ios/App/App/public/ | head -20 || echo "WARNING: No web assets found!"
       - name: Set build number
         script: |
-          BUILD_NUM=$((BUILD_NUMBER + 3))
+          BUILD_NUM=$((BUILD_NUMBER + 10))
           agvtool new-version -all $BUILD_NUM || true
           find ios -name "*.xcodeproj" -maxdepth 3 | head -1 | xargs -I {} sh -c 'cd "{}/.." && agvtool new-version -all '"$BUILD_NUM"' || true'
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist || true

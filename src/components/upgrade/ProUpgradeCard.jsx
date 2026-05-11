@@ -35,7 +35,10 @@ export default function ProUpgradeCard({ compact = false }) {
   const handleIOSPurchase = async (plan) => {
     setPurchasing(plan);
     try {
-      const appUserID = await purchasePlan(plan);
+      const appUserID = await Promise.race([
+        purchasePlan(plan),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Purchase timed out. Please try again.')), 25000)),
+      ]);
       const res = await base44.functions.invoke('verifyAppleIAP', { appUserID, plan });
       if (res.data?.error) throw new Error(res.data.error);
       queryClient.invalidateQueries({ queryKey: ['me'] });

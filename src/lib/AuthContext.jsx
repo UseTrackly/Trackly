@@ -88,16 +88,16 @@ export const AuthProvider = ({ children }) => {
     const setupListener = async () => {
       handle = await CapApp.addListener('appUrlOpen', async (event) => {
         console.log('[Auth] appUrlOpen:', event.url);
-        // Close the in-app browser if it's still open
+        // Always close the in-app browser first
         try { await Browser.close(); } catch (_) {}
+        // Give the browser a moment to close before updating state
+        await new Promise(r => setTimeout(r, 300));
         const token = extractToken(event.url);
         if (token) {
           localStorage.setItem('base44_access_token', token);
           reinitializeBase44Token(token);
-          checkAppState();
-        } else {
-          checkAppState();
         }
+        checkAppState();
       });
     };
 
@@ -189,12 +189,13 @@ export const AuthProvider = ({ children }) => {
   const navigateToLogin = async () => {
     const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
     if (isCapacitor) {
-      // Open login in the Capacitor in-app browser.
-      // Pass trackly://app as the callback so Base44 redirects back via deep link,
-      // which fires appUrlOpen (handled above), closes the browser, and sets the token.
-      const appId = import.meta.env.VITE_BASE44_APP_ID || '69bfd92e3db7d48eec6c8062';
+      // Open login inside the Capacitor in-app browser (overlaid on the native app).
+      // Base44 redirects to trackly://app?access_token=XXX after login,
+      // which iOS intercepts and fires appUrlOpen — the handler above closes the
+      // browser and sets the token, keeping the user inside the native app.
+      const appId = '69bfd92e3db7d48eec6c8062';
       const callbackEncoded = encodeURIComponent(IOS_CALLBACK_URL);
-      const loginUrl = `https://base44.com/login?app_id=${appId}&next=${callbackEncoded}`;
+      const loginUrl = `https://usetrackly.base44.app/login?next=${callbackEncoded}&app_id=${appId}`;
       await Browser.open({ url: loginUrl, presentationStyle: 'fullscreen' });
     } else {
       const callbackUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;

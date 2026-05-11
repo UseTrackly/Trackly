@@ -44,26 +44,36 @@ export const AuthProvider = ({ children }) => {
     checkAppState();
   }, []);
 
-  // Listen for the Capacitor in-app browser closing.
-  // AuthCallback (loaded inside the browser) writes the token to localStorage
-  // and calls window.close(). Browser fires `browserFinished` here, we read
-  // the token and re-authenticate.
+  // Listen for the trackly:// deep link fired by AuthCallback page.
+  // AuthCallback writes token to localStorage then redirects to
+  // trackly://auth-callback?access_token=XXX — iOS intercepts the custom
+  // scheme, fires appUrlOpen in the Capacitor WebView, we close the browser
+  // overlay and authenticate.
   useEffect(() => {
     const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
     if (!isCapacitor) return;
+    if (!(window?.Capacitor?.Plugins?.App)) return;
 
+    const CapApp = window.Capacitor.Plugins.App;
     let handle;
+
     const setup = async () => {
-      handle = await Browser.addListener('browserFinished', async () => {
-        console.log('[Auth] browserFinished — checking for token in localStorage');
-        // Token was written by AuthCallback page before closing
-        const token = localStorage.getItem('base44_access_token');
+      handle = await CapApp.addListener('appUrlOpen', async (event) => {
+        console.log('[Auth] appUrlOpen:', event.url);
+        // Close the in-app browser overlay from the native side
+        try { await Browser.close(); } catch (_) {}
+        // Small delay for the browser dismiss animation
+        await new Promise(r => setTimeout(r, 300));
+
+        const token = extractToken(event.url);
         if (token) {
+          localStorage.setItem('base44_access_token', token);
           reinitializeBase44Token(token);
         }
         checkAppState();
       });
     };
+
     setup();
     return () => { if (handle) handle.remove(); };
   }, []);
@@ -152,11 +162,9 @@ export const AuthProvider = ({ children }) => {
   const navigateToLogin = async () => {
     const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
     if (isCapacitor) {
-      // Open the Base44 login page inside the Capacitor in-app browser.
-      // After login Base44 redirects to the `next` URL — we point it at
-      // our /auth-callback page on the SAME origin as the app.
-      // AuthCallback writes the token to localStorage then calls window.close().
-      // The `browserFinished` listener above picks it up and authenticates.
+      // Open login in the in-app browser. After login, Base44 redirects to
+      // /auth-callback which writes the token to localStorage then redirects
+      // to trackly:// — iOS fires appUrlOpen here, we close the browser and auth.
       const appId = '69bfd92e3db7d48eec6c8062';
       const callbackUrl = 'https://usetrackly.base44.app/auth-callback';
       const loginUrl = `https://usetrackly.base44.app/login?next=${encodeURIComponent(callbackUrl)}&app_id=${appId}`;

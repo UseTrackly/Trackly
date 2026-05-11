@@ -5,12 +5,13 @@ import { useEffect } from 'react';
  *
  * Strategy:
  * 1. Extract the access_token from the URL (query param or hash).
- * 2. Write it to localStorage so the PARENT Capacitor WebView can read it
- *    (both contexts share the same origin: usetrackly.base44.app).
- * 3. Close the in-app browser.
- * 4. The parent app's AuthContext listens for `browserFinished` from
- *    @capacitor/browser and calls checkAppState(), which reads the token
- *    from localStorage and authenticates.
+ * 2. Write it to localStorage (shared origin with parent WebView).
+ * 3. Redirect to trackly://auth-callback?token=... 
+ *    iOS intercepts this custom scheme → fires appUrlOpen in the parent
+ *    Capacitor WebView → AuthContext closes the browser and authenticates.
+ *
+ * NOTE: window.close() does NOT trigger browserFinished for programmatic calls.
+ * The custom scheme redirect is the only reliable cross-context signal.
  */
 
 function extractToken() {
@@ -23,24 +24,22 @@ export default function AuthCallback() {
   useEffect(() => {
     const token = extractToken();
 
-    if (token) {
-      // Write into the same localStorage slot the parent WebView reads from
-      try {
-        localStorage.setItem('base44_access_token', token);
-      } catch (_) {}
+    if (!token) {
+      // No token — just close
+      window.location.href = 'trackly://auth-callback?error=no_token';
+      return;
     }
 
-    // Close the in-app browser — this triggers `browserFinished` in the parent
-    // Capacitor WebView, which then calls checkAppState() and picks up the token.
-    // Use a tiny delay so the localStorage write flushes before the window closes.
-    const timer = setTimeout(() => {
-      try {
-        // This closes the Capacitor Browser overlay from within the page
-        window.close();
-      } catch (_) {}
-    }, 100);
+    // Write into localStorage so parent WebView can also read it directly
+    try {
+      localStorage.setItem('base44_access_token', token);
+    } catch (_) {}
 
-    return () => clearTimeout(timer);
+    // Short delay to ensure localStorage write is flushed, then redirect to
+    // the custom scheme — iOS intercepts it and fires appUrlOpen in the app.
+    setTimeout(() => {
+      window.location.href = `trackly://auth-callback?access_token=${encodeURIComponent(token)}`;
+    }, 150);
   }, []);
 
   return (

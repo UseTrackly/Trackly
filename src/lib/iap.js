@@ -2,7 +2,7 @@
  * In-App Purchase bridge using @revenuecat/purchases-capacitor
  * Falls back gracefully if the plugin isn't available (web).
  */
-import { Purchases } from '@revenuecat/purchases-capacitor';
+import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 
 export const PRODUCT_IDS = {
   monthly: 'trackly.pro.monthly',
@@ -12,88 +12,6 @@ export const PRODUCT_IDS = {
 
 const isNative = () => !!(window?.Capacitor?.isNativePlatform?.());
 
-function getPlugin() {
-  // Only use IAP on native — RevenueCat throws "not implemented on web" otherwise
-  if (!isNative()) return null;
-  // Use the directly imported Purchases plugin (self-registers on native bridge)
-  if (Purchases) return Purchases;
-  // Fallback to Capacitor.Plugins registry
-  const plugins = window?.Capacitor?.Plugins ?? {};
-  const plugin = plugins.Purchases ?? plugins.PurchasesPlugin ?? null;
-  if (!plugin) {
-    console.warn('[IAP] RevenueCat plugin not found. Available plugins:', Object.keys(plugins));
-  }
-  return plugin;
-}
-
-/**
- * Poll for the plugin up to ~1s — fail fast if unavailable.
- */
-async function waitForPlugin(timeoutMs = 1000) {
-  const interval = 50;
-  let elapsed = 0;
-  while (elapsed < timeoutMs) {
-    const p = getPlugin();
-    if (p) return p;
-    await new Promise(r => setTimeout(r, interval));
-    elapsed += interval;
-  }
-  return null;
-}
-
-let _rcConfigured = false;
-
-/**
- * Ensure RevenueCat is configured before any purchase call.
- * Safe to call multiple times — only configures once.
- */
-async function ensureConfigured() {
-  const plugin = await waitForPlugin();
-  if (!plugin) {
-    throw new Error('In-App Purchases not available. Please ensure the app is running on a physical iOS device with App Store configured.');
-  }
-  if (_rcConfigured) return plugin;
-  // Re-configure with stored key/userId in case initRevenueCat ran before user loaded
-  const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
-  try {
-    // getAppUserID throws if not configured yet
-    await plugin.getAppUserID();
-    _rcConfigured = true;
-  } catch {
-    // Not configured — configure now
-    await plugin.configure({ apiKey });
-    _rcConfigured = true;
-  }
-  return plugin;
-}
-
-/**
- * Initialize RevenueCat — call this once on app start (inside native only)
- * Wrapped in a 3s timeout so it never blocks the auth flow.
- */
-export async function initRevenueCat(apiKey, userId) {
-  const plugin = await waitForPlugin(3000);
-  if (!plugin) { console.warn('[IAP] initRevenueCat: plugin not found after 3s'); return; }
-  try {
-    await Promise.race([
-      plugin.configure({ apiKey, appUserID: userId }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('RevenueCat init timeout')), 3000)),
-    ]);
-    _rcConfigured = true;
-  } catch (e) {
-    console.warn('[IAP] initRevenueCat failed or timed out:', e?.message);
-  }
-}
-
-/**
- * Load offerings from RevenueCat
- */
-export async function loadProducts() {
-  const plugin = await ensureConfigured();
-  const { offerings } = await plugin.getOfferings();
-  return offerings?.current?.availablePackages ?? [];
-}
-
 // RevenueCat package type identifiers
 const PACKAGE_TYPES = {
   monthly: '$rc_monthly',
@@ -101,65 +19,112 @@ const PACKAGE_TYPES = {
   lifetime: '$rc_lifetime',
 };
 
+let _rcConfigured = false;
+
 /**
- * Initiate a purchase for a given plan ('monthly' | 'yearly' | 'lifetime')
- * Returns the appUserID so the backend can verify via RevenueCat REST API
+ * Initialize RevenueCat — call once on app start (native only).
+ * Safe to call multiple times.
+ */
+export async function initRevenueCat(apiKey, userId) {
+  if (!isNative()) return;
+  try {
+    await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+    await Purchases.configure({ apiKey, appUserID: userId });
+    _rcConfigured = true;
+    console.log('[IAP] RevenueCat configured for user:', userId);
+  } catch (e) {
+    console.warn('[IAP] initRevenueCat failed:', e?.message);
+  }
+}
+
+/**
+ * Ensure RevenueCat is configured. Throws if not on native.
+ */
+async function ensureConfigured() {
+  if (!isNative()) {
+    throw new Error('In-App Purchases are only available on iOS.');
+  }
+  if (!_rcConfigured) {
+    // Configure without userId — will be anonymous
+    const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
+    await Purchases.configure({ apiKey });
+    _rcConfigured = true;
+  }
+}
+
+/**
+ * Load available packages from RevenueCat offerings.
+ */
+export async function loadProducts() {
+  await ensureConfigured();
+  const { offerings } = await Purchases.getOfferings();
+  return offerings?.current?.availablePackages ?? [];
+}
+
+/**
+ * Purchase a plan ('monthly' | 'yearly' | 'lifetime').
+ * Returns the RevenueCat appUserID for server-side verification.
  */
 export async function purchasePlan(plan) {
-  const plugin = await ensureConfigured();
+  await ensureConfigured();
 
-  // Get current offerings — fail fast if none available
-  const { offerings } = await plugin.getOfferings();
-
+  const { offerings } = await Purchases.getOfferings();
   let packages = offerings?.current?.availablePackages ?? [];
+
+  // Fallback: collect from all offerings
   if (packages.length === 0 && offerings?.all) {
     packages = Object.values(offerings.all).flatMap(o =>
-      Object.values(o).filter(p => p && typeof p === 'object' && p.packageType)
+      (o.availablePackages ?? [])
     );
   }
 
   if (packages.length === 0) {
-    throw new Error('No products available. Please ensure you are signed into the App Store and try again.');
+    throw new Error('No products available. Make sure you are signed into the App Store.');
   }
 
-  // Log available packages for debugging
-  console.log('[IAP] Available packages:', JSON.stringify(packages.map(p => ({
-    id: p.packageType ?? p.identifier,
-    productId: p.product?.productIdentifier,
-  }))));
+  console.log('[IAP] Available packages:', packages.map(p => ({
+    type: p.packageType,
+    id: p.product?.productIdentifier,
+  })));
 
-  // Try matching by package type first, then by product identifier
-  const productIdentifier = PRODUCT_IDS[plan];
   const packageType = PACKAGE_TYPES[plan];
+  const productId = PRODUCT_IDS[plan];
 
-  let pkg = packages.find(p =>
-    p.packageType === packageType || p.identifier === packageType
-  );
-
-  // Fallback: match by product identifier (full or suffix)
+  // Match by package type, then by product identifier
+  let pkg = packages.find(p => p.packageType === packageType || p.identifier === packageType);
   if (!pkg) {
     pkg = packages.find(p =>
-      p.product?.productIdentifier === productIdentifier ||
+      p.product?.productIdentifier === productId ||
       p.product?.productIdentifier?.endsWith(`.${plan}`)
     );
   }
 
-  if (!pkg) throw new Error(`Product not found in offerings: ${productIdentifier}. Available: ${packages.map(p => p.product?.productIdentifier).join(', ')}`);
+  if (!pkg) {
+    throw new Error(`Product "${productId}" not found. Available: ${packages.map(p => p.product?.productIdentifier).join(', ')}`);
+  }
 
-  // Use purchasePackage (RevenueCat v11+ API)
-  const { customerInfo } = await plugin.purchasePackage({ aPackage: pkg });
+  const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
 
-  if (!customerInfo) throw new Error('Purchase failed or was cancelled');
+  if (!customerInfo) throw new Error('Purchase failed or was cancelled.');
 
-  const { appUserID } = await plugin.getAppUserID();
+  const { appUserID } = await Purchases.getAppUserID();
   return appUserID;
 }
 
 /**
- * Restore previous purchases — returns customerInfo
+ * Restore previous purchases.
  */
 export async function restorePurchases() {
-  const plugin = await ensureConfigured();
-  const { customerInfo } = await plugin.restorePurchases();
+  await ensureConfigured();
+  const { customerInfo } = await Purchases.restorePurchases();
   return customerInfo;
+}
+
+/**
+ * Get the current RevenueCat app user ID.
+ */
+export async function getAppUserID() {
+  await ensureConfigured();
+  const { appUserID } = await Purchases.getAppUserID();
+  return appUserID;
 }

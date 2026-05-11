@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import { isIOSApp } from '@/lib/platformDetect';
-import { purchasePlan, restorePurchases, loadProducts } from '@/lib/iap';
+import { purchasePlan, restorePurchases, getAppUserID } from '@/lib/iap';
 import { toast } from 'sonner';
 
 const PRO_FEATURES = [
@@ -54,8 +54,7 @@ export default function ProUpgradeCard({ compact = false }) {
     try {
       const customerInfo = await restorePurchases();
       if (!customerInfo) { toast.error('No previous purchases found'); return; }
-      const plugin = window?.Capacitor?.Plugins?.Purchases;
-      const { appUserID } = await plugin.getAppUserID();
+      const appUserID = await getAppUserID();
       const res = await base44.functions.invoke('verifyAppleIAP', { appUserID, plan: 'restore' });
       if (res.data?.error) throw new Error(res.data.error);
       queryClient.invalidateQueries({ queryKey: ['me'] });

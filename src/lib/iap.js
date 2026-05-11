@@ -108,20 +108,18 @@ const PACKAGE_TYPES = {
 export async function purchasePlan(plan) {
   const plugin = await ensureConfigured();
 
-  // Get current offerings
+  // Get current offerings — fail fast if none available
   const { offerings } = await plugin.getOfferings();
 
-  // Log raw offerings for debugging
-  console.log('[IAP] Raw offerings keys:', JSON.stringify(Object.keys(offerings ?? {})));
-  console.log('[IAP] Current offering:', JSON.stringify(offerings?.current));
-
-  // The RC Capacitor plugin may return packages nested differently
-  // Try current.availablePackages first, then flatten all offerings
   let packages = offerings?.current?.availablePackages ?? [];
   if (packages.length === 0 && offerings?.all) {
     packages = Object.values(offerings.all).flatMap(o =>
       Object.values(o).filter(p => p && typeof p === 'object' && p.packageType)
     );
+  }
+
+  if (packages.length === 0) {
+    throw new Error('No products available. Please ensure you are signed into the App Store and try again.');
   }
 
   // Log available packages for debugging

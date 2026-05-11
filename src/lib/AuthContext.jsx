@@ -59,14 +59,18 @@ export const AuthProvider = ({ children }) => {
     checkAppState();
   }, []);
 
-  // Listen for Capacitor App becoming active (foreground resume after Safari login)
+  // Listen for Capacitor App becoming active (foreground resume after login)
   useEffect(() => {
     if (!(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App)) return;
     const CapApp = window.Capacitor.Plugins.App;
     let handle;
     const setup = async () => {
-      handle = await CapApp.addListener('appStateChange', ({ isActive }) => {
-        if (isActive) checkAppState();
+      handle = await CapApp.addListener('appStateChange', async ({ isActive }) => {
+        if (isActive) {
+          // Always close any lingering in-app browser when app comes to foreground
+          try { await Browser.close(); } catch (_) {}
+          checkAppState();
+        }
       });
     };
     setup();

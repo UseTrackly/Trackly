@@ -79,6 +79,7 @@ import CommunityPage from '@/pages/CommunityPage';
 import ProfilePage from '@/pages/ProfilePage';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import AuthCallback from '@/pages/AuthCallback.jsx';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, authError, checkAppState } = useAuth();
@@ -126,6 +127,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/onboarding-categories" element={<OnboardingCategories />} />
+      <Route path="/auth-callback" element={<AuthCallback />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/calculator" element={<CalculatorPage />} />

@@ -187,18 +187,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const navigateToLogin = async () => {
-    const isCapacitor = !!(window?.Capacitor?.isNativePlatform?.());
-    if (isCapacitor) {
-      // Open login in Capacitor in-app browser so the deep-link callback
-      // (trackly://app?access_token=...) fires appUrlOpen back into the app.
-      // base44.auth.getLoginUrl() returns the correct login page URL.
-      const appId = import.meta.env.VITE_BASE44_APP_ID || '69bfd92e3db7d48eec6c8062';
-      const callbackUrl = encodeURIComponent(IOS_CALLBACK_URL);
-      const loginUrl = `https://usetrackly.base44.app/login?next=${callbackUrl}`;
-      await Browser.open({ url: loginUrl, presentationStyle: 'fullscreen' });
-    } else {
-      base44.auth.redirectToLogin(getLoginRedirectUrl());
-    }
+    // On both native and web: use the SDK redirect with the app's own URL as callback.
+    // In Capacitor the webview handles the redirect internally — no external browser needed.
+    // The token lands in the URL and is picked up by checkAppState() via extractToken().
+    const callbackUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;
+    base44.auth.redirectToLogin(callbackUrl);
   };
 
   return (

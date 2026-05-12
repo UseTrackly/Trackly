@@ -77,6 +77,10 @@ export const AuthProvider = ({ children }) => {
       if (!token) {
         setIsAuthenticated(false);
         setUser(null);
+        // On native with no token ever stored: show login screen
+        if (isCapacitorNative()) {
+          setShowNativeAuth(true);
+        }
         return;
       }
 
@@ -105,12 +109,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('base44_access_token');
-    if (isCapacitorNative()) {
-      // Native: just show the in-app auth screen again
-      setShowNativeAuth(true);
-    } else {
+    // On native: clear state and stay in-app (guest mode — user can still use free features)
+    // On web: redirect to home as guest
+    if (!isCapacitorNative()) {
       base44.auth.logout('/');
     }
+    // setShowNativeAuth is intentionally NOT called — logout returns to guest mode,
+    // not the login screen. Pages prompt sign-in when a protected action is attempted.
   };
 
   // Called by NativeAuthScreen after a successful login — sets state directly

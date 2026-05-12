@@ -124,28 +124,32 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
-  // Native in-app auth screen (Capacitor iOS — replaces browser flow)
-  if (showNativeAuth) {
-    return <NativeAuthScreen onSuccess={onNativeAuthSuccess} />;
-  }
-
+  // Native auth screen shown only as an overlay — app routes still render beneath
+  // so that after logout, the bottom nav and free features remain accessible.
   return (
-    <Routes>
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route path="/onboarding-categories" element={<OnboardingCategories />} />
-      <Route path="/auth-callback" element={<AuthCallback />} />
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/calculator" element={<CalculatorPage />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/community" element={<CommunityPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-      </Route>
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <>
+      {showNativeAuth && (
+        <NativeAuthScreen onSuccess={onNativeAuthSuccess} />
+      )}
+      {!showNativeAuth && (
+        <Routes>
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/onboarding-categories" element={<OnboardingCategories />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/calculator" element={<CalculatorPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+          </Route>
+          <Route path="*" element={<PageNotFound />} />
+        </Routes>
+      )}
+    </>
   );
 };
 

@@ -79,14 +79,14 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
-  // UserProfile entity stores editable profile fields (bio, username, display_name, location)
-  // RLS is keyed on created_by so we list() — the user only sees their own record.
+  // UserProfile entity — filter by user_email so we always get the right record
   const { data: profileRecords, refetch: refetchProfile } = useQuery({
     queryKey: ['userProfile', user?.email],
-    queryFn: () => base44.entities.UserProfile.list(),
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user.email }),
     enabled: !!user?.email,
+    staleTime: 0, // always re-fetch fresh on mount
   });
-  const profile = Array.isArray(profileRecords) ? profileRecords[0] || null : null;
+  const profile = Array.isArray(profileRecords) ? profileRecords[0] ?? null : null;
 
   const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],
@@ -107,23 +107,19 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      console.log('[Profile] saving:', data, 'profile id:', profile?.id);
+      if (!user?.email) throw new Error('Not authenticated');
       if (profile?.id) {
-        const result = await base44.entities.UserProfile.update(profile.id, data);
-        console.log('[Profile] update result:', result);
+        await base44.entities.UserProfile.update(profile.id, data);
       } else {
-        const result = await base44.entities.UserProfile.create({ user_email: user.email, ...data });
-        console.log('[Profile] create result:', result);
+        await base44.entities.UserProfile.create({ user_email: user.email, ...data });
       }
     },
     onSuccess: async () => {
-      const fresh = await refetchProfile();
-      console.log('[Profile] refetch after save:', fresh?.data);
-      toast.success('Profile updated');
+      await refetchProfile();
       setShowEditProfile(false);
+      toast.success('Profile updated');
     },
     onError: (e) => {
-      console.error('[Profile] save error:', e);
       toast.error(e?.message || 'Failed to save profile');
     },
   });
@@ -179,49 +175,17 @@ export default function ProfilePage() {
     updateProfileMutation.mutate({ bio, location, username, display_name: displayName });
   };
 
-  const handleAvatarButtonPress = async () => {
-    // On Capacitor iOS, display:none inputs are ignored by WKWebView.
-    // Try the Capacitor Camera plugin first; fall back to the file input.
-    const isNative = !!(window?.Capacitor?.isNativePlatform?.());
-    if (isNative) {
-      try {
-        // Access via global bridge — avoids a static npm import that breaks the web build
-        const Camera = window?.Capacitor?.Plugins?.Camera;
-        if (!Camera) throw new Error('plugin not available');
-        const photo = await Camera.getPhoto({
-          quality: 80,
-          allowEditing: false,
-          resultType: 'dataUrl',
-          source: 'Photos',
-        });
-        if (!photo?.dataUrl) return;
-        const res = await fetch(photo.dataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], 'avatar.jpg', { type: blob.type || 'image/jpeg' });
-        await doUploadAvatar(file);
-        return;
-      } catch (err) {
-        if (err?.message?.toLowerCase().includes('cancel')) return;
-        console.warn('[Avatar] Camera plugin failed, falling back to file input:', err);
-      }
-    }
-    // Web / fallback: programmatic click on the (visually hidden) input
-    fileInputRef.current?.click();
-  };
-
   const doUploadAvatar = async (file) => {
+    if (!user?.email) return;
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      // Save to UserProfile entity (durable, survives sessions)
       if (profile?.id) {
         await base44.entities.UserProfile.update(profile.id, { avatar_url: file_url });
       } else {
         await base44.entities.UserProfile.create({ user_email: user.email, avatar_url: file_url });
       }
-
-      // Also keep auth record in sync
       await base44.auth.updateMe({ profile_picture: file_url });
 
       await Promise.all([
@@ -230,11 +194,42 @@ export default function ProfilePage() {
       ]);
       toast.success('Profile picture updated');
     } catch (error) {
-      console.error('[Avatar] Upload failed:', error);
       toast.error('Failed to upload profile picture. Please try again.');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleAvatarButtonPress = async () => {
+    const isNative = !!(window?.Capacitor?.isNativePlatform?.());
+    if (isNative) {
+      try {
+        const Camera = window?.Capacitor?.Plugins?.Camera;
+        if (!Camera) throw new Error('no plugin');
+        // Request permission first
+        const perm = await Camera.requestPermissions({ permissions: ['photos'] }).catch(() => null);
+        // 'base64' is the most reliable result type on iOS WKWebView
+        const photo = await Camera.getPhoto({
+          quality: 85,
+          allowEditing: false,
+          resultType: 'base64',
+          source: 'PHOTOS',
+        });
+        if (!photo?.base64String) return;
+        const byteChars = atob(photo.base64String);
+        const byteArr = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([byteArr], { type: 'image/jpeg' });
+        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+        await doUploadAvatar(file);
+        return;
+      } catch (err) {
+        const msg = String(err?.message || err || '').toLowerCase();
+        if (msg.includes('cancel') || msg.includes('denied') || msg.includes('dismiss')) return;
+        // Fall through to web file input
+      }
+    }
+    fileInputRef.current?.click();
   };
 
   const handleUploadProfilePicture = async (e) => {

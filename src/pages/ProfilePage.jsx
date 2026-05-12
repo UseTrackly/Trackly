@@ -107,21 +107,23 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      // Write to UserProfile entity — persists across sessions
+      console.log('[Profile] saving:', data, 'profile id:', profile?.id);
       if (profile?.id) {
-        await base44.entities.UserProfile.update(profile.id, data);
+        const result = await base44.entities.UserProfile.update(profile.id, data);
+        console.log('[Profile] update result:', result);
       } else {
-        // First-time create: include user_email as metadata
-        await base44.entities.UserProfile.create({ user_email: user.email, ...data });
+        const result = await base44.entities.UserProfile.create({ user_email: user.email, ...data });
+        console.log('[Profile] create result:', result);
       }
     },
     onSuccess: async () => {
-      // Wait for the fresh record before closing the dialog
-      await refetchProfile();
+      const fresh = await refetchProfile();
+      console.log('[Profile] refetch after save:', fresh?.data);
       toast.success('Profile updated');
       setShowEditProfile(false);
     },
     onError: (e) => {
+      console.error('[Profile] save error:', e);
       toast.error(e?.message || 'Failed to save profile');
     },
   });
@@ -173,64 +175,73 @@ export default function ProfilePage() {
     setShowEditProfile(true);
   };
 
-  const handleSaveProfile = async () => {
-    // Check if username changed and needs moderation
-    if (username && username !== profile?.username) {
-      try {
-        const modResult = await base44.integrations.Core.InvokeLLM({
-          prompt: `Is this username appropriate and safe for a professional reselling app? Username: "${username}"\n\nRespond with only "approved" or "rejected". Reject if it contains profanity, hate speech, offensive content, or impersonation.`
-        });
-
-        if (typeof modResult === 'string' && modResult.toLowerCase().includes('rejected')) {
-          toast.error('Username not allowed. Please choose a different one.');
-          return;
-        }
-      } catch (error) {
-        toast.error('Failed to validate username');
-        return;
-      }
-    }
-
+  const handleSaveProfile = () => {
     updateProfileMutation.mutate({ bio, location, username, display_name: displayName });
   };
 
-  const handleAvatarButtonPress = () => {
-    // Programmatic click avoids the Capacitor iOS crash caused by <label htmlFor>
+  const handleAvatarButtonPress = async () => {
+    // On Capacitor iOS, display:none inputs are ignored by WKWebView.
+    // Try the Capacitor Camera plugin first; fall back to the file input.
+    const isNative = !!(window?.Capacitor?.isNativePlatform?.());
+    if (isNative) {
+      try {
+        // Access via global bridge — avoids a static npm import that breaks the web build
+        const Camera = window?.Capacitor?.Plugins?.Camera;
+        if (!Camera) throw new Error('plugin not available');
+        const photo = await Camera.getPhoto({
+          quality: 80,
+          allowEditing: false,
+          resultType: 'dataUrl',
+          source: 'Photos',
+        });
+        if (!photo?.dataUrl) return;
+        const res = await fetch(photo.dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], 'avatar.jpg', { type: blob.type || 'image/jpeg' });
+        await doUploadAvatar(file);
+        return;
+      } catch (err) {
+        if (err?.message?.toLowerCase().includes('cancel')) return;
+        console.warn('[Avatar] Camera plugin failed, falling back to file input:', err);
+      }
+    }
+    // Web / fallback: programmatic click on the (visually hidden) input
     fileInputRef.current?.click();
   };
 
-  const handleUploadProfilePicture = async (e) => {
-    const file = e.target.files?.[0];
-    // Reset immediately so the same file can be re-selected later
-    e.target.value = '';
-    if (!file) return;
-
+  const doUploadAvatar = async (file) => {
     setUploading(true);
     try {
-      // Upload the File object directly — base44 SDK handles multipart internally
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      // 1. Save to auth user record (profile_picture field)
-      await base44.auth.updateMe({ profile_picture: file_url });
-
-      // 2. Also save to UserProfile entity so it survives RLS-based reads
+      // Save to UserProfile entity (durable, survives sessions)
       if (profile?.id) {
         await base44.entities.UserProfile.update(profile.id, { avatar_url: file_url });
       } else {
         await base44.entities.UserProfile.create({ user_email: user.email, avatar_url: file_url });
       }
 
-      // Refresh both caches
+      // Also keep auth record in sync
+      await base44.auth.updateMe({ profile_picture: file_url });
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['me'] }),
         refetchProfile(),
       ]);
       toast.success('Profile picture updated');
     } catch (error) {
-      toast.error('Failed to upload profile picture');
+      console.error('[Avatar] Upload failed:', error);
+      toast.error('Failed to upload profile picture. Please try again.');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleUploadProfilePicture = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await doUploadAvatar(file);
   };
 
   const handleUploadBackground = async (e) => {
@@ -310,13 +321,14 @@ export default function ProfilePage() {
                 <User className="w-6 h-6 text-primary" />
               </div>
             }
-            {/* Hidden file input — triggered programmatically to avoid Capacitor iOS crash */}
+            {/* File input: visually hidden but NOT display:none — iOS WKWebView ignores display:none inputs */}
             <input
               ref={fileInputRef}
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/webp"
               onChange={handleUploadProfilePicture}
-              className="hidden"
+              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
+              tabIndex={-1}
               aria-hidden="true"
             />
             <button

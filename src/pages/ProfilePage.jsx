@@ -97,13 +97,20 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      await base44.auth.updateMe(data);
+      // updateMe handles recognized fields; also write directly to the User entity
+      // so that custom fields (bio, location, username) actually persist.
+      await base44.entities.User.update(user.id, data);
+      // Refresh the auth session so base44.auth.me() returns updated values
+      await base44.auth.me();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['me'] });
       toast.success('Profile updated');
       setShowEditProfile(false);
-    }
+    },
+    onError: (e) => {
+      toast.error(e?.message || 'Failed to save profile');
+    },
   });
 
   const totalProfit = flips.reduce((s, f) => s + (f.net_profit || 0), 0);
@@ -171,11 +178,7 @@ export default function ProfilePage() {
       }
     }
 
-    const updates = { bio, location, username };
-    if (displayName && displayName !== user?.full_name) {
-      updates.full_name = displayName;
-    }
-    updateProfileMutation.mutate(updates);
+    updateProfileMutation.mutate({ bio, location, username, full_name: displayName });
   };
 
   const handleUploadProfilePicture = async (e) => {

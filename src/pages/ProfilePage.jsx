@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { base44, ensureTokenSynced } from '@/api/base44Client';
+import { base44, ensureTokenSynced } from '@/api/base44Client'; // ensureTokenSynced kept for updateSettingsMutation
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -79,14 +79,16 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
-  // UserProfile entity — filter by user_email so we always get the right record
-  const { data: profileRecords, refetch: refetchProfile } = useQuery({
+  // UserProfile — fetched via backend function (service role bypasses RLS issues)
+  const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['userProfile', user?.email],
-    queryFn: () => base44.entities.UserProfile.filter({ user_email: user.email }),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('profileManager', { action: 'get' });
+      return res.data?.profile ?? null;
+    },
     enabled: !!user?.email,
-    staleTime: 0, // always re-fetch fresh on mount
+    staleTime: 0,
   });
-  const profile = Array.isArray(profileRecords) ? profileRecords[0] ?? null : null;
 
   const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],
@@ -108,13 +110,9 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      ensureTokenSynced();
-      if (!user?.email) throw new Error('Not authenticated');
-      if (profile?.id) {
-        await base44.entities.UserProfile.update(profile.id, data);
-      } else {
-        await base44.entities.UserProfile.create({ user_email: user.email, ...data });
-      }
+      const res = await base44.functions.invoke('profileManager', { action: 'save', data });
+      if (res.data?.error) throw new Error(res.data.error);
+      return res.data?.profile;
     },
     onSuccess: async () => {
       await refetchProfile();
@@ -179,17 +177,17 @@ export default function ProfilePage() {
 
   const doUploadAvatar = async (file) => {
     if (!user?.email) return;
-    ensureTokenSynced();
     setUploading(true);
     try {
+      // Step 1: upload the file bytes
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      if (profile?.id) {
-        await base44.entities.UserProfile.update(profile.id, { avatar_url: file_url });
-      } else {
-        await base44.entities.UserProfile.create({ user_email: user.email, avatar_url: file_url });
-      }
-      await base44.auth.updateMe({ profile_picture: file_url });
+      // Step 2: persist via backend function (service role — bypasses RLS)
+      const res = await base44.functions.invoke('profileManager', {
+        action: 'setAvatar',
+        file_url,
+      });
+      if (res.data?.error) throw new Error(res.data.error);
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['me'] }),

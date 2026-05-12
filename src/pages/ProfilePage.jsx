@@ -65,11 +65,12 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
   const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const queryClient = useQueryClient();
 
-  const { isAuthenticated, navigateToLogin } = useAuth();
+  const { isAuthenticated, navigateToLogin, logout } = useAuth();
 
   const { data: user } = useQuery({
     queryKey: ['me'],
@@ -141,13 +142,14 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    base44.auth.logout('/');
+    logout();
   };
 
   const handleEditProfile = () => {
     setBio(user?.bio || '');
     setLocation(user?.location || '');
     setUsername(user?.username || '');
+    setDisplayName(user?.full_name || '');
     setShowEditProfile(true);
   };
 
@@ -169,7 +171,11 @@ export default function ProfilePage() {
       }
     }
 
-    updateProfileMutation.mutate({ bio, location, username });
+    const updates = { bio, location, username };
+    if (displayName && displayName !== user?.full_name) {
+      updates.full_name = displayName;
+    }
+    updateProfileMutation.mutate(updates);
   };
 
   const handleUploadProfilePicture = async (e) => {
@@ -716,6 +722,16 @@ export default function ProfilePage() {
             <DialogTitle>Edit Profile</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Display Name
+              </label>
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your name"
+                className="bg-background" />
+            </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Username

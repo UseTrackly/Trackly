@@ -78,6 +78,14 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
+  // UserProfile entity stores editable profile fields (bio, username, display_name, location)
+  const { data: profileRecords } = useQuery({
+    queryKey: ['userProfile', user?.email],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user.email }),
+    enabled: !!user?.email,
+  });
+  const profile = profileRecords?.[0] || null;
+
   const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],
     queryFn: () => base44.entities.Flip.list('-created_date', 500),
@@ -97,14 +105,15 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      // updateMe handles recognized fields; also write directly to the User entity
-      // so that custom fields (bio, location, username) actually persist.
-      await base44.entities.User.update(user.id, data);
-      // Refresh the auth session so base44.auth.me() returns updated values
-      await base44.auth.me();
+      // Write to UserProfile entity — persists across sessions
+      if (profile?.id) {
+        await base44.entities.UserProfile.update(profile.id, data);
+      } else {
+        await base44.entities.UserProfile.create({ user_email: user.email, ...data });
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.email] });
       toast.success('Profile updated');
       setShowEditProfile(false);
     },
@@ -153,10 +162,10 @@ export default function ProfilePage() {
   };
 
   const handleEditProfile = () => {
-    setBio(user?.bio || '');
-    setLocation(user?.location || '');
-    setUsername(user?.username || '');
-    setDisplayName(user?.full_name || '');
+    setBio(profile?.bio || '');
+    setLocation(profile?.location || '');
+    setUsername(profile?.username || '');
+    setDisplayName(profile?.display_name || user?.full_name || '');
     setShowEditProfile(true);
   };
 
@@ -178,7 +187,7 @@ export default function ProfilePage() {
       }
     }
 
-    updateProfileMutation.mutate({ bio, location, username, full_name: displayName });
+    updateProfileMutation.mutate({ bio, location, username, display_name: displayName });
   };
 
   const handleUploadProfilePicture = async (e) => {
@@ -293,12 +302,15 @@ export default function ProfilePage() {
             </label>
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold truncate">{user?.full_name || 'Reseller'}</h2>
+            <h2 className="font-semibold truncate">{profile?.display_name || user?.full_name || 'Reseller'}</h2>
+            {profile?.username && (
+              <p className="text-xs text-primary truncate">@{profile.username}</p>
+            )}
             <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-            {user?.location &&
+            {profile?.location &&
             <div className="flex items-center gap-1 mt-1">
                 <MapPin className="w-3 h-3 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">{user.location}</p>
+                <p className="text-xs text-muted-foreground">{profile.location}</p>
               </div>
             }
           </div>
@@ -312,9 +324,9 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        {user?.bio &&
+        {profile?.bio &&
         <p className="text-sm text-muted-foreground mt-4 pt-4 border-t border-border">
-            {user.bio}
+            {profile.bio}
           </p>
         }
 

@@ -1,0 +1,43 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user (unique key)"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "User's chosen display name"
+    },
+    "username": {
+      "type": "string",
+      "description": "User's chosen username"
+    },
+    "bio": {
+      "type": "string",
+      "description": "User bio"
+    },
+    "location": {
+      "type": "string",
+      "description": "User location"
+    }
+  },
+  "required": [
+    "user_email"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

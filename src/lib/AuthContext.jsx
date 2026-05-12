@@ -113,9 +113,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Called by NativeAuthScreen after a successful login — sets state directly
+  // without going through checkAppState (which has a debounce guard).
+  const onNativeAuthSuccess = ({ token, user: loggedInUser }) => {
+    reinitializeBase44Token(token);
+    setUser(loggedInUser);
+    setIsAuthenticated(true);
+    setShowNativeAuth(false);
+    setAuthError(null);
+    // Init RevenueCat for the newly signed-in user
+    initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', loggedInUser.id);
+  };
+
   const navigateToLogin = async () => {
     if (isCapacitorNative()) {
-      // Show the native in-app email/password screen — no browser needed
       setShowNativeAuth(true);
     } else {
       const callbackUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;
@@ -132,6 +143,7 @@ export const AuthProvider = ({ children }) => {
       authError,
       showNativeAuth,
       setShowNativeAuth,
+      onNativeAuthSuccess,
       logout,
       navigateToLogin,
       checkAppState,

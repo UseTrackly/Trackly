@@ -83,7 +83,7 @@ import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import AuthCallback from '@/pages/AuthCallback';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, authError, checkAppState, showNativeAuth, setShowNativeAuth } = useAuth();
+  const { isLoadingAuth, authError, checkAppState, showNativeAuth, setShowNativeAuth, onNativeAuthSuccess } = useAuth();
 
   // Signal to main.jsx that React has mounted and is rendering
   useEffect(() => {
@@ -126,14 +126,7 @@ const AuthenticatedApp = () => {
 
   // Native in-app auth screen (Capacitor iOS — replaces browser flow)
   if (showNativeAuth) {
-    return (
-      <NativeAuthScreen
-        onSuccess={() => {
-          setShowNativeAuth(false);
-          checkAppState();
-        }}
-      />
-    );
+    return <NativeAuthScreen onSuccess={onNativeAuthSuccess} />;
   }
 
   return (

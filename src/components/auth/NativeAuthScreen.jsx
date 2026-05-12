@@ -22,14 +22,24 @@ export default function NativeAuthScreen({ onSuccess }) {
         await base44.auth.register({ email, password, full_name: fullName });
       }
 
-      const { access_token } = await base44.auth.loginViaEmailPassword(email, password);
+      const result = await base44.auth.loginViaEmailPassword(email, password);
 
-      if (access_token) {
-        localStorage.setItem('base44_access_token', access_token);
-        reinitializeBase44Token(access_token);
+      // loginViaEmailPassword may return { access_token } or { token } depending on SDK version
+      const token = result?.access_token || result?.token;
+
+      if (!token) {
+        throw new Error('No token returned from login. Please try again.');
       }
 
-      onSuccess();
+      // Persist token and reinitialize SDK client
+      localStorage.setItem('base44_access_token', token);
+      reinitializeBase44Token(token);
+
+      // Fetch the user right here — don't rely on checkAppState's debounce guard
+      const currentUser = await base44.auth.me();
+
+      // Pass both token and user up so AuthContext can set state directly
+      onSuccess({ token, user: currentUser });
     } catch (err) {
       const msg = err?.message || String(err);
       if (msg.includes('already') || msg.includes('exists')) {

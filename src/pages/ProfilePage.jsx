@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -69,6 +69,7 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
   const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
 
   const { isAuthenticated, navigateToLogin, logout } = useAuth();
 
@@ -79,12 +80,13 @@ export default function ProfilePage() {
   });
 
   // UserProfile entity stores editable profile fields (bio, username, display_name, location)
-  const { data: profileRecords } = useQuery({
+  // RLS is keyed on created_by so we list() — the user only sees their own record.
+  const { data: profileRecords, refetch: refetchProfile } = useQuery({
     queryKey: ['userProfile', user?.email],
-    queryFn: () => base44.entities.UserProfile.filter({ user_email: user.email }),
+    queryFn: () => base44.entities.UserProfile.list(),
     enabled: !!user?.email,
   });
-  const profile = profileRecords?.[0] || null;
+  const profile = Array.isArray(profileRecords) ? profileRecords[0] || null : null;
 
   const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],
@@ -109,11 +111,13 @@ export default function ProfilePage() {
       if (profile?.id) {
         await base44.entities.UserProfile.update(profile.id, data);
       } else {
+        // First-time create: include user_email as metadata
         await base44.entities.UserProfile.create({ user_email: user.email, ...data });
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.email] });
+    onSuccess: async () => {
+      // Wait for the fresh record before closing the dialog
+      await refetchProfile();
       toast.success('Profile updated');
       setShowEditProfile(false);
     },
@@ -171,13 +175,13 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async () => {
     // Check if username changed and needs moderation
-    if (username && username !== user?.username) {
+    if (username && username !== profile?.username) {
       try {
         const modResult = await base44.integrations.Core.InvokeLLM({
           prompt: `Is this username appropriate and safe for a professional reselling app? Username: "${username}"\n\nRespond with only "approved" or "rejected". Reject if it contains profanity, hate speech, offensive content, or impersonation.`
         });
 
-        if (modResult.toLowerCase().includes('rejected')) {
+        if (typeof modResult === 'string' && modResult.toLowerCase().includes('rejected')) {
           toast.error('Username not allowed. Please choose a different one.');
           return;
         }
@@ -190,22 +194,42 @@ export default function ProfilePage() {
     updateProfileMutation.mutate({ bio, location, username, display_name: displayName });
   };
 
-  const handleUploadProfilePicture = async (e) => {
-    try {
-      const file = e.target.files?.[0];
-      if (!file) return;
+  const handleAvatarButtonPress = () => {
+    // Programmatic click avoids the Capacitor iOS crash caused by <label htmlFor>
+    fileInputRef.current?.click();
+  };
 
-      setUploading(true);
+  const handleUploadProfilePicture = async (e) => {
+    const file = e.target.files?.[0];
+    // Reset immediately so the same file can be re-selected later
+    e.target.value = '';
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Upload the File object directly — base44 SDK handles multipart internally
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      // 1. Save to auth user record (profile_picture field)
       await base44.auth.updateMe({ profile_picture: file_url });
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+
+      // 2. Also save to UserProfile entity so it survives RLS-based reads
+      if (profile?.id) {
+        await base44.entities.UserProfile.update(profile.id, { avatar_url: file_url });
+      } else {
+        await base44.entities.UserProfile.create({ user_email: user.email, avatar_url: file_url });
+      }
+
+      // Refresh both caches
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['me'] }),
+        refetchProfile(),
+      ]);
       toast.success('Profile picture updated');
     } catch (error) {
       toast.error('Failed to upload profile picture');
     } finally {
       setUploading(false);
-      // Reset input so the same file can be selected again
-      e.target.value = '';
     }
   };
 
@@ -286,20 +310,26 @@ export default function ProfilePage() {
                 <User className="w-6 h-6 text-primary" />
               </div>
             }
-            <label
-              htmlFor="profile-upload"
-              className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors">
-              
-              <Camera className="w-3 h-3" />
-              <input
-                id="profile-upload"
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                onChange={handleUploadProfilePicture}
-                disabled={uploading}
-                className="hidden" />
-              
-            </label>
+            {/* Hidden file input — triggered programmatically to avoid Capacitor iOS crash */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={handleUploadProfilePicture}
+              className="hidden"
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              onClick={handleAvatarButtonPress}
+              disabled={uploading}
+              className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors disabled:opacity-50">
+              {uploading ? (
+                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Camera className="w-3 h-3" />
+              )}
+            </button>
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold truncate">{profile?.display_name || user?.full_name || 'Reseller'}</h2>

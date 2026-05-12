@@ -21,6 +21,10 @@
     "location": {
       "type": "string",
       "description": "User location"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Profile picture URL"
     }
   },
   "required": [

@@ -110,6 +110,7 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
+      ensureTokenSynced();
       const res = await base44.functions.invoke('profileManager', { action: 'save', data });
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;
@@ -179,6 +180,7 @@ export default function ProfilePage() {
     if (!user?.email) return;
     setUploading(true);
     try {
+      ensureTokenSynced();
       // Step 1: upload the file bytes
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 

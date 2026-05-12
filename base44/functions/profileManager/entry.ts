@@ -17,6 +17,8 @@ Deno.serve(async (req) => {
     // Verify the caller is authenticated — throws if not
     const user = await base44.auth.me();
     if (!user?.email) {
+      const authHeader = req.headers.get('Authorization') || req.headers.get('authorization') || 'MISSING';
+      console.error('[profileManager] Not authenticated. Auth header present:', authHeader !== 'MISSING', 'header prefix:', authHeader.slice(0, 20));
       return Response.json({ error: 'Not authenticated' }, { status: 401 });
     }
 

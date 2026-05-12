@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { base44, ensureTokenSynced } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -97,6 +97,7 @@ export default function ProfilePage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (updates) => {
+      ensureTokenSynced();
       await base44.auth.updateMe(updates);
     },
     onSuccess: () => {
@@ -107,6 +108,7 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
+      ensureTokenSynced();
       if (!user?.email) throw new Error('Not authenticated');
       if (profile?.id) {
         await base44.entities.UserProfile.update(profile.id, data);
@@ -177,6 +179,7 @@ export default function ProfilePage() {
 
   const doUploadAvatar = async (file) => {
     if (!user?.email) return;
+    ensureTokenSynced();
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });

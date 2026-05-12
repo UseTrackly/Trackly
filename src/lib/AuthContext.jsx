@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
-import { base44, reinitializeBase44Token } from '@/api/base44Client';
+import { base44, reinitializeBase44Token, ensureTokenSynced } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { initRevenueCat } from '@/lib/iap';
 
@@ -85,6 +85,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       reinitializeBase44Token(token);
+      ensureTokenSynced();
 
       try {
         const currentUser = await base44.auth.me();

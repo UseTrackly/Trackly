@@ -24,10 +24,30 @@ export default function NativeAuthScreen({ onSuccess }) {
 
       const result = await base44.auth.loginViaEmailPassword(email, password);
 
-      // loginViaEmailPassword may return { access_token } or { token } depending on SDK version
-      const token = result?.access_token || result?.token;
+      // The SDK may return the token at various paths — check all known shapes
+      // and also fall back to reading it from localStorage (the SDK may set it itself)
+      const token =
+        result?.access_token ||
+        result?.token ||
+        result?.data?.access_token ||
+        result?.data?.token ||
+        (typeof result === 'string' ? result : null) ||
+        localStorage.getItem('base44_access_token') ||
+        // Some SDK versions store under a different key — scan for it
+        (() => {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('token') || key.includes('session') || key.includes('access'))) {
+              const val = localStorage.getItem(key);
+              if (val && val.length > 20 && !val.startsWith('{')) return val;
+            }
+          }
+          return null;
+        })();
 
       if (!token) {
+        // Log the raw result to help debug unexpected response shapes
+        console.error('[NativeAuth] loginViaEmailPassword raw result:', JSON.stringify(result));
         throw new Error('No token returned from login. Please try again.');
       }
 

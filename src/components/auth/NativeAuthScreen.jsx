@@ -51,9 +51,8 @@ export default function NativeAuthScreen({ onSuccess }) {
         throw new Error('No token returned from login. Please try again.');
       }
 
-      // Persist token and reinitialize SDK client
-      localStorage.setItem('base44_access_token', token);
-      reinitializeBase44Token(token);
+      // Persist token to all storage layers (native NSUserDefaults + localStorage)
+      await reinitializeBase44Token(token);
 
       // Fetch the user right here — don't rely on checkAppState's debounce guard
       const currentUser = await base44.auth.me();

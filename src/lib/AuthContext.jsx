@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
-import { base44, reinitializeBase44Token, ensureTokenSynced } from '@/api/base44Client';
+import { base44, reinitializeBase44Token, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { initRevenueCat } from '@/lib/iap';
 
@@ -19,9 +19,6 @@ const extractToken = (url) => {
   }
 };
 
-const getStoredToken = () =>
-  localStorage.getItem('base44_access_token') || appParams.token || null;
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -29,7 +26,6 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [authError, setAuthError] = useState(null);
-  // Controls whether the native in-app auth screen is shown (Capacitor only)
   const [showNativeAuth, setShowNativeAuth] = useState(false);
   const checkingRef = useRef(false);
 
@@ -68,36 +64,33 @@ export const AuthProvider = ({ children }) => {
       // Pick up token from URL (web redirect flow)
       const urlToken = extractToken(window.location.href);
       if (urlToken) {
-        localStorage.setItem('base44_access_token', urlToken);
-        reinitializeBase44Token(urlToken);
+        await reinitializeBase44Token(urlToken);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      const token = getStoredToken();
+      // Read from native storage (falls back to localStorage on web)
+      const token = await nativeStorage.get();
       if (!token) {
         setIsAuthenticated(false);
         setUser(null);
-        // On native with no token ever stored: show login screen
         if (isCapacitorNative()) {
           setShowNativeAuth(true);
         }
         return;
       }
 
-      reinitializeBase44Token(token);
-      ensureTokenSynced();
+      await ensureTokenSynced();
 
       try {
         const currentUser = await base44.auth.me();
         setUser(currentUser);
         setIsAuthenticated(true);
         setShowNativeAuth(false);
-        // Init RevenueCat fire-and-forget
         initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
       } catch {
         setIsAuthenticated(false);
         setUser(null);
-        localStorage.removeItem('base44_access_token');
+        await nativeStorage.remove();
       }
     } finally {
       clearTimeout(safetyTimer);
@@ -106,28 +99,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('base44_access_token');
-    // On native: clear state and stay in-app (guest mode — user can still use free features)
-    // On web: redirect to home as guest
+    await nativeStorage.remove();
     if (!isCapacitorNative()) {
       base44.auth.logout('/');
     }
-    // setShowNativeAuth is intentionally NOT called — logout returns to guest mode,
-    // not the login screen. Pages prompt sign-in when a protected action is attempted.
   };
 
-  // Called by NativeAuthScreen after a successful login — sets state directly
-  // without going through checkAppState (which has a debounce guard).
-  const onNativeAuthSuccess = ({ token, user: loggedInUser }) => {
-    reinitializeBase44Token(token);
+  const onNativeAuthSuccess = async ({ token, user: loggedInUser }) => {
+    await reinitializeBase44Token(token);
     setUser(loggedInUser);
     setIsAuthenticated(true);
     setShowNativeAuth(false);
     setAuthError(null);
-    // Init RevenueCat for the newly signed-in user
     initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', loggedInUser.id);
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { base44, ensureTokenSynced } from '@/api/base44Client';
+import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -96,26 +96,19 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
-  // Read token from every possible location — whichever is populated wins.
-  const getToken = useCallback(() => {
-    const ls = localStorage.getItem('base44_access_token');
-    if (ls) { log('getToken source', 'localStorage'); return ls; }
-    const ss = sessionStorage.getItem('base44_access_token');
-    if (ss) { log('getToken source', 'sessionStorage'); return ss; }
-    try {
-      const sdkToken = base44.auth.getToken?.();
-      if (sdkToken) { log('getToken source', 'sdk.auth.getToken'); return sdkToken; }
-    } catch (e) { log('getToken sdk.getToken threw', e?.message); }
-    log('getToken source', 'NULL — no token found!');
-    return null;
+  // Read token from native storage (NSUserDefaults on iOS, localStorage on web)
+  const getToken = useCallback(async () => {
+    const token = await nativeStorage.get();
+    log('getToken source', token ? 'nativeStorage ✓' : 'NULL — no token found!');
+    return token;
   }, [log]);
 
   // UserProfile — fetched via backend function (service role bypasses RLS issues)
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['userProfile', user?.email],
     queryFn: async () => {
-      ensureTokenSynced();
-      const token = getToken();
+      await ensureTokenSynced();
+      const token = await getToken();
       log('profile GET — token present', !!token);
       const res = await base44.functions.invoke('profileManager', { action: 'get', token });
       log('profile GET response', { status: res.status, hasProfile: !!res.data?.profile, error: res.data?.error });
@@ -134,7 +127,7 @@ export default function ProfilePage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (updates) => {
-      ensureTokenSynced();
+      await ensureTokenSynced();
       await base44.auth.updateMe(updates);
     },
     onSuccess: () => {
@@ -145,8 +138,8 @@ export default function ProfilePage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
-      ensureTokenSynced();
-      const token = getToken();
+      await ensureTokenSynced();
+      const token = await getToken();
       const payload = { action: 'save', data, token };
       log('profile SAVE — token present', !!token);
       log('profile SAVE payload', { action: 'save', dataKeys: Object.keys(data || {}), tokenPresent: !!token });
@@ -223,7 +216,7 @@ export default function ProfilePage() {
     log('doUploadAvatar — start', { fileName: file?.name, fileSize: file?.size, fileType: file?.type });
     setUploading(true);
     try {
-      ensureTokenSynced();
+      await ensureTokenSynced();
       log('doUploadAvatar — calling UploadFile');
       let file_url;
       try {
@@ -235,7 +228,7 @@ export default function ProfilePage() {
         throw uploadErr;
       }
       if (!file_url) throw new Error('UploadFile returned no file_url');
-      const token = getToken();
+      const token = await getToken();
       log('doUploadAvatar — calling setAvatar', { tokenPresent: !!token });
       const res = await base44.functions.invoke('profileManager', {
         action: 'setAvatar',

@@ -3,27 +3,41 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 /**
  * Profile manager backend function.
  * Runs as service role so RLS never blocks reads/writes.
- * The user identity comes from the verified JWT — no client-side trust.
  *
- * Supported actions (passed in request body):
- *   { action: 'get' }
- *   { action: 'save', data: { display_name, username, bio, location } }
- *   { action: 'setAvatar', file_url: string }
+ * The caller can pass { token: string } in the request body as a fallback
+ * for iOS native where the SDK Authorization header may be stale.
+ *
+ * Supported actions:
+ *   { action: 'get', token? }
+ *   { action: 'save', data: { display_name, username, bio, location }, token? }
+ *   { action: 'setAvatar', file_url: string, token? }
  */
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
+    // Parse body first so we can extract the optional token
+    const body = await req.json();
+    const { action, token: bodyToken } = body;
 
-    // Verify the caller is authenticated — throws if not
+    // If caller passed an explicit token, inject it so auth works on iOS native
+    const headers = new Headers(req.headers);
+    if (bodyToken) {
+      headers.set('Authorization', `Bearer ${bodyToken}`);
+    }
+    const clientReq = new Request(req.url, {
+      method: req.method,
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    const base44 = createClientFromRequest(clientReq);
+
+    // Verify caller is authenticated
     const user = await base44.auth.me();
     if (!user?.email) {
-      const authHeader = req.headers.get('Authorization') || req.headers.get('authorization') || 'MISSING';
-      console.error('[profileManager] Not authenticated. Auth header present:', authHeader !== 'MISSING', 'header prefix:', authHeader.slice(0, 20));
+      const authHeader = headers.get('Authorization') || 'MISSING';
+      console.error('[profileManager] Not authenticated. Auth header prefix:', authHeader.slice(0, 30));
       return Response.json({ error: 'Not authenticated' }, { status: 401 });
     }
-
-    const body = await req.json();
-    const { action } = body;
 
     // ── GET profile ──────────────────────────────────────────────────────────
     if (action === 'get') {
@@ -35,7 +49,7 @@ Deno.serve(async (req) => {
 
     // ── SAVE profile fields ───────────────────────────────────────────────────
     if (action === 'save') {
-      const { data } = body; // { display_name, username, bio, location }
+      const { data } = body;
       const records = await base44.asServiceRole.entities.UserProfile.filter({
         user_email: user.email,
       });
@@ -43,10 +57,7 @@ Deno.serve(async (req) => {
 
       let profile;
       if (existing) {
-        profile = await base44.asServiceRole.entities.UserProfile.update(
-          existing.id,
-          data,
-        );
+        profile = await base44.asServiceRole.entities.UserProfile.update(existing.id, data);
       } else {
         profile = await base44.asServiceRole.entities.UserProfile.create({
           user_email: user.email,
@@ -70,10 +81,7 @@ Deno.serve(async (req) => {
 
       let profile;
       if (existing) {
-        profile = await base44.asServiceRole.entities.UserProfile.update(
-          existing.id,
-          { avatar_url: file_url },
-        );
+        profile = await base44.asServiceRole.entities.UserProfile.update(existing.id, { avatar_url: file_url });
       } else {
         profile = await base44.asServiceRole.entities.UserProfile.create({
           user_email: user.email,

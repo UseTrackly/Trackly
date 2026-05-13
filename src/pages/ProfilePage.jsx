@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { base44, ensureTokenSynced } from '@/api/base44Client'; // ensureTokenSynced kept for updateSettingsMutation
+import { base44, ensureTokenSynced } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -79,11 +79,15 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
+  // Helper: get the current stored token to pass explicitly in every invoke
+  const getToken = () => localStorage.getItem('base44_access_token') || null;
+
   // UserProfile — fetched via backend function (service role bypasses RLS issues)
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['userProfile', user?.email],
     queryFn: async () => {
-      const res = await base44.functions.invoke('profileManager', { action: 'get' });
+      ensureTokenSynced();
+      const res = await base44.functions.invoke('profileManager', { action: 'get', token: getToken() });
       return res.data?.profile ?? null;
     },
     enabled: !!user?.email,
@@ -111,7 +115,7 @@ export default function ProfilePage() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
       ensureTokenSynced();
-      const res = await base44.functions.invoke('profileManager', { action: 'save', data });
+      const res = await base44.functions.invoke('profileManager', { action: 'save', data, token: getToken() });
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;
     },
@@ -181,16 +185,13 @@ export default function ProfilePage() {
     setUploading(true);
     try {
       ensureTokenSynced();
-      // Step 1: upload the file bytes
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
-      // Step 2: persist via backend function (service role — bypasses RLS)
       const res = await base44.functions.invoke('profileManager', {
         action: 'setAvatar',
         file_url,
+        token: getToken(),
       });
       if (res.data?.error) throw new Error(res.data.error);
-
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['me'] }),
         refetchProfile(),
@@ -203,35 +204,9 @@ export default function ProfilePage() {
     }
   };
 
-  const handleAvatarButtonPress = async () => {
-    const isNative = !!(window?.Capacitor?.isNativePlatform?.());
-    if (isNative) {
-      try {
-        const Camera = window?.Capacitor?.Plugins?.Camera;
-        if (!Camera) throw new Error('no plugin');
-        // Request permission first
-        const perm = await Camera.requestPermissions({ permissions: ['photos'] }).catch(() => null);
-        // 'base64' is the most reliable result type on iOS WKWebView
-        const photo = await Camera.getPhoto({
-          quality: 85,
-          allowEditing: false,
-          resultType: 'base64',
-          source: 'PHOTOS',
-        });
-        if (!photo?.base64String) return;
-        const byteChars = atob(photo.base64String);
-        const byteArr = new Uint8Array(byteChars.length);
-        for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i);
-        const blob = new Blob([byteArr], { type: 'image/jpeg' });
-        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-        await doUploadAvatar(file);
-        return;
-      } catch (err) {
-        const msg = String(err?.message || err || '').toLowerCase();
-        if (msg.includes('cancel') || msg.includes('denied') || msg.includes('dismiss')) return;
-        // Fall through to web file input
-      }
-    }
+  // On iOS, a standard <input type="file" accept="image/*"> shows the native
+  // "Photo Library / Take Photo" action sheet — no Camera plugin needed.
+  const handleAvatarButtonPress = () => {
     fileInputRef.current?.click();
   };
 
@@ -323,7 +298,7 @@ export default function ProfilePage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
+              accept="image/*"
               onChange={handleUploadProfilePicture}
               style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
               tabIndex={-1}

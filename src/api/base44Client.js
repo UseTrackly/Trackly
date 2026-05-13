@@ -25,7 +25,9 @@ export const base44 = createClient({
 export const reinitializeBase44Token = (token) => {
   if (!token) return;
   localStorage.setItem('base44_access_token', token);
-  // base44.auth.setToken is the correct API (not base44.setToken)
+  // Also write to sessionStorage as a fallback for iOS WKWebView cold-launch clears
+  try { sessionStorage.setItem('base44_access_token', token); } catch {}
+  // Push into the SDK client so entity/integration calls use the correct header
   base44.auth.setToken(token, false); // false = don't double-save to storage
 };
 

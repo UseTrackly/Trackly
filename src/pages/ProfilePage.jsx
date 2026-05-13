@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { base44, ensureTokenSynced } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -79,8 +79,21 @@ export default function ProfilePage() {
     enabled: isAuthenticated,
   });
 
-  // Helper: get the current stored token to pass explicitly in every invoke
-  const getToken = () => localStorage.getItem('base44_access_token') || null;
+  // Read token from every possible location — whichever is populated wins.
+  // On iOS WKWebView, localStorage can be cleared between cold launches, so we
+  // also check sessionStorage and the SDK's own internal token as fallbacks.
+  const getToken = useCallback(() => {
+    const ls = localStorage.getItem('base44_access_token');
+    if (ls) return ls;
+    const ss = sessionStorage.getItem('base44_access_token');
+    if (ss) return ss;
+    // Last resort: ask the SDK directly for its current token
+    try {
+      const sdkToken = base44.auth.getToken?.();
+      if (sdkToken) return sdkToken;
+    } catch {}
+    return null;
+  }, []);
 
   // UserProfile — fetched via backend function (service role bypasses RLS issues)
   const { data: profile, refetch: refetchProfile } = useQuery({

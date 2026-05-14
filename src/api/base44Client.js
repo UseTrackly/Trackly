@@ -4,17 +4,6 @@ import { appParams } from '@/lib/app-params';
 const { appId, functionsVersion } = appParams;
 
 const HARDCODED_APP_ID = '69bfd92e3db7d48eec6c8062';
-
-// On native Capacitor (iOS/Android), window.location is a local capacitor:// URL.
-// The SDK must point to the real Base44 API — never the local web view origin.
-// We detect native by checking the URL scheme at init time as a reliable signal.
-const BASE44_SERVER_URL = 'https://api.base44.com';
-const isNativeApp = () => {
-  // Capacitor sets window.Capacitor, but also the URL scheme is a dead giveaway
-  if (window?.Capacitor?.isNativePlatform?.()) return true;
-  const scheme = window?.location?.protocol || '';
-  return scheme === 'capacitor:' || scheme === 'ionic:';
-};
 const TOKEN_KEY = 'base44_access_token';
 
 // ─── Native-safe storage ─────────────────────────────────────────────────────
@@ -66,9 +55,6 @@ export const base44 = createClient({
   appId: appId || HARDCODED_APP_ID,
   token: getTokenSync(),
   functionsVersion,
-  // On native Capacitor, force the real API server URL so function calls
-  // don't accidentally resolve to the local capacitor:// web view origin.
-  serverUrl: isNativeApp() ? BASE44_SERVER_URL : '',
   requiresAuth: false,
 });
 

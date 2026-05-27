@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -54,15 +54,7 @@ import ThemePicker from '@/components/settings/ThemePicker';
 import CategoriesEditor from '@/components/settings/CategoriesEditor';
 import { Crown } from 'lucide-react';
 
-// ─── Visible runtime debug log (shows inside the app on-screen) ─────────────
-// This is the only reliable way to see logs in a Capacitor TestFlight build
-// where neither Safari remote debug nor Xcode console is available.
-const debugLogs = [];
-const addLog = (msg, data) => {
-  const entry = `[${new Date().toISOString().slice(11,23)}] ${msg}${data !== undefined ? ': ' + JSON.stringify(data) : ''}`;
-  console.log('[TRACKLY-DEBUG]', entry);
-  debugLogs.push(entry);
-};
+
 
 export default function ProfilePage() {
   const { theme, toggleTheme, background, changeBackground, uploadCustomBackground } = useTheme();
@@ -78,15 +70,7 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadingBg, setUploadingBg] = useState(false);
-  const [showDebugLog, setShowDebugLog] = useState(false);
-  const [debugEntries, setDebugEntries] = useState([]);
   const queryClient = useQueryClient();
-  const fileInputRef = useRef(null);
-
-  const log = useCallback((msg, data) => {
-    addLog(msg, data);
-    setDebugEntries([...debugLogs]);
-  }, []);
 
   const { isAuthenticated, navigateToLogin, logout } = useAuth();
 
@@ -97,11 +81,10 @@ export default function ProfilePage() {
   });
 
   // Read token from native storage (NSUserDefaults on iOS, localStorage on web)
-  const getToken = useCallback(async () => {
+  const getToken = async () => {
     const token = await nativeStorage.get();
-    log('getToken source', token ? 'nativeStorage ✓' : 'NULL — no token found!');
     return token;
-  }, [log]);
+  };
 
   // UserProfile — fetched via backend function (service role bypasses RLS issues)
   const { data: profile, refetch: refetchProfile } = useQuery({
@@ -109,9 +92,7 @@ export default function ProfilePage() {
     queryFn: async () => {
       await ensureTokenSynced();
       const token = await getToken();
-      log('profile GET — token present', !!token);
       const res = await base44.functions.invoke('profileManager', { action: 'get', token });
-      log('profile GET response', { status: res.status, hasProfile: !!res.data?.profile, error: res.data?.error });
       return res.data?.profile ?? null;
     },
     enabled: !!user?.email,
@@ -140,22 +121,16 @@ export default function ProfilePage() {
     mutationFn: async (data) => {
       await ensureTokenSynced();
       const token = await getToken();
-      const payload = { action: 'save', data, token };
-      log('profile SAVE — token present', !!token);
-      log('profile SAVE payload', { action: 'save', dataKeys: Object.keys(data || {}), tokenPresent: !!token });
-      const res = await base44.functions.invoke('profileManager', payload);
-      log('profile SAVE response', { status: res.status, data: res.data });
+      const res = await base44.functions.invoke('profileManager', { action: 'save', data, token });
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;
     },
     onSuccess: async () => {
-      log('profile SAVE onSuccess — refetching profile');
       await refetchProfile();
       setShowEditProfile(false);
       toast.success('Profile updated');
     },
     onError: (e) => {
-      log('profile SAVE onError', e?.message);
       toast.error(e?.message || 'Failed to save profile');
     },
   });
@@ -212,56 +187,31 @@ export default function ProfilePage() {
   };
 
   const doUploadAvatar = async (file) => {
-    if (!user?.email) { log('doUploadAvatar — NO user.email, aborting'); return; }
-    log('doUploadAvatar — start', { fileName: file?.name, fileSize: file?.size, fileType: file?.type });
+    if (!user?.email || !file) return;
     setUploading(true);
     try {
       await ensureTokenSynced();
-      log('doUploadAvatar — calling UploadFile');
-      let file_url;
-      try {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file });
-        file_url = uploadRes?.file_url;
-        log('doUploadAvatar — UploadFile result', { file_url: file_url ? file_url.slice(0, 60) + '...' : 'MISSING' });
-      } catch (uploadErr) {
-        log('doUploadAvatar — UploadFile THREW', uploadErr?.message);
-        throw uploadErr;
-      }
-      if (!file_url) throw new Error('UploadFile returned no file_url');
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (!file_url) throw new Error('Upload returned no file_url');
       const token = await getToken();
-      log('doUploadAvatar — calling setAvatar', { tokenPresent: !!token });
-      const res = await base44.functions.invoke('profileManager', {
-        action: 'setAvatar',
-        file_url,
-        token,
-      });
-      log('doUploadAvatar — setAvatar response', { status: res.status, data: res.data });
+      const res = await base44.functions.invoke('profileManager', { action: 'setAvatar', file_url, token });
       if (res.data?.error) throw new Error(res.data.error);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['me'] }),
         refetchProfile(),
       ]);
-      log('doUploadAvatar — SUCCESS');
       toast.success('Profile picture updated');
     } catch (error) {
-      log('doUploadAvatar — CAUGHT ERROR', error?.message);
       toast.error('Upload failed: ' + (error?.message || 'unknown error'));
     } finally {
       setUploading(false);
     }
   };
 
-  const handleAvatarButtonPress = () => {
-    log('avatar button pressed — triggering file input click');
-    fileInputRef.current?.click();
-  };
-
   const handleUploadProfilePicture = async (e) => {
     const file = e.target.files?.[0];
-    log('file input onChange fired', { hasFile: !!file, fileName: file?.name, fileSize: file?.size });
     e.target.value = '';
-    if (!file) { log('file input — no file selected'); return; }
-    await doUploadAvatar(file);
+    if (file) await doUploadAvatar(file);
   };
 
   const handleUploadBackground = async (e) => {
@@ -341,27 +291,22 @@ export default function ProfilePage() {
                 <User className="w-6 h-6 text-primary" />
               </div>
             }
-            {/* File input: visually hidden but NOT display:none — iOS WKWebView ignores display:none inputs */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleUploadProfilePicture}
-              style={{ position: 'absolute', opacity: 0, width: 1, height: 1, pointerEvents: 'none' }}
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-            <button
-              type="button"
-              onClick={handleAvatarButtonPress}
-              disabled={uploading}
-              className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors disabled:opacity-50">
+            <label
+              className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors"
+              style={uploading ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleUploadProfilePicture}
+                style={{ display: 'none' }}
+              />
               {uploading ? (
                 <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Camera className="w-3 h-3" />
               )}
-            </button>
+            </label>
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold truncate">{profile?.display_name || user?.full_name || 'Reseller'}</h2>
@@ -792,47 +737,7 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── DEBUG LOG PANEL (remove before final release) ──────────────── */}
-      <div style={{ position: 'fixed', bottom: 80, right: 12, zIndex: 9999 }}>
-        <button
-          onClick={() => setShowDebugLog(v => !v)}
-          style={{
-            background: '#f59e0b', color: '#000', border: 'none', borderRadius: 8,
-            padding: '6px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
-          }}
-        >
-          {showDebugLog ? 'Hide Log' : `Debug (${debugEntries.length})`}
-        </button>
-        {showDebugLog && (
-          <div style={{
-            position: 'absolute', bottom: 34, right: 0, width: 320, maxHeight: 400,
-            background: '#0a0a0a', border: '1px solid #333', borderRadius: 10,
-            overflow: 'auto', padding: 10
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ color: '#f59e0b', fontSize: 11, fontWeight: 700 }}>RUNTIME LOG</span>
-              <button
-                onClick={() => { debugLogs.length = 0; setDebugEntries([]); }}
-                style={{ background: 'none', border: 'none', color: '#666', fontSize: 11, cursor: 'pointer' }}
-              >clear</button>
-            </div>
-            {debugEntries.length === 0 ? (
-              <div style={{ color: '#555', fontSize: 11 }}>No entries yet — trigger a save or upload.</div>
-            ) : (
-              debugEntries.map((e, i) => (
-                <div key={i} style={{
-                  color: e.includes('ERROR') || e.includes('NULL') || e.includes('THREW') || e.includes('CAUGHT') ? '#ff6b6b' : '#a3e635',
-                  fontSize: 10, fontFamily: 'monospace', lineHeight: 1.6,
-                  borderBottom: '1px solid #1a1a1a', paddingBottom: 2, marginBottom: 2,
-                  wordBreak: 'break-all'
-                }}>{e}</div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-      {/* ── END DEBUG LOG PANEL ─────────────────────────────────────────── */}
+
 
       {/* Edit Profile Dialog */}
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>

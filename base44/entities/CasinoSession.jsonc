@@ -1,0 +1,55 @@
+{
+  "name": "CasinoSession",
+  "type": "object",
+  "properties": {
+    "game_type": {
+      "type": "string",
+      "enum": [
+        "poker",
+        "blackjack",
+        "roulette",
+        "slots",
+        "craps",
+        "baccarat",
+        "sports_book",
+        "other"
+      ],
+      "description": "Type of casino game"
+    },
+    "venue": {
+      "type": "string",
+      "description": "Casino or venue name"
+    },
+    "buy_in": {
+      "type": "number",
+      "description": "Total amount bought in / brought to the table"
+    },
+    "cash_out": {
+      "type": "number",
+      "description": "Amount cashed out at the end"
+    },
+    "net_profit": {
+      "type": "number",
+      "description": "Net profit or loss (cash_out - buy_in)"
+    },
+    "duration_hours": {
+      "type": "number",
+      "description": "How long the session lasted in hours"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the session"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about the session"
+    }
+  },
+  "required": [
+    "game_type",
+    "buy_in",
+    "cash_out",
+    "date"
+  ]
+}

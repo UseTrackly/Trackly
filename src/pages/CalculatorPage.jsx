@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SaveFlipDialog from '@/components/calculator/SaveFlipDialog';
 import AIAssistant from '@/components/ai/AIAssistant';
 import CustomExpenses from '@/components/calculator/CustomExpenses';
+import CasinoTracker from '@/components/calculator/CasinoTracker';
+import SportsBetTracker from '@/components/calculator/SportsBetTracker';
 import { calculateFlip, PLATFORMS } from '@/lib/platformFees';
 import { canSaveFlip, countTodayFlips, FREE_LIMITS } from '@/lib/proGate';
 
@@ -99,10 +101,12 @@ export default function CalculatorPage() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-card border border-border">
-          <TabsTrigger value="calculator">Calculate</TabsTrigger>
-          <TabsTrigger value="ai">
-            <MessageSquare className="w-4 h-4 mr-1.5" />
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
+          <TabsTrigger value="calculator" className="text-xs">Flip</TabsTrigger>
+          <TabsTrigger value="casino" className="text-xs">🎰 Casino</TabsTrigger>
+          <TabsTrigger value="sports" className="text-xs">🏈 Bets</TabsTrigger>
+          <TabsTrigger value="ai" className="text-xs">
+            <MessageSquare className="w-3.5 h-3.5 mr-1" />
             AI
           </TabsTrigger>
         </TabsList>
@@ -312,6 +316,14 @@ export default function CalculatorPage() {
         )}
       </AnimatePresence>
 
+        </TabsContent>
+
+        <TabsContent value="casino">
+          <CasinoTracker user={user} />
+        </TabsContent>
+
+        <TabsContent value="sports">
+          <SportsBetTracker user={user} />
         </TabsContent>
 
         <TabsContent value="ai">

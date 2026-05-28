@@ -38,10 +38,14 @@ export default function CertImagePreview({ certNumber, gradingCompany, onImageFo
       setCardName(null);
 
       try {
+        // 20s client-side timeout as a safety net
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
         const res = await base44.functions.invoke('lookupGradedCard', {
           cert_number: cert,
           grading_company: gradingCompany,
         });
+        clearTimeout(timeout);
         const { image_url, card_name } = res.data || {};
         if (image_url) {
           setPreviewUrl(image_url);

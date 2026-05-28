@@ -23,10 +23,10 @@ const SPORTS = [
 ];
 
 const BET_TYPES = [
+  { value: 'parlay', label: 'Parlay' },
   { value: 'moneyline', label: 'Moneyline' },
   { value: 'spread', label: 'Spread' },
   { value: 'over_under', label: 'Over/Under' },
-  { value: 'parlay', label: 'Parlay' },
   { value: 'prop', label: 'Prop Bet' },
   { value: 'futures', label: 'Futures' },
   { value: 'live', label: 'Live Bet' },
@@ -57,7 +57,7 @@ function calcPayout(wager, odds) {
 
 export default function SportsBetTracker({ user }) {
   const [sport, setSport] = useState('football');
-  const [betType, setBetType] = useState('moneyline');
+  const [betType, setBetType] = useState('parlay');
   const [sportsbook, setSportsbook] = useState('hardrock');
   const [description, setDescription] = useState('');
   const [wager, setWager] = useState('');

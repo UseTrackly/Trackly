@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { Upload, Loader2, DollarSign } from 'lucide-react';
+import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
 
 const CATEGORIES = [
@@ -51,6 +52,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [gradingCompany, setGradingCompany] = useState('PSA');
   const [grade, setGrade] = useState('');
   const [certNumber, setCertNumber] = useState('');
+  const [certImageUrl, setCertImageUrl] = useState(null);
   const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
   const [showConditionDrawer, setShowConditionDrawer] = useState(false);
   const queryClient = useQueryClient();
@@ -90,6 +92,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
     setGradingCompany('PSA');
     setGrade('');
     setCertNumber('');
+    setCertImageUrl(null);
   };
 
   const saveMutation = useMutation({
@@ -101,6 +104,8 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
         const result = await base44.integrations.Core.UploadFile({ file: imageFile });
         imageUrl = result.file_url;
         setUploading(false);
+      } else if (certImageUrl) {
+        imageUrl = certImageUrl;
       }
 
       const itemData = {
@@ -294,6 +299,15 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                       style={{ fontSize: 16 }}
                     />
                   </div>
+                  <CertImagePreview
+                    certNumber={certNumber}
+                    gradingCompany={gradingCompany}
+                    currentImageUrl={certImageUrl || editingItem?.image_url}
+                    onImageFound={(url, name) => {
+                      setCertImageUrl(url);
+                      if (name && !itemName) setItemName(name);
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -393,24 +407,45 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Image
             </label>
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
-                className="hidden"
-                id="inventory-image"
-              />
-              <label
-                htmlFor="inventory-image"
-                className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
-              >
-                <Upload className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  {imageFile ? imageFile.name : editingItem?.image_url ? 'Change image' : 'Upload image'}
-                </span>
-              </label>
-            </div>
+            {certImageUrl && !imageFile ? (
+              <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
+                <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary mb-1">Auto-fetched from {gradingCompany}</p>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                      className="hidden"
+                      id="inventory-image"
+                    />
+                    <label htmlFor="inventory-image" className="text-xs text-muted-foreground underline cursor-pointer">
+                      Replace with your own
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                  onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                  className="hidden"
+                  id="inventory-image"
+                />
+                <label
+                  htmlFor="inventory-image"
+                  className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
+                >
+                  <Upload className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {imageFile ? imageFile.name : editingItem?.image_url ? 'Change image' : 'Upload image'}
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
         </div>
 

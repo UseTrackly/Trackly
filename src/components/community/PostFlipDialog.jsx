@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Loader2, Crown } from 'lucide-react';
+import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
 import { canPostCommunity, FREE_LIMITS } from '@/lib/proGate';
 
@@ -39,6 +40,7 @@ export default function PostFlipDialog({ open, onClose }) {
   const [gradingCompany, setGradingCompany] = useState('PSA');
   const [grade, setGrade] = useState('');
   const [certNumber, setCertNumber] = useState('');
+  const [certImageUrl, setCertImageUrl] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -68,6 +70,10 @@ export default function PostFlipDialog({ open, onClose }) {
         throw new Error('Your post contains inappropriate content. Please revise and try again.');
       }
       
+      if (certImageUrl && !imageFile) {
+        imageUrl = certImageUrl;
+      }
+
       if (imageFile) {
         setUploading(true);
         const result = await base44.integrations.Core.UploadFile({ file: imageFile });
@@ -139,6 +145,7 @@ export default function PostFlipDialog({ open, onClose }) {
     setGradingCompany('PSA');
     setGrade('');
     setCertNumber('');
+    setCertImageUrl(null);
     onClose();
   };
 
@@ -253,6 +260,15 @@ export default function PostFlipDialog({ open, onClose }) {
                       style={{ fontSize: 16 }}
                     />
                   </div>
+                  <CertImagePreview
+                    certNumber={certNumber}
+                    gradingCompany={gradingCompany}
+                    currentImageUrl={certImageUrl}
+                    onImageFound={(url, name) => {
+                      setCertImageUrl(url);
+                      if (name && !itemName) setItemName(name);
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -286,24 +302,45 @@ export default function PostFlipDialog({ open, onClose }) {
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Image
             </label>
-            <div className="relative">
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
-                className="hidden"
-                id="flip-image"
-              />
-              <label
-                htmlFor="flip-image"
-                className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
-              >
-                <Upload className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">
-                  {imageFile ? imageFile.name : 'Upload image'}
-                </span>
-              </label>
-            </div>
+            {certImageUrl && !imageFile ? (
+              <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
+                <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary mb-1">Auto-fetched from {gradingCompany}</p>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                      onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                      className="hidden"
+                      id="flip-image"
+                    />
+                    <label htmlFor="flip-image" className="text-xs text-muted-foreground underline cursor-pointer">
+                      Replace with your own
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                  onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                  className="hidden"
+                  id="flip-image"
+                />
+                <label
+                  htmlFor="flip-image"
+                  className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
+                >
+                  <Upload className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    {imageFile ? imageFile.name : 'Upload image'}
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
         </div>
 

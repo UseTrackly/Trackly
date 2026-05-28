@@ -130,12 +130,10 @@ export default function CalculatorPage() {
           </label>
           <Select value={platform} onValueChange={setPlatform}>
             <SelectTrigger className="h-12 text-base bg-background">
-              <SelectValue>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{PLATFORMS[platform]?.icon}</span>
-                  <span className="font-medium">{PLATFORMS[platform]?.name}</span>
-                </div>
-              </SelectValue>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{PLATFORMS[platform]?.icon}</span>
+                <span className="font-medium">{PLATFORMS[platform]?.name}</span>
+              </div>
             </SelectTrigger>
             <SelectContent>
               {Object.entries(PLATFORMS).map(([key, p]) => (

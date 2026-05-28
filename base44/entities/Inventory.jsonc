@@ -1,5 +1,5 @@
 {
-  "name": "CommunityFlip",
+  "name": "Inventory",
   "type": "object",
   "properties": {
     "item_name": {
@@ -21,41 +21,48 @@
       ],
       "description": "Category of the item"
     },
-    "description": {
-      "type": "string",
-      "description": "Details about the flip opportunity"
-    },
-    "price": {
+    "cost_basis": {
       "type": "number",
-      "description": "Asking price or estimated value"
+      "description": "Purchase price or cost of acquiring the item"
+    },
+    "date_acquired": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the item was acquired"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "new",
+        "like_new",
+        "excellent",
+        "good",
+        "fair",
+        "poor"
+      ],
+      "default": "good",
+      "description": "Current condition of the item"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about condition, flaws, or details"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of units"
     },
     "location": {
       "type": "string",
-      "description": "Location of the item"
+      "description": "Storage location"
     },
     "image_url": {
       "type": "string",
       "description": "Image of the item"
     },
-    "posted_by": {
-      "type": "string",
-      "description": "Email of user who posted"
-    },
-    "posted_by_name": {
-      "type": "string",
-      "description": "Name of user who posted"
-    },
-    "is_poster_pro": {
-      "type": "boolean",
-      "default": false,
-      "description": "Whether the poster had Pro at the time of posting"
-    },
-    "interested_users": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Array of user emails who are interested"
+    "target_price": {
+      "type": "number",
+      "description": "Target selling price"
     },
     "is_graded": {
       "type": "boolean",
@@ -88,9 +95,7 @@
   },
   "required": [
     "item_name",
-    "category",
-    "price",
-    "posted_by",
-    "posted_by_name"
+    "cost_basis",
+    "date_acquired"
   ]
 }

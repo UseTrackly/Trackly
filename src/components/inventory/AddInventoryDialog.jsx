@@ -47,6 +47,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [targetPrice, setTargetPrice] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [isGraded, setIsGraded] = useState(false);
+  const [gradingCompany, setGradingCompany] = useState('PSA');
+  const [grade, setGrade] = useState('');
+  const [certNumber, setCertNumber] = useState('');
   const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
   const [showConditionDrawer, setShowConditionDrawer] = useState(false);
   const queryClient = useQueryClient();
@@ -62,6 +66,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
       setQuantity(editingItem.quantity?.toString() || '1');
       setLocation(editingItem.location || '');
       setTargetPrice(editingItem.target_price?.toString() || '');
+      setIsGraded(editingItem.is_graded || false);
+      setGradingCompany(editingItem.grading_company || 'PSA');
+      setGrade(editingItem.grade || '');
+      setCertNumber(editingItem.cert_number || '');
     } else {
       resetForm();
     }
@@ -78,6 +86,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
     setLocation('');
     setTargetPrice('');
     setImageFile(null);
+    setIsGraded(false);
+    setGradingCompany('PSA');
+    setGrade('');
+    setCertNumber('');
   };
 
   const saveMutation = useMutation({
@@ -125,6 +137,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
       quantity: parseInt(quantity) || 1,
       location,
       target_price: targetPrice ? parseFloat(targetPrice) : undefined,
+      is_graded: category === 'cards' ? isGraded : false,
+      grading_company: category === 'cards' && isGraded ? gradingCompany : undefined,
+      grade: category === 'cards' && isGraded ? grade : undefined,
+      cert_number: category === 'cards' && isGraded ? certNumber : undefined,
     });
   };
 
@@ -225,6 +241,63 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
               </div>
             </DrawerContent>
           </Drawer>
+
+          {/* Graded Card Section */}
+          {category === 'cards' && (
+            <div className="space-y-3 border border-border rounded-xl p-3 bg-background">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Graded Card
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsGraded(v => !v)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isGraded ? 'bg-primary' : 'bg-muted'}`}
+                >
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${isGraded ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+              {isGraded && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Grading Company</label>
+                      <select
+                        value={gradingCompany}
+                        onChange={(e) => setGradingCompany(e.target.value)}
+                        className="w-full h-9 rounded-md border border-input bg-card px-3 text-sm"
+                        style={{ fontSize: 16 }}
+                      >
+                        {['PSA', 'BGS', 'CGC', 'SGC', 'GMA', 'HGA', 'CSG', 'AGS', 'other'].map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Grade</label>
+                      <Input
+                        value={grade}
+                        onChange={(e) => setGrade(e.target.value)}
+                        placeholder="e.g. 9.5, 10"
+                        className="bg-card h-9"
+                        style={{ fontSize: 16 }}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cert Number</label>
+                    <Input
+                      value={certNumber}
+                      onChange={(e) => setCertNumber(e.target.value)}
+                      placeholder="Certificate / serial number"
+                      className="bg-card h-9"
+                      style={{ fontSize: 16 }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Cost & Quantity */}
           <div className="grid grid-cols-2 gap-3">

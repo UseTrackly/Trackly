@@ -164,6 +164,7 @@ export default function CalculatorPage() {
                 onChange={(e) => setBuyPrice(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
                 className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                style={{ fontSize: 16 }}
               />
             </div>
           </div>
@@ -180,6 +181,7 @@ export default function CalculatorPage() {
                 onChange={(e) => setSalePrice(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
                 className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                style={{ fontSize: 16 }}
               />
             </div>
           </div>
@@ -193,11 +195,12 @@ export default function CalculatorPage() {
           <div className="relative">
             <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
-              type="number"
-              value={shippingCost || ''}
-              onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
-              placeholder="0.00"
-              className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            type="number"
+            value={shippingCost || ''}
+            onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+            className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            style={{ fontSize: 16 }}
             />
           </div>
         </div>

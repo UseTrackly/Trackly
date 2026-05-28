@@ -299,7 +299,7 @@ export default function ProfilePage() {
                 type="file"
                 accept="image/*"
                 onChange={handleUploadProfilePicture}
-                style={{ display: 'none' }}
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
               />
               {uploading ? (
                 <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />

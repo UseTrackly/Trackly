@@ -41,6 +41,16 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', user?.email],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('profileManager', { action: 'get' });
+      return res.data?.profile ?? null;
+    },
+    enabled: !!user?.email,
+    staleTime: 30000,
+  });
+
   const { data: communityFlipsRaw } = useQuery({
     queryKey: ['communityFlips'],
     queryFn: () => base44.entities.CommunityFlip.list('-created_date', 10),
@@ -91,7 +101,8 @@ export default function Dashboard() {
     };
   }, [last7DaysFlips]);
 
-  const firstName = user?.full_name?.split(' ')[0] || 'Reseller';
+  const displayName = userProfile?.display_name || user?.full_name || '';
+  const firstName = displayName.split(' ')[0] || 'Reseller';
 
   if (isLoading) {
     return (

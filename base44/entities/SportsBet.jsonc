@@ -39,6 +39,8 @@
     "sportsbook": {
       "type": "string",
       "enum": [
+        "hardrock",
+        "prizepicks",
         "draftkings",
         "fanduel",
         "betmgm",

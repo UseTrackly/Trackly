@@ -34,6 +34,8 @@ const BET_TYPES = [
 ];
 
 const SPORTSBOOKS = [
+  { value: 'hardrock', label: 'Hard Rock Bet' },
+  { value: 'prizepicks', label: 'PrizePicks' },
   { value: 'draftkings', label: 'DraftKings' },
   { value: 'fanduel', label: 'FanDuel' },
   { value: 'betmgm', label: 'BetMGM' },
@@ -56,7 +58,7 @@ function calcPayout(wager, odds) {
 export default function SportsBetTracker({ user }) {
   const [sport, setSport] = useState('football');
   const [betType, setBetType] = useState('moneyline');
-  const [sportsbook, setSportsbook] = useState('draftkings');
+  const [sportsbook, setSportsbook] = useState('hardrock');
   const [description, setDescription] = useState('');
   const [wager, setWager] = useState('');
   const [odds, setOdds] = useState('');

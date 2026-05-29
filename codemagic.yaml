@@ -32,11 +32,17 @@ workflows:
           npx cap add ios
       - name: Convert iOS project to CocoaPods (required for Capacitor plugins)
         script: |
+          # Remove SPM package if present - Capacitor plugins need CocoaPods
           rm -rf ios/App/CapApp-SPM || true
+
+          # Patch Xcode project deployment target BEFORE sync
+          find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true
+
+          # Write Podfile BEFORE sync so cap sync uses it as a base
           cat > ios/App/Podfile << 'EOF'
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-          platform :ios, '14.0'
+          platform :ios, '16.0'
           use_frameworks!
 
           install! 'cocoapods', :deterministic_uuids => false
@@ -52,11 +58,40 @@ workflows:
           capacitor_pods
           end
           EOF
-          echo "--- Podfile written ---"
+          echo "--- Podfile before sync ---"
           cat ios/App/Podfile
+
       - name: Sync Capacitor
         script: |
-          npx cap sync ios
+          # Run sync WITHOUT pod install (we handle that ourselves)
+          npx cap sync ios --no-deps
+
+          # Re-patch deployment target in case sync regenerated it
+          find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true
+
+          # Re-write Podfile in case sync overwrote it
+          cat > ios/App/Podfile << 'EOF'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers' 
+
+          platform :ios, '16.0'
+          use_frameworks!
+
+          install! 'cocoapods', :deterministic_uuids => false
+
+          def capacitor_pods
+          pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+          pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+          end
+
+          target 'App' do
+          capacitor_pods
+          end
+          EOF
+          echo "--- Podfile after sync ---"
+          cat ios/App/Podfile
+
       - name: Install CocoaPods
         script: |
           cd ios/App
@@ -66,13 +101,18 @@ workflows:
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
           PLIST="ios/App/App/Info.plist"
+          # Add CFBundleURLTypes array if missing
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$PLIST" 2>/dev/null || true
+          # Add first entry (dict) if missing
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string trackly" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLName trackly" "$PLIST"
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string trackly" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 trackly" "$PLIST"
+          echo "--- URL schemes registered ---"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$PLIST"
+
       - name: Set export compliance
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
@@ -94,6 +134,7 @@ workflows:
           xcode-project use-profiles
       - name: Build iOS
         script: |
+          # Use the CocoaPods-generated workspace, not SPM
           WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" -not -path "*/CapApp-SPM/*" | head -1)
           echo "Building workspace: $WORKSPACE"
           xcode-project build-ipa \

@@ -30,17 +30,21 @@ workflows:
           npx cap sync ios
       - name: Install iOS pods
         script: |
-          cd ios/App
+          find ios -name "Podfile" -print
+          PODFILE_DIR=$(dirname "$(find ios -name "Podfile" | head -1)")
+          echo "Podfile dir: $PODFILE_DIR"
+          cd "$PODFILE_DIR"
           pod install
-          cd ../..
 
       - name: Verify RevenueCat iOS plugin
         script: |
           echo "--- package.json RevenueCat check ---"
           cat package.json | grep -i revenuecat || true
-          echo "--- Podfile.lock RevenueCat check ---"
-          cat ios/App/Podfile.lock | grep -i revenuecat || true
-          cat ios/App/Podfile.lock | grep -i purchases || true
+          echo "--- Find Podfile.lock ---"
+          find ios -name "Podfile.lock" -print
+          echo "--- RevenueCat in Podfile.lock ---"
+          find ios -name "Podfile.lock" -exec grep -i revenuecat {} \; || true
+          find ios -name "Podfile.lock" -exec grep -i purchases {} \; || true
       - name: Set export compliance
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \

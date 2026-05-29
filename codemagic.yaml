@@ -4,45 +4,75 @@ workflows:
     max_build_duration: 60
     environment:
       xcode: latest
-      node: 22
+      node: 24.15.0
       groups:
         - app_store
-        - vite
       vars:
         BUNDLE_ID: com.base69bfd92e3db7d48eec6c8062.app
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.base69bfd92e3db7d48eec6c8062.app
-        
     scripts:
       - name: Install dependencies
         script: npm install
       - name: Build web app
-        script: npm run build
-      - name: Install Capacitor + RevenueCat
         script: |
-          npm install @capacitor/cli @capacitor/core @capacitor/ios @revenuecat/purchases-capacitor
-      - name: Recreate and sync Capacitor iOS
+          VITE_BASE44_APP_ID=69bfd92e3db7d48eec6c8062 \
+          VITE_BASE44_APP_BASE_URL=https://usetrackly.base44.app \
+          npm run build
+      - name: Install Capacitor CLI and plugins
+        script: |
+          npm install @capacitor/cli @capacitor/core @capacitor/ios
+          npm install @revenuecat/purchases-capacitor@^10.4.0
+          npm install @capacitor/browser@^8.0.0
+      - name: Add Capacitor iOS platform
         script: |
           git rm -rf ios --ignore-unmatch || true
           rm -rf ios
           npx cap add ios
-          npx cap sync ios
-      - name: Install iOS pods
+      - name: Convert iOS project to CocoaPods (required for Capacitor plugins)
         script: |
-          cd ios/App || cd ios
-          pod install || true
-          cd ../..
+          rm -rf ios/App/CapApp-SPM || true
+          cat > ios/App/Podfile << 'EOF'
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-      - name: Verify RevenueCat iOS plugin
+platform :ios, '14.0'
+use_frameworks!
+
+install! 'cocoapods', :deterministic_uuids => false
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+  pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+end
+
+target 'App' do
+  capacitor_pods
+end
+EOF
+          echo "--- Podfile written ---"
+          cat ios/App/Podfile
+      - name: Sync Capacitor
         script: |
-          echo "--- package.json RevenueCat check ---"
-          cat package.json | grep -i revenuecat || true
-          echo "--- Find Podfile.lock ---"
-          find ios -name "Podfile.lock" -print
-          echo "--- RevenueCat in Podfile.lock ---"
-          find ios -name "Podfile.lock" -exec grep -i revenuecat {} \; || true
-          find ios -name "Podfile.lock" -exec grep -i purchases {} \; || true
+          npx cap sync ios
+      - name: Install CocoaPods
+        script: |
+          cd ios/App
+          pod install --repo-update
+          echo "--- Podfile.lock ---"
+          cat Podfile.lock | grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" || echo "WARNING: RevenueCat not found in Podfile.lock!"
+      - name: Register trackly:// URL scheme for OAuth deep-link
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string trackly" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLName trackly" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string trackly" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 trackly" "$PLIST"
       - name: Set export compliance
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
@@ -51,9 +81,11 @@ workflows:
         script: |
           echo "--- Full ios/ tree ---"
           find ios -maxdepth 4 | sort
+          echo "--- Web assets in bundle ---"
+          ls ios/App/App/public/ | head -20 || echo "WARNING: No web assets found!"
       - name: Set build number
         script: |
-          BUILD_NUM=$((BUILD_NUMBER + 3))
+          BUILD_NUM=$((BUILD_NUMBER + 10))
           agvtool new-version -all $BUILD_NUM || true
           find ios -name "*.xcodeproj" -maxdepth 3 | head -1 | xargs -I {} sh -c 'cd "{}/.." && agvtool new-version -all '"$BUILD_NUM"' || true'
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist || true
@@ -62,7 +94,7 @@ workflows:
           xcode-project use-profiles
       - name: Build iOS
         script: |
-          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" | head -1)
+          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" -not -path "*/CapApp-SPM/*" | head -1)
           echo "Building workspace: $WORKSPACE"
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \

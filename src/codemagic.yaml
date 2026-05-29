@@ -35,7 +35,10 @@ workflows:
           # Remove SPM package if present - Capacitor plugins need CocoaPods
           rm -rf ios/App/CapApp-SPM || true
 
-          # Write a Podfile that includes all Capacitor plugins
+          # Patch Xcode project deployment target BEFORE sync
+          find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true
+
+          # Write Podfile BEFORE sync so cap sync uses it as a base
           cat > ios/App/Podfile << 'EOF'
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
@@ -55,16 +58,39 @@ target 'App' do
   capacitor_pods
 end
 EOF
-
-          echo "--- Podfile written ---"
+          echo "--- Podfile before sync ---"
           cat ios/App/Podfile
-
-          # Patch Xcode project deployment target to match
-          find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true
 
       - name: Sync Capacitor
         script: |
-          npx cap sync ios
+          # Run sync WITHOUT pod install (we handle that ourselves)
+          npx cap sync ios --no-deps
+
+          # Re-patch deployment target in case sync regenerated it
+          find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true
+
+          # Re-write Podfile in case sync overwrote it
+          cat > ios/App/Podfile << 'EOF'
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '16.0'
+use_frameworks!
+
+install! 'cocoapods', :deterministic_uuids => false
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+  pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+end
+
+target 'App' do
+  capacitor_pods
+end
+EOF
+          echo "--- Podfile after sync ---"
+          cat ios/App/Podfile
 
       - name: Install CocoaPods
         script: |

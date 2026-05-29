@@ -39,7 +39,7 @@ workflows:
           cat > ios/App/Podfile << 'EOF'
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '14.0'
+platform :ios, '16.0'
 use_frameworks!
 
 install! 'cocoapods', :deterministic_uuids => false
@@ -58,6 +58,9 @@ EOF
 
           echo "--- Podfile written ---"
           cat ios/App/Podfile
+
+          # Patch Xcode project deployment target to match
+          find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true
 
       - name: Sync Capacitor
         script: |

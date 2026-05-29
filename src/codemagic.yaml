@@ -30,10 +30,45 @@ workflows:
           git rm -rf ios --ignore-unmatch || true
           rm -rf ios
           npx cap add ios
+      - name: Convert iOS project to CocoaPods (required for Capacitor plugins)
+        script: |
+          # Remove SPM package if present - Capacitor plugins need CocoaPods
+          rm -rf ios/App/CapApp-SPM || true
+
+          # Write a Podfile that includes all Capacitor plugins
+          cat > ios/App/Podfile << 'EOF'
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+use_frameworks!
+
+install! 'cocoapods', :deterministic_uuids => false
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+  pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+end
+
+target 'App' do
+  capacitor_pods
+end
+EOF
+
+          echo "--- Podfile written ---"
+          cat ios/App/Podfile
+
       - name: Sync Capacitor
         script: |
           npx cap sync ios
-          cd ios/App && pod install --repo-update
+
+      - name: Install CocoaPods
+        script: |
+          cd ios/App
+          pod install --repo-update
+          echo "--- Podfile.lock ---"
+          cat Podfile.lock | grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" || echo "WARNING: RevenueCat not found in Podfile.lock!"
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
           PLIST="ios/App/App/Info.plist"
@@ -70,7 +105,8 @@ workflows:
           xcode-project use-profiles
       - name: Build iOS
         script: |
-          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" | head -1)
+          # Use the CocoaPods-generated workspace, not SPM
+          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" -not -path "*/CapApp-SPM/*" | head -1)
           echo "Building workspace: $WORKSPACE"
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \

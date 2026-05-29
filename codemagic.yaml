@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 60
     environment:
       xcode: latest
-      node: 20
+      node: 22
       groups:
         - app_store
         - vite

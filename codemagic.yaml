@@ -71,7 +71,7 @@ workflows:
 
           # Re-write Podfile in case sync overwrote it
           cat > ios/App/Podfile << 'EOF'
-          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers' 
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'.    
 
           platform :ios, '16.0'
           use_frameworks!
@@ -134,8 +134,8 @@ workflows:
           xcode-project use-profiles
       - name: Build iOS
         script: |
-          # Use the CocoaPods-generated workspace, not SPM
-          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" -not -path "*/CapApp-SPM/*" | head -1)
+          # Use the CocoaPods-generated workspace, not SPM or the embedded xcodeproj one
+          WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/xcuserdata/*" -not -path "*/CapApp-SPM/*" -not -path "*/*.xcodeproj/*" | head -1)
           echo "Building workspace: $WORKSPACE"
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \

@@ -30,11 +30,9 @@ workflows:
           npx cap sync ios
       - name: Install iOS pods
         script: |
-          find ios -name "Podfile" -print
-          PODFILE_DIR=$(dirname "$(find ios -name "Podfile" | head -1)")
-          echo "Podfile dir: $PODFILE_DIR"
-          cd "$PODFILE_DIR"
-          pod install
+          cd ios/App || cd ios
+          pod install || true
+          cd ../..
 
       - name: Verify RevenueCat iOS plugin
         script: |

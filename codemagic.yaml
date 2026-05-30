@@ -95,9 +95,19 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App
-          pod install --repo-update
+          echo "--- Running pod install ---"
+          pod install --repo-update 2>&1
+          echo "--- pod install exit code: $? ---"
+          echo "--- Contents of ios/App after pod install ---"
+          ls -la
           echo "--- Podfile.lock ---"
           cat Podfile.lock | grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" || echo "WARNING: RevenueCat not found in Podfile.lock!"
+          echo "--- Verifying CocoaPods workspace was created ---"
+          if [ ! -d "App.xcworkspace" ]; then
+            echo "FATAL: pod install did not create App.xcworkspace — aborting build"
+            exit 1
+          fi
+          echo "SUCCESS: App.xcworkspace exists"
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
           PLIST="ios/App/App/Info.plist"

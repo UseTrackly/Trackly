@@ -155,7 +155,17 @@ EOF
             echo "ERROR: Expected workspace not found at $WORKSPACE"
             exit 1
           fi
-          echo "Building workspace: $WORKSPACE"
+
+          echo "--- Workspace contents ---"
+          find "$WORKSPACE" | sort
+
+          echo "--- Listing schemes in workspace ---"
+          xcodebuild -list -workspace "$WORKSPACE" 2>&1 || true
+
+          echo "--- Show build settings for App scheme ---"
+          xcodebuild -workspace "$WORKSPACE" -scheme "App" -showBuildSettings 2>&1 || true
+
+          echo "--- Building IPA ---"
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \
             --scheme "App" \

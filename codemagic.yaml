@@ -46,7 +46,7 @@ workflows:
           use_frameworks!
 
           install! 'cocoapods', :deterministic_uuids => false
-         
+
           def capacitor_pods
           pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
           pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
@@ -75,7 +75,7 @@ workflows:
 
           platform :ios, '16.0'
           use_frameworks!
-
+          
           install! 'cocoapods', :deterministic_uuids => false
 
           def capacitor_pods
@@ -155,7 +155,17 @@ workflows:
             echo "ERROR: Expected workspace not found at $WORKSPACE"
             exit 1
           fi
-          echo "Building workspace: $WORKSPACE"
+
+          echo "--- Workspace contents ---"
+          find "$WORKSPACE" | sort
+
+          echo "--- Listing schemes in workspace ---"
+          xcodebuild -list -workspace "$WORKSPACE" 2>&1 || true
+
+          echo "--- Show build settings for App scheme ---"
+          xcodebuild -workspace "$WORKSPACE" -scheme "App" -showBuildSettings 2>&1 || true
+
+          echo "--- Building IPA ---"
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \
             --scheme "App" \

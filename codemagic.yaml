@@ -71,7 +71,7 @@ workflows:
 
           # Re-write Podfile in case sync overwrote it
           cat > ios/App/Podfile << 'EOF'
-          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'.    
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
           platform :ios, '16.0'
           use_frameworks!
@@ -150,3 +150,4 @@ workflows:
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         submit_to_app_store: false
+

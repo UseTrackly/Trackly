@@ -144,23 +144,41 @@ workflows:
           cd ios/App
           pod install --repo-update
 
-          echo "--- Pods installed. Checking for RevenueCat: ---"
-          ls Pods/ | grep -i purchase || echo "(no purchase pod found — check above)"
-          ls Pods/ | grep -i revenue || echo "(no revenue pod found)"
+          echo "--- Pods installed. Full Pods directory listing: ---"
+          ls -la Pods/ || echo "(Pods dir not found)"
+
+          echo "--- All pod directories (top-level): ---"
+          find Pods -maxdepth 1 -type d | sort
+
+          echo "--- All .swift files anywhere in Pods: ---"
+          find Pods -name "*.swift" | sort
+
+          echo "--- All .podspec files in node_modules/@revenuecat: ---"
+          find ../../node_modules/@revenuecat -name "*.podspec" 2>/dev/null | head -10 || \
+          find node_modules/@revenuecat -name "*.podspec" 2>/dev/null | head -10 || \
+          echo "(no podspec found)"
 
       - name: Verify RevenueCat native plugin is fully registered
         script: |
           set -e  # fail this step if any check fails, so we know before archive
 
-          # ── CHECK 1: PurchasesCapacitorPlugin.swift exists in Pods ──────────
-          echo "=== CHECK 1: PurchasesCapacitorPlugin.swift in Pods ==="
-          PLUGIN_SWIFT=$(find ios/App/Pods -name "PurchasesCapacitorPlugin.swift" 2>/dev/null | head -1)
+          # ── CHECK 1: Any RevenueCat/Purchases Swift plugin file exists in Pods ──
+          echo "=== CHECK 1: RevenueCat plugin Swift files in Pods ==="
+
+          echo "--- Full Pods directory (all Swift files): ---"
+          find ios/App/Pods -name "*.swift" | sort
+
+          echo "--- All pod top-level directories: ---"
+          find ios/App/Pods -maxdepth 1 -type d | sort
+
+          # Search broadly — the pod may be named differently (e.g. RevenuecatPurchasesCapacitor)
+          PLUGIN_SWIFT=$(find ios/App/Pods -name "*.swift" | grep -i "purchase\|revenuecat" | head -1)
           if [ -n "$PLUGIN_SWIFT" ]; then
-            echo "PASS: Found at $PLUGIN_SWIFT"
+            echo "PASS: Found RevenueCat Swift file at $PLUGIN_SWIFT"
           else
-            echo "FAIL: PurchasesCapacitorPlugin.swift NOT found in Pods"
-            echo "--- All swift files in Pods/PurchasesCapacitor: ---"
-            find ios/App/Pods -path "*PurchasesCapacitor*" -name "*.swift" 2>/dev/null || echo "(none)"
+            echo "FAIL: No RevenueCat/Purchases Swift files found anywhere in Pods"
+            echo "--- Manifest.lock contents: ---"
+            cat ios/App/Pods/Manifest.lock 2>/dev/null || echo "(no Manifest.lock)"
             exit 1
           fi
 

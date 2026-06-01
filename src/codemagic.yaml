@@ -27,6 +27,7 @@ workflows:
           npm install @capacitor/cli @capacitor/core @capacitor/ios
           npm install @revenuecat/purchases-capacitor@^10.4.0
           npm install @capacitor/browser@^8.0.0
+          npm install @capacitor/camera@^8.0.0
 
       - name: Write capacitor config
         script: |
@@ -188,6 +189,19 @@ PODEOF
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
+
+      - name: Add camera and photo library usage descriptions
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Trackly needs camera access to take profile photos and item pictures.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Trackly needs camera access to take profile photos and item pictures.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Trackly needs photo library access to select profile photos and item pictures.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'Trackly needs photo library access to select profile photos and item pictures.'" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'Trackly needs permission to save images to your photo library.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'Trackly needs permission to save images to your photo library.'" "$PLIST"
+          echo "Added iOS camera/photo permissions to Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :NSCameraUsageDescription" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :NSPhotoLibraryUsageDescription" "$PLIST"
 
       - name: Set build number
         script: |

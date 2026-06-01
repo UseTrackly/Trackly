@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCameraPicker } from '@/lib/useCameraPicker';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,13 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
   const [showConditionDrawer, setShowConditionDrawer] = useState(false);
   const queryClient = useQueryClient();
+
+  const { openCameraPicker, isUploading: isCameraUploading } = useCameraPicker({
+    onImageSelected: (file) => {
+      setImageFile(file);
+      toast.success('Image selected');
+    },
+  });
 
   useEffect(() => {
     if (editingItem) {
@@ -412,18 +420,14 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                 <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-primary mb-1">Auto-fetched from {gradingCompany}</p>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                      onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
-                      className="hidden"
-                      id="inventory-image"
-                    />
-                    <label htmlFor="inventory-image" className="text-xs text-muted-foreground underline cursor-pointer">
-                      Replace with your own
-                    </label>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
+                    disabled={isCameraUploading}
+                    className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
+                  >
+                    {isCameraUploading ? 'Loading...' : 'Replace with your own'}
+                  </button>
                 </div>
               </div>
             ) : (
@@ -435,15 +439,21 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                   className="hidden"
                   id="inventory-image"
                 />
-                <label
-                  htmlFor="inventory-image"
-                  className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
+                <button
+                  type="button"
+                  onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
+                  disabled={isCameraUploading}
+                  className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background w-full hover:bg-secondary transition-colors disabled:opacity-50"
                 >
-                  <Upload className="w-4 h-4 text-muted-foreground" />
+                  {isCameraUploading ? (
+                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                  )}
                   <span className="text-sm text-muted-foreground">
                     {imageFile ? imageFile.name : editingItem?.image_url ? 'Change image' : 'Upload image'}
                   </span>
-                </label>
+                </button>
               </div>
             )}
           </div>

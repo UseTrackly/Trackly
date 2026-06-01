@@ -3,6 +3,7 @@ import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   User,
@@ -208,6 +209,12 @@ export default function ProfilePage() {
     }
   };
 
+  const { openCameraPicker, isUploading: isCameraUploading } = useCameraPicker({
+    onImageSelected: async (file) => {
+      await doUploadAvatar(file);
+    },
+  });
+
   const handleUploadProfilePicture = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -293,15 +300,22 @@ export default function ProfilePage() {
             }
             <label
               className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90 transition-colors"
-              style={uploading ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+              style={(uploading || isCameraUploading) ? { pointerEvents: 'none', opacity: 0.5 } : {}}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!uploading && !isCameraUploading) openCameraPicker({ inputId: 'profile-avatar-input' });
+              }}
             >
               <input
+                id="profile-avatar-input"
                 type="file"
                 accept="image/*"
+                capture="environment"
                 onChange={handleUploadProfilePicture}
-                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+                className="hidden"
               />
-              {uploading ? (
+              {(uploading || isCameraUploading) ? (
                 <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Camera className="w-3 h-3" />

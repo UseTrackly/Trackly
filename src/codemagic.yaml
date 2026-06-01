@@ -71,12 +71,10 @@ EOF
           # even when we delete the folder, causing "cannot be accessed" errors.
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           if [ -f "$PBXPROJ" ]; then
-            echo "--- Removing CapApp-SPM references from project.pbxproj ---"
-            # Remove any line that mentions CapApp-SPM
+            echo "--- Removing CapApp-SPM line references from project.pbxproj ---"
+            # Only remove lines that contain CapApp-SPM — do NOT use perl multi-line
+            # which corrupts the file structure and causes plist parse errors.
             sed -i '' '/CapApp-SPM/d' "$PBXPROJ"
-            # Also remove XCRemoteSwiftPackageReference and XCSwiftPackageProductDependency
-            # blocks that reference CapApp-SPM (they span multiple lines; use perl for multi-line)
-            perl -i -0pe 's/[^\n]*CapApp[^\n]*\n//g' "$PBXPROJ" || true
             echo "--- Verifying no CapApp-SPM refs remain ---"
             grep -c "CapApp-SPM" "$PBXPROJ" && echo "WARNING: CapApp-SPM refs still present" || echo "OK: No CapApp-SPM refs found"
           fi

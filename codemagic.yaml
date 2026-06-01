@@ -28,7 +28,7 @@ workflows:
           npm install @revenuecat/purchases-capacitor@^10.4.0
           npm install @capacitor/browser@^8.0.0
 
-      - name: Write capacitor config (SPM mode)
+      - name: Write capacitor config
         script: |
           rm -f capacitor.config.ts
           python3 -c "
@@ -52,47 +52,131 @@ workflows:
           "
           cat capacitor.config.json
 
-      - name: Add and sync Capacitor iOS (SPM only — no CocoaPods)
+      - name: Scaffold iOS project
         script: |
           git rm -rf ios --ignore-unmatch || true
           rm -rf ios
-
-          # cap add ios will scaffold the Xcode project using SPM
           npx cap add ios
 
-          # Sync web assets and plugin references into the project
+      - name: Remove SPM from Xcode project (CocoaPods will be sole integrator)
+        script: |
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+          python3 - <<'PYEOF'
+          import re, sys
+
+          path = "ios/App/App.xcodeproj/project.pbxproj"
+          src  = open(path).read()
+
+          src = re.sub(
+              r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCRemoteSwiftPackageReference[^}]*\};',
+              '', src, flags=re.DOTALL)
+
+          src = re.sub(
+              r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCSwiftPackageProductDependency[^}]*\};',
+              '', src, flags=re.DOTALL)
+
+          src = re.sub(r'\s*packageReferences = \([^)]*\);', '', src, flags=re.DOTALL)
+          src = re.sub(r'\s*packageProductDependencies = \([^)]*\);', '', src, flags=re.DOTALL)
+
+          open(path, 'w').write(src)
+
+          remaining = [kw for kw in [
+              'XCRemoteSwiftPackageReference',
+              'XCSwiftPackageProductDependency',
+              'packageReferences',
+              'packageProductDependencies',
+          ] if kw in src]
+          if remaining:
+              print(f"WARNING: SPM keywords still present: {remaining}", file=sys.stderr)
+          else:
+              print("OK: All SPM references removed from project.pbxproj")
+          PYEOF
+
+      - name: Sync Capacitor + install CocoaPods
+        script: |
           npx cap sync ios
 
-          echo "--- Verifying NO Podfile exists (CocoaPods must not be present) ---"
-          if [ -f ios/App/Podfile ]; then
-            echo "ERROR: Podfile found — removing it so CocoaPods is not used"
-            rm -f ios/App/Podfile ios/App/Podfile.lock
-          else
-            echo "OK: No Podfile — SPM is the sole integrator"
-          fi
+          echo "--- Capacitor plugin list (should include PurchasesCapacitor) ---"
+          cat ios/App/Podfile
 
-          echo "--- Package.swift contents ---"
-          cat ios/App/App/Package.swift 2>/dev/null || cat ios/App/Package.swift 2>/dev/null || echo "No Package.swift found at expected paths"
+          echo "--- Installing CocoaPods ---"
+          cd ios/App
+          pod install --repo-update
 
-          echo "--- project.pbxproj SPM sections ---"
-          grep -c "XCRemoteSwiftPackageReference\|XCSwiftPackageProductDependency" ios/App/App.xcodeproj/project.pbxproj 2>/dev/null || true
-          echo "--- Done ---"
+          echo "--- Pods installed. Frameworks in Pods: ---"
+          ls Pods/ | grep -i purchase || echo "(no purchase pod found — check above)"
 
-      - name: Resolve Swift packages
+      - name: Verify RevenueCat native plugin is fully registered
         script: |
-          WORKSPACE="ios/App/App.xcworkspace"
-          if [ ! -d "$WORKSPACE" ]; then
-            echo "No xcworkspace — resolving from xcodeproj"
-            xcodebuild -resolvePackageDependencies \
-              -project ios/App/App.xcodeproj \
-              -scheme App 2>&1
+          set -e
+
+          echo "=== CHECK 1: PurchasesCapacitorPlugin.swift in Pods ==="
+          PLUGIN_SWIFT=$(find ios/App/Pods -name "PurchasesCapacitorPlugin.swift" 2>/dev/null | head -1)
+          if [ -n "$PLUGIN_SWIFT" ]; then
+            echo "PASS: Found at $PLUGIN_SWIFT"
           else
-            xcodebuild -resolvePackageDependencies \
-              -workspace "$WORKSPACE" \
-              -scheme App 2>&1
+            echo "FAIL: PurchasesCapacitorPlugin.swift NOT found in Pods"
+            find ios/App/Pods -path "*PurchasesCapacitor*" -name "*.swift" 2>/dev/null || echo "(none)"
+            exit 1
           fi
 
-      - name: Register trackly:// URL scheme for OAuth deep-link
+          echo ""
+          echo "=== CHECK 2: CAPPlugins.m plugin registry ==="
+          CAP_PLUGINS=$(find ios/App -name "CAPPlugins.m" 2>/dev/null | head -1)
+          if [ -n "$CAP_PLUGINS" ]; then
+            echo "CAPPlugins.m found at: $CAP_PLUGINS"
+            cat "$CAP_PLUGINS"
+            if grep -qi "purchase" "$CAP_PLUGINS"; then
+              echo "PASS: Purchases plugin IS listed in CAPPlugins.m"
+            else
+              echo "FAIL: Purchases plugin NOT in CAPPlugins.m"
+              exit 1
+            fi
+          else
+            echo "WARNING: CAPPlugins.m not found — checking alternative registration"
+            find ios/App -name "*.swift" | xargs grep -l "PurchasesCapacitor\|Purchases.register\|CAPPlugin" 2>/dev/null | head -5 || echo "(none found)"
+          fi
+
+          echo ""
+          echo "=== CHECK 3: Pods/Manifest.lock ==="
+          if grep -i "PurchasesCapacitor\|Purchases:" ios/App/Pods/Manifest.lock 2>/dev/null; then
+            echo "PASS: PurchasesCapacitor confirmed in Manifest.lock"
+          else
+            echo "FAIL: PurchasesCapacitor NOT in Manifest.lock"
+            cat ios/App/Pods/Manifest.lock 2>/dev/null | head -50
+            exit 1
+          fi
+
+          echo ""
+          echo "=== CHECK 4: capacitor.plugins.json ==="
+          PLUGINS_JSON=$(find ios/App -name "capacitor.plugins.json" 2>/dev/null | head -1)
+          if [ -n "$PLUGINS_JSON" ]; then
+            echo "Found at: $PLUGINS_JSON"
+            cat "$PLUGINS_JSON"
+            if grep -qi "purchase" "$PLUGINS_JSON"; then
+              echo "PASS: Purchases plugin IS in capacitor.plugins.json"
+            else
+              echo "FAIL: Purchases NOT in capacitor.plugins.json"
+              exit 1
+            fi
+          else
+            echo "INFO: capacitor.plugins.json not present (only used in some Capacitor versions)"
+          fi
+
+          echo ""
+          echo "=== CHECK 5: Podfile includes PurchasesCapacitor pod ==="
+          if grep -i "PurchasesCapacitor" ios/App/Podfile; then
+            echo "PASS: PurchasesCapacitor is in Podfile"
+          else
+            echo "FAIL: PurchasesCapacitor NOT in Podfile"
+            cat ios/App/Podfile
+            exit 1
+          fi
+
+          echo ""
+          echo "=== ALL CHECKS PASSED — RevenueCat plugin is properly registered ==="
+
+      - name: Register trackly:// URL scheme
         script: |
           PLIST="ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$PLIST" 2>/dev/null || true
@@ -102,20 +186,12 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string trackly" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 trackly" "$PLIST"
-          echo "--- URL schemes registered ---"
           /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$PLIST"
 
       - name: Set export compliance
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
-
-      - name: Verify project structure
-        script: |
-          echo "--- Full ios/ tree ---"
-          find ios -maxdepth 4 | sort
-          echo "--- Web assets in bundle ---"
-          ls ios/App/App/public/ | head -20 || echo "WARNING: No web assets found!"
 
       - name: Set build number
         script: |
@@ -128,21 +204,10 @@ workflows:
 
       - name: Build iOS
         script: |
-          # Prefer xcworkspace (created by SPM resolution), fall back to xcodeproj
-          if [ -d "ios/App/App.xcworkspace" ]; then
-            WORKSPACE="ios/App/App.xcworkspace"
-            echo "Building with workspace: $WORKSPACE"
-            xcode-project build-ipa \
-              --workspace "$WORKSPACE" \
-              --scheme "App" \
-              --export-options-plist /Users/builder/export_options.plist
-          else
-            echo "Building with xcodeproj (no xcworkspace)"
-            xcode-project build-ipa \
-              --project "ios/App/App.xcodeproj" \
-              --scheme "App" \
-              --export-options-plist /Users/builder/export_options.plist
-          fi
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "App" \
+            --export-options-plist /Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa

@@ -58,10 +58,6 @@ workflows:
           rm -rf ios
           npx cap add ios
 
-          # ── CRITICAL: strip all SPM references from the Xcode project before
-          # cap sync so that CocoaPods becomes the sole native integrator for
-          # Capacitor plugins (including RevenueCat).  If SPM refs remain,
-          # Capacitor.framework and Cordova.framework get linked twice → archive fails.
       - name: Remove SPM from Xcode project (CocoaPods will be sole integrator)
         script: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
@@ -71,86 +67,59 @@ workflows:
           path = "ios/App/App.xcodeproj/project.pbxproj"
           src  = open(path).read()
 
-          # 1. Delete every XCRemoteSwiftPackageReference block
-          src = re.sub(
-              r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCRemoteSwiftPackageReference[^}]*\};',
-              '', src, flags=re.DOTALL)
-
-          # 2. Delete every XCSwiftPackageProductDependency block
-          src = re.sub(
-              r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCSwiftPackageProductDependency[^}]*\};',
-              '', src, flags=re.DOTALL)
-
-          # 3. Delete packageReferences array entries inside PBXProject
+          src = re.sub(r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCRemoteSwiftPackageReference[^}]*\};', '', src, flags=re.DOTALL)
+          src = re.sub(r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCSwiftPackageProductDependency[^}]*\};', '', src, flags=re.DOTALL)
           src = re.sub(r'\s*packageReferences = \([^)]*\);', '', src, flags=re.DOTALL)
-
-          # 4. Delete packageProductDependencies array entries inside PBXNativeTarget
           src = re.sub(r'\s*packageProductDependencies = \([^)]*\);', '', src, flags=re.DOTALL)
 
           open(path, 'w').write(src)
 
-          # Verify
-          remaining = [kw for kw in [
-              'XCRemoteSwiftPackageReference',
-              'XCSwiftPackageProductDependency',
-              'packageReferences',
-              'packageProductDependencies',
-          ] if kw in src]
+          remaining = [kw for kw in ['XCRemoteSwiftPackageReference', 'XCSwiftPackageProductDependency', 'packageReferences', 'packageProductDependencies'] if kw in src]
           if remaining:
               print(f"WARNING: SPM keywords still present: {remaining}", file=sys.stderr)
           else:
               print("OK: All SPM references removed from project.pbxproj")
           PYEOF
 
-      - name: Sync Capacitor + install CocoaPods
+      - name: Sync Capacitor
         script: |
-          # cap sync writes plugin references and generates the Podfile
           npx cap sync ios
 
-          echo "--- Podfile BEFORE injection ---"
-          cat ios/App/Podfile
+      - name: Write Podfile
+        script: |
+          mkdir -p ios/App
+          cat > ios/App/Podfile << 'PODEOF'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-          # ── CRITICAL: Manually inject RevenueCat pods if cap sync didn't add them ──
-          python3 - <<'PYEOF'
-          import re
+          platform :ios, '14.0'
+          use_frameworks!
 
-          podfile_path = "ios/App/Podfile"
-          src = open(podfile_path).read()
-
-          injection = """
-          # RevenueCat — injected by CI because cap sync may not auto-detect the pod
+          target 'App' do
+          capacitor_pods
           pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
           pod 'RevenueCat', '~> 5.0'
-          """
+          end
 
-          if "PurchasesCapacitor" not in src:
-              src = re.sub(r'(target [\'"]App[\'"]\s*do.*?)(end)', 
-                           lambda m: m.group(1) + injection + m.group(2),
-                           src, count=1, flags=re.DOTALL)
-              open(podfile_path, 'w').write(src)
-              print("INJECTED: PurchasesCapacitor + RevenueCat pods into Podfile")
-          else:
-              print("OK: PurchasesCapacitor already present in Podfile — no injection needed")
-          PYEOF
-
-          echo "--- Podfile AFTER injection ---"
+          post_install do |installer|
+          assertDeploymentTarget(installer)
+          end
+          PODEOF
+          echo "--- Podfile written: ---"
           cat ios/App/Podfile
 
-          echo "--- Installing CocoaPods ---"
+      - name: Install CocoaPods
+        script: |
           cd ios/App
           if ! pod install --repo-update 2>&1; then
-            echo "FATAL: pod install failed — full error above"
-            echo "--- Podfile contents: ---"
+            echo "FATAL: pod install failed"
+            echo "--- Podfile: ---"
             cat Podfile
-            echo "--- ios/App directory listing: ---"
+            echo "--- Directory: ---"
             ls -la
             exit 1
           fi
-
-          echo "--- pod install succeeded. Pods directory: ---"
+          echo "--- pod install succeeded ---"
           ls -la Pods/
-
-          echo "--- All pod directories (top-level): ---"
           find Pods -maxdepth 1 -type d | sort
 
       - name: Register trackly:// URL scheme

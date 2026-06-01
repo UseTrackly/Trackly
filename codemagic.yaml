@@ -67,11 +67,14 @@ workflows:
           rm -rf ios/App/CapApp-SPM || true
 
           # Scrub ALL CapApp-SPM references from the Xcode project file.
+          # cap sync adds an SPM package reference that Xcode will try to resolve
+          # even when we delete the folder, causing "cannot be accessed" errors.
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           if [ -f "$PBXPROJ" ]; then
-            echo "--- Removing CapApp-SPM references from project.pbxproj ---"
+            echo "--- Removing CapApp-SPM line references from project.pbxproj ---"
+            # Only remove lines that contain CapApp-SPM — do NOT use perl multi-line
+            # which corrupts the file structure and causes plist parse errors.
             sed -i '' '/CapApp-SPM/d' "$PBXPROJ"
-            perl -i -0pe 's/[^\n]*CapApp[^\n]*\n//g' "$PBXPROJ" || true
             echo "--- Verifying no CapApp-SPM refs remain ---"
             grep -c "CapApp-SPM" "$PBXPROJ" && echo "WARNING: CapApp-SPM refs still present" || echo "OK: No CapApp-SPM refs found"
           fi
@@ -169,11 +172,12 @@ workflows:
             exit 1
           fi
           echo "SUCCESS: App.xcworkspace exists"
-
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
           PLIST="ios/App/App/Info.plist"
+          # Add CFBundleURLTypes array if missing
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$PLIST" 2>/dev/null || true
+          # Add first entry (dict) if missing
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string trackly" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLName trackly" "$PLIST"
@@ -187,30 +191,27 @@ workflows:
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
-
       - name: Verify project structure
         script: |
           echo "--- Full ios/ tree ---"
           find ios -maxdepth 4 | sort
           echo "--- Web assets in bundle ---"
           ls ios/App/App/public/ | head -20 || echo "WARNING: No web assets found!"
-
       - name: Set build number
         script: |
           BUILD_NUM=$((BUILD_NUMBER + 10))
           agvtool new-version -all $BUILD_NUM || true
           find ios -name "*.xcodeproj" -maxdepth 3 | head -1 | xargs -I {} sh -c 'cd "{}/.." && agvtool new-version -all '"$BUILD_NUM"' || true'
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist || true
-
       - name: Set up code signing
         script: |
           xcode-project use-profiles
-
       - name: Build iOS
         script: |
           echo "--- All xcworkspace files found ---"
           find ios -name "*.xcworkspace" -print
 
+          # Use the known CocoaPods-generated workspace path directly
           WORKSPACE="ios/App/App.xcworkspace"
           if [ ! -d "$WORKSPACE" ]; then
             echo "ERROR: Expected workspace not found at $WORKSPACE"
@@ -231,7 +232,6 @@ workflows:
             --workspace "$WORKSPACE" \
             --scheme "App" \
             --export-options-plist /Users/builder/export_options.plist
-
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:

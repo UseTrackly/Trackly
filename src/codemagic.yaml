@@ -110,15 +110,64 @@ EOF
       - name: Install CocoaPods
         script: |
           cd ios/App
+
+          echo "--- RevenueCat package root contents ---"
+          ls -la ../../node_modules/@revenuecat/purchases-capacitor/
+
           echo "--- RevenueCat podspec files ---"
           find ../../node_modules/@revenuecat/purchases-capacitor -name "*.podspec" -print
+
+          # Dynamically detect the real podspec name
+          PODSPEC_FILE=$(find ../../node_modules/@revenuecat/purchases-capacitor -name "*.podspec" | head -1)
+          if [ -z "$PODSPEC_FILE" ]; then
+            echo "FATAL: No .podspec found in @revenuecat/purchases-capacitor"
+            exit 1
+          fi
+          PODSPEC_NAME=$(basename "$PODSPEC_FILE" .podspec)
+          PODSPEC_DIR=$(dirname "$PODSPEC_FILE")
+          # Make path relative to ios/App
+          PODSPEC_REL_PATH=$(python3 -c "import os.path; print(os.path.relpath('$PODSPEC_DIR', '.'))")
+          echo "--- Detected podspec: name=$PODSPEC_NAME path=$PODSPEC_REL_PATH ---"
+
+          # Rewrite Podfile using the real podspec name and path
+          cat > Podfile << EOF
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '16.0'
+use_frameworks!
+
+install! 'cocoapods', :deterministic_uuids => false
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+  pod '$PODSPEC_NAME', :path => '$PODSPEC_REL_PATH'
+end
+
+target 'App' do
+  capacitor_pods
+end
+EOF
+          echo "--- Final Podfile ---"
+          cat Podfile
+
           echo "--- Running pod install ---"
           pod install --repo-update 2>&1
-          echo "--- pod install exit code: $? ---"
+          POD_EXIT=$?
+          echo "--- pod install exit code: $POD_EXIT ---"
+
+          if [ $POD_EXIT -ne 0 ]; then
+            echo "FATAL: pod install failed with exit code $POD_EXIT"
+            exit $POD_EXIT
+          fi
+
           echo "--- Contents of ios/App after pod install ---"
           ls -la
-          echo "--- Podfile.lock ---"
-          cat Podfile.lock | grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" || echo "WARNING: RevenueCat not found in Podfile.lock!"
+
+          echo "--- Podfile.lock RevenueCat entries ---"
+          cat Podfile.lock | grep -A2 "RevenueCat\|Purchases\|$PODSPEC_NAME" || echo "WARNING: RevenueCat not found in Podfile.lock!"
+
           echo "--- Verifying CocoaPods workspace was created ---"
           if [ ! -d "App.xcworkspace" ]; then
             echo "FATAL: pod install did not create App.xcworkspace — aborting build"

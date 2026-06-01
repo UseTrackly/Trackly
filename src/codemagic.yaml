@@ -117,18 +117,85 @@ workflows:
           echo "--- Pods installed. Frameworks in Pods: ---"
           ls Pods/ | grep -i purchase || echo "(no purchase pod found — check above)"
 
-      - name: Verify RevenueCat native plugin is registered
+      - name: Verify RevenueCat native plugin is fully registered
         script: |
-          echo "--- Checking for PurchasesCapacitor in Pods ---"
-          find ios/App/Pods -name "PurchasesCapacitorPlugin.swift" 2>/dev/null \
-            && echo "FOUND: PurchasesCapacitorPlugin.swift" \
-            || echo "NOT FOUND — RevenueCat native code is missing from build"
+          set -e  # fail this step if any check fails, so we know before archive
 
-          echo "--- Checking for RevenueCat in xcworkspace ---"
-          grep -r "Purchases" ios/App/Pods/Manifest.lock 2>/dev/null | head -10 || echo "No Manifest.lock or no Purchases entry"
+          # ── CHECK 1: PurchasesCapacitorPlugin.swift exists in Pods ──────────
+          echo "=== CHECK 1: PurchasesCapacitorPlugin.swift in Pods ==="
+          PLUGIN_SWIFT=$(find ios/App/Pods -name "PurchasesCapacitorPlugin.swift" 2>/dev/null | head -1)
+          if [ -n "$PLUGIN_SWIFT" ]; then
+            echo "PASS: Found at $PLUGIN_SWIFT"
+          else
+            echo "FAIL: PurchasesCapacitorPlugin.swift NOT found in Pods"
+            echo "--- All swift files in Pods/PurchasesCapacitor: ---"
+            find ios/App/Pods -path "*PurchasesCapacitor*" -name "*.swift" 2>/dev/null || echo "(none)"
+            exit 1
+          fi
 
-          echo "--- All frameworks that will be linked ---"
-          grep "framework" ios/App/Pods/Manifest.lock 2>/dev/null | head -30 || true
+          # ── CHECK 2: CAPPlugins.m lists the Purchases plugin ─────────────────
+          # Capacitor generates this file during `cap sync` — it is the canonical
+          # list of plugins that will be registered at runtime.
+          echo ""
+          echo "=== CHECK 2: CAPPlugins.m plugin registry ==="
+          CAP_PLUGINS=$(find ios/App -name "CAPPlugins.m" 2>/dev/null | head -1)
+          if [ -n "$CAP_PLUGINS" ]; then
+            echo "CAPPlugins.m found at: $CAP_PLUGINS"
+            echo "--- Contents: ---"
+            cat "$CAP_PLUGINS"
+            if grep -qi "purchase" "$CAP_PLUGINS"; then
+              echo "PASS: Purchases plugin IS listed in CAPPlugins.m"
+            else
+              echo "FAIL: Purchases plugin NOT in CAPPlugins.m — cap sync did not pick up the plugin"
+              exit 1
+            fi
+          else
+            echo "WARNING: CAPPlugins.m not found — checking alternative registration"
+            # Newer Capacitor versions may use Swift plugin registration instead
+            find ios/App -name "*.swift" | xargs grep -l "PurchasesCapacitor\|Purchases.register\|CAPPlugin" 2>/dev/null | head -5 || echo "(none found)"
+          fi
+
+          # ── CHECK 3: Manifest.lock confirms pod is installed ─────────────────
+          echo ""
+          echo "=== CHECK 3: Pods/Manifest.lock ==="
+          if grep -i "PurchasesCapacitor\|Purchases:" ios/App/Pods/Manifest.lock 2>/dev/null; then
+            echo "PASS: PurchasesCapacitor confirmed in Manifest.lock"
+          else
+            echo "FAIL: PurchasesCapacitor NOT in Manifest.lock"
+            cat ios/App/Pods/Manifest.lock 2>/dev/null | head -50
+            exit 1
+          fi
+
+          # ── CHECK 4: Plugin registered in capacitor.plugins.json ─────────────
+          echo ""
+          echo "=== CHECK 4: capacitor.plugins.json ==="
+          PLUGINS_JSON=$(find ios/App -name "capacitor.plugins.json" 2>/dev/null | head -1)
+          if [ -n "$PLUGINS_JSON" ]; then
+            echo "Found at: $PLUGINS_JSON"
+            cat "$PLUGINS_JSON"
+            if grep -qi "purchase" "$PLUGINS_JSON"; then
+              echo "PASS: Purchases plugin IS in capacitor.plugins.json"
+            else
+              echo "FAIL: Purchases NOT in capacitor.plugins.json"
+              exit 1
+            fi
+          else
+            echo "INFO: capacitor.plugins.json not present (only used in some Capacitor versions)"
+          fi
+
+          # ── CHECK 5: Plugin will be in the compiled app binary ───────────────
+          echo ""
+          echo "=== CHECK 5: Podfile includes PurchasesCapacitor pod ==="
+          if grep -i "PurchasesCapacitor" ios/App/Podfile; then
+            echo "PASS: PurchasesCapacitor is in Podfile"
+          else
+            echo "FAIL: PurchasesCapacitor NOT in Podfile — cap sync did not generate the pod reference"
+            cat ios/App/Podfile
+            exit 1
+          fi
+
+          echo ""
+          echo "=== ALL CHECKS PASSED — RevenueCat plugin is properly registered ==="
 
       - name: Register trackly:// URL scheme
         script: |

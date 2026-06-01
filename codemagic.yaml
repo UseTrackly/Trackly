@@ -34,12 +34,13 @@ workflows:
           rm -rf ios
           npx cap add ios
 
-      - name: Write Podfile and sync Capacitor
+      - name: Sync Capacitor assets
         script: |
-          # Write our Podfile before sync so Capacitor uses it for pod install.
-          # IMPORTANT: Do NOT patch project.pbxproj with sed/perl — any edits
-          # corrupt the plist structure and cause Nanaimo::Reader::ParseError.
-          cat > ios/App/Podfile << 'EOF'
+          npx cap sync ios || true
+
+      - name: Install CocoaPods
+        script: |
+          cat > ios/App/Podfile << 'PODEOF'
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
           platform :ios, '16.0'
@@ -57,22 +58,28 @@ workflows:
           target 'App' do
           capacitor_pods
           end
-          EOF
-          echo "--- Podfile written ---"
+          PODEOF
+
+          echo "--- Podfile ---"
           cat ios/App/Podfile
 
-          # Run full sync (includes pod install) using the Podfile above
-          npx cap sync ios
+          cd ios/App
+          echo "--- Running pod install ---"
+          pod install --repo-update
+          POD_EXIT=$?
+          echo "--- pod install exit code: $POD_EXIT ---"
+          if [ $POD_EXIT -ne 0 ]; then
+            exit $POD_EXIT
+          fi
 
-          echo "--- Verifying CocoaPods workspace was created ---"
-          if [ ! -d "ios/App/App.xcworkspace" ]; then
-            echo "FATAL: cap sync did not create App.xcworkspace"
+          if [ ! -d "App.xcworkspace" ]; then
+            echo "FATAL: pod install did not create App.xcworkspace"
             exit 1
           fi
           echo "SUCCESS: App.xcworkspace exists"
 
           echo "--- Podfile.lock RevenueCat entries ---"
-          grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" ios/App/Podfile.lock || echo "WARNING: RevenueCat not found in Podfile.lock!"
+          grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" Podfile.lock || echo "WARNING: RevenueCat not found in Podfile.lock!"
 
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
@@ -102,8 +109,6 @@ workflows:
       - name: Set build number
         script: |
           BUILD_NUM=$((BUILD_NUMBER + 10))
-          agvtool new-version -all $BUILD_NUM || true
-          find ios -name "*.xcodeproj" -maxdepth 3 | head -1 | xargs -I {} sh -c 'cd "{}/.." && agvtool new-version -all '"$BUILD_NUM"' || true'
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist || true
 
       - name: Set up code signing

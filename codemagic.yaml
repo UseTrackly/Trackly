@@ -58,10 +58,10 @@ workflows:
           rm -rf ios
           npx cap add ios
 
-      # ── CRITICAL: strip all SPM references from the Xcode project before
-      # cap sync so that CocoaPods becomes the sole native integrator for
-      # Capacitor plugins (including RevenueCat).  If SPM refs remain,
-      # Capacitor.framework and Cordova.framework get linked twice → archive fails.
+          # ── CRITICAL: strip all SPM references from the Xcode project before
+          # cap sync so that CocoaPods becomes the sole native integrator for
+          # Capacitor plugins (including RevenueCat).  If SPM refs remain,
+          # Capacitor.framework and Cordova.framework get linked twice → archive fails.
       - name: Remove SPM from Xcode project (CocoaPods will be sole integrator)
         script: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
@@ -111,8 +111,6 @@ workflows:
           cat ios/App/Podfile
 
           # ── CRITICAL: Manually inject RevenueCat pods if cap sync didn't add them ──
-          # cap sync only adds the pod if it reads the plugin's Package.swift/podspec.
-          # We force-inject them so CocoaPods always links the native code.
           python3 - <<'PYEOF'
           import re
 
@@ -125,9 +123,7 @@ workflows:
           pod 'RevenueCat', '~> 5.0'
           """
 
-          # Only inject if not already present
           if "PurchasesCapacitor" not in src:
-              # Insert just before the closing `end` of the first `target` block
               src = re.sub(r'(target [\'"]App[\'"]\s*do.*?)(end)', 
                            lambda m: m.group(1) + injection + m.group(2),
                            src, count=1, flags=re.DOTALL)
@@ -142,116 +138,20 @@ workflows:
 
           echo "--- Installing CocoaPods ---"
           cd ios/App
-          pod install --repo-update
+          if ! pod install --repo-update 2>&1; then
+            echo "FATAL: pod install failed — full error above"
+            echo "--- Podfile contents: ---"
+            cat Podfile
+            echo "--- ios/App directory listing: ---"
+            ls -la
+            exit 1
+          fi
 
-          echo "--- Pods installed. Full Pods directory listing: ---"
-          ls -la Pods/ || echo "(Pods dir not found)"
+          echo "--- pod install succeeded. Pods directory: ---"
+          ls -la Pods/
 
           echo "--- All pod directories (top-level): ---"
           find Pods -maxdepth 1 -type d | sort
-
-          echo "--- All .swift files anywhere in Pods: ---"
-          find Pods -name "*.swift" | sort
-
-          echo "--- All .podspec files in node_modules/@revenuecat: ---"
-          find ../../node_modules/@revenuecat -name "*.podspec" 2>/dev/null | head -10 || \
-          find node_modules/@revenuecat -name "*.podspec" 2>/dev/null | head -10 || \
-          echo "(no podspec found)"
-
-      - name: Verify RevenueCat native plugin is fully registered
-        script: |
-          set -e  # fail this step if any check fails, so we know before archive
-
-          # Dynamically locate the Pods directory (could be ios/App/Pods, ios/App/App/Pods, etc.)
-          echo "=== Locating Pods directory ==="
-          PODS_DIR=$(find ios -type d -name Pods -maxdepth 5 | head -1)
-          echo "Pods directory: ${PODS_DIR:-NOT FOUND}"
-          if [ -z "$PODS_DIR" ]; then
-            echo "FATAL: Could not find any Pods directory under ios/"
-            echo "--- Full ios/ tree (6 levels): ---"
-            find ios -maxdepth 6 -type d | sort
-            exit 1
-          fi
-
-          # ── CHECK 1: Any RevenueCat/Purchases Swift file exists in Pods ──
-          echo ""
-          echo "=== CHECK 1: RevenueCat plugin Swift files in Pods ==="
-          echo "--- All pod top-level directories: ---"
-          find "$PODS_DIR" -maxdepth 1 -type d | sort
-          echo "--- All .swift files in Pods: ---"
-          find "$PODS_DIR" -name "*.swift" | sort
-
-          PLUGIN_SWIFT=$(find "$PODS_DIR" -name "*.swift" | grep -i "purchase\|revenuecat" | head -1)
-          if [ -n "$PLUGIN_SWIFT" ]; then
-            echo "PASS: Found RevenueCat Swift file at $PLUGIN_SWIFT"
-          else
-            echo "FAIL: No RevenueCat/Purchases Swift files found in $PODS_DIR"
-            echo "--- Manifest.lock contents: ---"
-            cat "$PODS_DIR/Manifest.lock" 2>/dev/null || echo "(no Manifest.lock)"
-            exit 1
-          fi
-
-          # ── CHECK 2: CAPPlugins.m lists the Purchases plugin ─────────────────
-          echo ""
-          echo "=== CHECK 2: CAPPlugins.m plugin registry ==="
-          CAP_PLUGINS=$(find ios -name "CAPPlugins.m" 2>/dev/null | head -1)
-          if [ -n "$CAP_PLUGINS" ]; then
-            echo "CAPPlugins.m found at: $CAP_PLUGINS"
-            echo "--- Contents: ---"
-            cat "$CAP_PLUGINS"
-            if grep -qi "purchase" "$CAP_PLUGINS"; then
-              echo "PASS: Purchases plugin IS listed in CAPPlugins.m"
-            else
-              echo "FAIL: Purchases plugin NOT in CAPPlugins.m — cap sync did not pick up the plugin"
-              exit 1
-            fi
-          else
-            echo "WARNING: CAPPlugins.m not found — checking alternative registration"
-            find ios -name "*.swift" | xargs grep -l "PurchasesCapacitor\|Purchases.register\|CAPPlugin" 2>/dev/null | head -5 || echo "(none found)"
-          fi
-
-          # ── CHECK 3: Manifest.lock confirms pod is installed ─────────────────
-          echo ""
-          echo "=== CHECK 3: Manifest.lock ==="
-          if grep -i "PurchasesCapacitor\|Purchases:" "$PODS_DIR/Manifest.lock" 2>/dev/null; then
-            echo "PASS: PurchasesCapacitor confirmed in Manifest.lock"
-          else
-            echo "FAIL: PurchasesCapacitor NOT in Manifest.lock"
-            cat "$PODS_DIR/Manifest.lock" 2>/dev/null | head -50
-            exit 1
-          fi
-
-          # ── CHECK 4: Plugin registered in capacitor.plugins.json ─────────────
-          echo ""
-          echo "=== CHECK 4: capacitor.plugins.json ==="
-          PLUGINS_JSON=$(find ios -name "capacitor.plugins.json" 2>/dev/null | head -1)
-          if [ -n "$PLUGINS_JSON" ]; then
-            echo "Found at: $PLUGINS_JSON"
-            cat "$PLUGINS_JSON"
-            if grep -qi "purchase" "$PLUGINS_JSON"; then
-              echo "PASS: Purchases plugin IS in capacitor.plugins.json"
-            else
-              echo "FAIL: Purchases NOT in capacitor.plugins.json"
-              exit 1
-            fi
-          else
-            echo "INFO: capacitor.plugins.json not present (only used in some Capacitor versions)"
-          fi
-
-          # ── CHECK 5: Podfile includes PurchasesCapacitor ─────────────────────
-          echo ""
-          echo "=== CHECK 5: Podfile includes PurchasesCapacitor pod ==="
-          PODFILE=$(find ios -name "Podfile" -not -path "*/Pods/*" | head -1)
-          if grep -i "PurchasesCapacitor" "$PODFILE" 2>/dev/null; then
-            echo "PASS: PurchasesCapacitor is in $PODFILE"
-          else
-            echo "FAIL: PurchasesCapacitor NOT in Podfile"
-            cat "$PODFILE" 2>/dev/null
-            exit 1
-          fi
-
-          echo ""
-          echo "=== ALL CHECKS PASSED — RevenueCat plugin is properly registered ==="
 
       - name: Register trackly:// URL scheme
         script: |

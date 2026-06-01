@@ -32,9 +32,6 @@ workflows:
           npx cap add ios
       - name: Convert iOS project to CocoaPods (required for Capacitor plugins)
         script: |
-          # Remove SPM package if present - Capacitor plugins need CocoaPods
-          rm -rf ios/App/CapApp-SPM || true
-
           # Patch Xcode project deployment target BEFORE sync
           find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true
 
@@ -65,6 +62,24 @@ EOF
         script: |
           # Run sync WITHOUT pod install (we handle that ourselves)
           npx cap sync ios --no-deps
+
+          # Remove stale CapApp-SPM folder (CocoaPods handles all plugins)
+          rm -rf ios/App/CapApp-SPM || true
+
+          # Scrub ALL CapApp-SPM references from the Xcode project file.
+          # cap sync adds an SPM package reference that Xcode will try to resolve
+          # even when we delete the folder, causing "cannot be accessed" errors.
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+          if [ -f "$PBXPROJ" ]; then
+            echo "--- Removing CapApp-SPM references from project.pbxproj ---"
+            # Remove any line that mentions CapApp-SPM
+            sed -i '' '/CapApp-SPM/d' "$PBXPROJ"
+            # Also remove XCRemoteSwiftPackageReference and XCSwiftPackageProductDependency
+            # blocks that reference CapApp-SPM (they span multiple lines; use perl for multi-line)
+            perl -i -0pe 's/[^\n]*CapApp[^\n]*\n//g' "$PBXPROJ" || true
+            echo "--- Verifying no CapApp-SPM refs remain ---"
+            grep -c "CapApp-SPM" "$PBXPROJ" && echo "WARNING: CapApp-SPM refs still present" || echo "OK: No CapApp-SPM refs found"
+          fi
 
           # Re-patch deployment target in case sync regenerated it
           find ios -name "project.pbxproj" | xargs sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]*\.[0-9]*/IPHONEOS_DEPLOYMENT_TARGET = 16.0/g' 2>/dev/null || true

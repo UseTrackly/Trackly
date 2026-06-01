@@ -44,7 +44,8 @@ workflows:
               'scrollEnabled': True,
               'limitsNavigationsToAppBoundDomains': False,
               'scheme': 'trackly',
-              'backgroundColor': '#0a0a0a'
+              'backgroundColor': '#0a0a0a',
+              'minVersion': '15.0'
             }
           }
           open('capacitor.config.json','w').write(json.dumps(cfg, indent=2))
@@ -98,6 +99,17 @@ workflows:
               print("OK: All SPM references removed from project.pbxproj")
           PYEOF
 
+      - name: Set iOS deployment target in Xcode project
+        script: |
+          # Capacitor 8 requires iOS 15.0 minimum
+          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 15.0" ios/App/App/Info.plist || \
+          /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string 15.0" ios/App/App/Info.plist
+          
+          # Update project.pbxproj IPHONEOS_DEPLOYMENT_TARGET
+          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PBXPROJ"
+          echo "Set iOS deployment target to 15.0"
+
       - name: Sync Capacitor
         script: |
           npx cap sync ios
@@ -106,7 +118,7 @@ workflows:
         script: |
           mkdir -p ios/App
           cat > ios/App/Podfile << 'PODEOF'
-          platform :ios, '14.0'
+          platform :ios, '15.0'
           use_frameworks!
 
           target 'App' do

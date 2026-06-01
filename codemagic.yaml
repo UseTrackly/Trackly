@@ -36,6 +36,35 @@ workflows:
 
       - name: Sync Capacitor assets
         script: |
+          # Overwrite capacitor.config.ts (if present) with a JS version that disables SPM,
+          # then copy our JSON config to root so the CLI always picks it up.
+          cat > capacitor.config.json << 'CAPEOF'
+          {
+          "appId": "com.base69bfd92e3db7d48eec6c8062.app",
+          "appName": "Trackly",
+          "webDir": "dist",
+          "server": {
+          "androidScheme": "https",
+          "hostname": "app"
+          },
+          "ios": {
+          "contentInset": "automatic",
+          "allowsLinkPreview": false,
+          "scrollEnabled": true,
+          "limitsNavigationsToAppBoundDomains": false,
+          "scheme": "trackly",
+          "backgroundColor": "#0a0a0a"
+          },
+          "cordova": {
+          "swiftPackageManager": false
+            }
+          }
+          CAPEOF
+          # Remove .ts config so CLI uses JSON (JSON takes precedence when .ts is absent)
+          rm -f capacitor.config.ts
+          echo "--- Active capacitor config ---"
+          cat capacitor.config.json
+
           # Only copy web assets and config — do NOT let Capacitor run pod install
           npx cap sync ios || true
           # Remove SPM Package.swift to prevent duplicate framework linking with CocoaPods

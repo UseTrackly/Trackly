@@ -67,25 +67,19 @@ workflows:
           path = "ios/App/App.xcodeproj/project.pbxproj"
           src  = open(path).read()
 
-          # 1. Delete every XCRemoteSwiftPackageReference block
           src = re.sub(
               r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCRemoteSwiftPackageReference[^}]*\};',
               '', src, flags=re.DOTALL)
 
-          # 2. Delete every XCSwiftPackageProductDependency block
           src = re.sub(
               r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCSwiftPackageProductDependency[^}]*\};',
               '', src, flags=re.DOTALL)
 
-          # 3. Delete packageReferences array entries inside PBXProject
           src = re.sub(r'\s*packageReferences = \([^)]*\);', '', src, flags=re.DOTALL)
-
-          # 4. Delete packageProductDependencies array entries inside PBXNativeTarget
           src = re.sub(r'\s*packageProductDependencies = \([^)]*\);', '', src, flags=re.DOTALL)
 
           open(path, 'w').write(src)
 
-          # Verify
           remaining = [kw for kw in [
               'XCRemoteSwiftPackageReference',
               'XCSwiftPackageProductDependency',
@@ -100,15 +94,11 @@ workflows:
 
       - name: Sync Capacitor + install CocoaPods
         script: |
-          # cap sync writes plugin references and generates the Podfile
           npx cap sync ios
 
           echo "--- Podfile BEFORE injection ---"
           cat ios/App/Podfile
 
-          # ── CRITICAL: Manually inject RevenueCat pods if cap sync didn't add them ──
-          # cap sync only adds the pod if it reads the plugin's Package.swift/podspec.
-          # We force-inject them so CocoaPods always links the native code.
           python3 - <<'PYEOF'
           import re
 
@@ -116,14 +106,12 @@ workflows:
           src = open(podfile_path).read()
 
           injection = """
-          # RevenueCat — injected by CI because cap sync may not auto-detect the pod
-          pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
-          pod 'RevenueCat', '~> 5.0'
-          """
+  # RevenueCat — injected by CI because cap sync may not auto-detect the pod
+  pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+  pod 'RevenueCat', '~> 5.0'
+"""
 
-          # Only inject if not already present
           if "PurchasesCapacitor" not in src:
-              # Insert just before the closing `end` of the first `target` block
               src = re.sub(r'(target [\'"]App[\'"]\s*do.*?)(end)', 
                            lambda m: m.group(1) + injection + m.group(2),
                            src, count=1, flags=re.DOTALL)
@@ -140,38 +128,52 @@ workflows:
           cd ios/App
           pod install --repo-update
 
-          echo "--- Pods installed. Checking for RevenueCat: ---"
-          ls Pods/ | grep -i purchase || echo "(no purchase pod found — check above)"
-          ls Pods/ | grep -i revenue || echo "(no revenue pod found)"
+          echo "--- Pods installed. Full Pods directory listing: ---"
+          ls -la Pods/ || echo "(Pods dir not found)"
+
+          echo "--- All pod directories (top-level): ---"
+          find Pods -maxdepth 1 -type d | sort
+
+          echo "--- All .swift files anywhere in Pods: ---"
+          find Pods -name "*.swift" | sort
+
+          echo "--- All .podspec files in node_modules/@revenuecat: ---"
+          find ../../node_modules/@revenuecat -name "*.podspec" 2>/dev/null | head -10 || \
+          find node_modules/@revenuecat -name "*.podspec" 2>/dev/null | head -10 || \
+          echo "(no podspec found)"
 
       - name: Verify RevenueCat native plugin is fully registered
         script: |
-          set -e  # fail this step if any check fails, so we know before archive
+          set -e
 
-          # ── CHECK 1: PurchasesCapacitorPlugin.swift exists in Pods ──────────
-          echo "=== CHECK 1: PurchasesCapacitorPlugin.swift in Pods ==="
-          PLUGIN_SWIFT=$(find ios/App/Pods -name "PurchasesCapacitorPlugin.swift" 2>/dev/null | head -1)
+          echo "=== CHECK 1: RevenueCat plugin Swift files in Pods ==="
+
+          echo "--- Full Pods directory (all Swift files): ---"
+          find ios/App/Pods -name "*.swift" | sort
+
+          echo "--- All pod top-level directories: ---"
+          find ios/App/Pods -maxdepth 1 -type d | sort
+
+          PLUGIN_SWIFT=$(find ios/App/Pods -name "*.swift" | grep -i "purchase\|revenuecat" | head -1)
           if [ -n "$PLUGIN_SWIFT" ]; then
-            echo "PASS: Found at $PLUGIN_SWIFT"
+            echo "PASS: Found RevenueCat Swift file at $PLUGIN_SWIFT"
           else
-            echo "FAIL: PurchasesCapacitorPlugin.swift NOT found in Pods"
-            echo "--- All swift files in Pods/PurchasesCapacitor: ---"
-            find ios/App/Pods -path "*PurchasesCapacitor*" -name "*.swift" 2>/dev/null || echo "(none)"
+            echo "FAIL: No RevenueCat/Purchases Swift files found anywhere in Pods"
+            echo "--- Manifest.lock contents: ---"
+            cat ios/App/Pods/Manifest.lock 2>/dev/null || echo "(no Manifest.lock)"
             exit 1
           fi
 
-          # ── CHECK 2: CAPPlugins.m lists the Purchases plugin ─────────────────
           echo ""
           echo "=== CHECK 2: CAPPlugins.m plugin registry ==="
           CAP_PLUGINS=$(find ios/App -name "CAPPlugins.m" 2>/dev/null | head -1)
           if [ -n "$CAP_PLUGINS" ]; then
             echo "CAPPlugins.m found at: $CAP_PLUGINS"
-            echo "--- Contents: ---"
             cat "$CAP_PLUGINS"
             if grep -qi "purchase" "$CAP_PLUGINS"; then
               echo "PASS: Purchases plugin IS listed in CAPPlugins.m"
             else
-              echo "FAIL: Purchases plugin NOT in CAPPlugins.m — cap sync did not pick up the plugin"
+              echo "FAIL: Purchases plugin NOT in CAPPlugins.m"
               exit 1
             fi
           else
@@ -179,7 +181,6 @@ workflows:
             find ios/App -name "*.swift" | xargs grep -l "PurchasesCapacitor\|Purchases.register\|CAPPlugin" 2>/dev/null | head -5 || echo "(none found)"
           fi
 
-          # ── CHECK 3: Manifest.lock confirms pod is installed ─────────────────
           echo ""
           echo "=== CHECK 3: Pods/Manifest.lock ==="
           if grep -i "PurchasesCapacitor\|Purchases:" ios/App/Pods/Manifest.lock 2>/dev/null; then
@@ -190,7 +191,6 @@ workflows:
             exit 1
           fi
 
-          # ── CHECK 4: Plugin registered in capacitor.plugins.json ─────────────
           echo ""
           echo "=== CHECK 4: capacitor.plugins.json ==="
           PLUGINS_JSON=$(find ios/App -name "capacitor.plugins.json" 2>/dev/null | head -1)
@@ -207,13 +207,12 @@ workflows:
             echo "INFO: capacitor.plugins.json not present (only used in some Capacitor versions)"
           fi
 
-          # ── CHECK 5: Podfile includes PurchasesCapacitor pod ─────────────────
           echo ""
           echo "=== CHECK 5: Podfile includes PurchasesCapacitor pod ==="
           if grep -i "PurchasesCapacitor" ios/App/Podfile; then
             echo "PASS: PurchasesCapacitor is in Podfile"
           else
-            echo "FAIL: PurchasesCapacitor NOT in Podfile — cap sync did not generate the pod reference"
+            echo "FAIL: PurchasesCapacitor NOT in Podfile"
             cat ios/App/Podfile
             exit 1
           fi

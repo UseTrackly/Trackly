@@ -40,24 +40,24 @@ workflows:
 
           # Write Podfile BEFORE sync so cap sync uses it as a base
           cat > ios/App/Podfile << 'EOF'
-require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '16.0'
-use_frameworks!
+          platform :ios, '16.0'
+          use_frameworks!
 
-install! 'cocoapods', :deterministic_uuids => false
+          install! 'cocoapods', :deterministic_uuids => false
 
-def capacitor_pods
-  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
-  pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
-end
+          def capacitor_pods
+          pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+          pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+          end
 
-target 'App' do
-  capacitor_pods
-end
-EOF
+          target 'App' do
+          capacitor_pods
+          end
+          EOF
           echo "--- Podfile before sync ---"
           cat ios/App/Podfile
 
@@ -71,24 +71,24 @@ EOF
 
           # Re-write Podfile in case sync overwrote it
           cat > ios/App/Podfile << 'EOF'
-require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '16.0'
-use_frameworks!
+          platform :ios, '16.0'
+          use_frameworks!
 
-install! 'cocoapods', :deterministic_uuids => false
+          install! 'cocoapods', :deterministic_uuids => false
 
-def capacitor_pods
-  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
-  pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
-end
+          def capacitor_pods
+          pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+          pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+          end
 
-target 'App' do
-  capacitor_pods
-end
-EOF
+          target 'App' do
+          capacitor_pods
+          end
+          EOF
           echo "--- Podfile after sync ---"
           cat ios/App/Podfile
 

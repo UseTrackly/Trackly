@@ -110,19 +110,14 @@ workflows:
         script: |
           mkdir -p ios/App
           cat > ios/App/Podfile << 'PODEOF'
-require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
-
 platform :ios, '14.0'
 use_frameworks!
 
 target 'App' do
-  capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
   pod 'PurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
   pod 'RevenueCat', '~> 5.0'
-end
-
-post_install do |installer|
-  assertDeploymentTarget(installer)
 end
 PODEOF
           echo "--- Podfile written: ---"

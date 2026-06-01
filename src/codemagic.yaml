@@ -36,30 +36,29 @@ workflows:
 
       - name: Sync Capacitor assets
         script: |
-          # Write JSON config (disables SPM) and remove .ts so CLI always picks up JSON
-          cat > capacitor.config.json << 'CAPEOF'
-{
-  "appId": "com.base69bfd92e3db7d48eec6c8062.app",
-  "appName": "Trackly",
-  "webDir": "dist",
-  "server": {
-    "androidScheme": "https",
-    "hostname": "app"
-  },
-  "ios": {
-    "contentInset": "automatic",
-    "allowsLinkPreview": false,
-    "scrollEnabled": true,
-    "limitsNavigationsToAppBoundDomains": false,
-    "scheme": "trackly",
-    "backgroundColor": "#0a0a0a"
-  },
-  "cordova": {
-    "swiftPackageManager": false
-  }
-}
-CAPEOF
           rm -f capacitor.config.ts
+          python3 -c "
+          import json
+          cfg = {
+            'appId': 'com.base69bfd92e3db7d48eec6c8062.app',
+            'appName': 'Trackly',
+            'webDir': 'dist',
+            'server': {'androidScheme': 'https', 'hostname': 'app'},
+            'ios': {
+              'contentInset': 'automatic',
+              'allowsLinkPreview': False,
+              'scrollEnabled': True,
+              'limitsNavigationsToAppBoundDomains': False,
+              'scheme': 'trackly',
+              'backgroundColor': '#0a0a0a'
+            },
+            'cordova': {'swiftPackageManager': False}
+          }
+          open('capacitor.config.json','w').write(json.dumps(cfg, indent=2))
+          print('capacitor.config.json written')
+          "
+          echo "--- Active capacitor config ---"
+          cat capacitor.config.json
           echo "--- Active capacitor config ---"
           cat capacitor.config.json
 
@@ -73,49 +72,19 @@ CAPEOF
           # build error.  We remove every SPM-related section with a Python script
           # so CocoaPods is the sole integrator.
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
-          python3 - "$PBXPROJ" << 'PYEOF'
-import sys, re
-
-path = sys.argv[1]
-with open(path, 'r') as f:
-    src = f.read()
-
-# 1. Remove XCRemoteSwiftPackageReference blocks (the SPM package declarations)
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* XCRemoteSwiftPackageReference ".*?" \*/ = \{[^}]*\};\n?',
-    '', src, flags=re.DOTALL)
-
-# 2. Remove XCSwiftPackageProductDependency blocks (per-product refs)
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* XCSwiftPackageProductDependency \*/ = \{[^}]*\};\n?',
-    '', src, flags=re.DOTALL)
-
-# 3. Remove packageReferences array entries in PBXProject
-src = re.sub(
-    r'\s*packageReferences = \([^)]*\);\n?',
-    '', src, flags=re.DOTALL)
-
-# 4. Remove packageProductDependencies array entries in PBXNativeTarget
-src = re.sub(
-    r'\s*packageProductDependencies = \([^)]*\);\n?',
-    '', src, flags=re.DOTALL)
-
-# 5. Remove any build file entries that reference SPM products
-#    (lines like: ABC /\* Capacitor in Frameworks \*/ = {isa = PBXBuildFile; productRef = XYZ ...}
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova)[^*]* \*/ = \{[^}]*productRef[^}]*\};\n?',
-    '', src, flags=re.DOTALL)
-
-# 6. Remove dangling SPM build-file refs from PBXFrameworksBuildPhase files lists
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova) in Frameworks \*/,?\n?',
-    '', src)
-
-with open(path, 'w') as f:
-    f.write(src)
-
-print("SPM references stripped from project.pbxproj")
-PYEOF
+          python3 -c "
+          import sys, re
+          path = 'ios/App/App.xcodeproj/project.pbxproj'
+          src = open(path).read()
+          src = re.sub(r'\s*[A-F0-9]{24} /\* XCRemoteSwiftPackageReference \".*?\" \*/ = \{[^}]*\};\n?', '', src, flags=re.DOTALL)
+          src = re.sub(r'\s*[A-F0-9]{24} /\* XCSwiftPackageProductDependency \*/ = \{[^}]*\};\n?', '', src, flags=re.DOTALL)
+          src = re.sub(r'\s*packageReferences = \([^)]*\);\n?', '', src, flags=re.DOTALL)
+          src = re.sub(r'\s*packageProductDependencies = \([^)]*\);\n?', '', src, flags=re.DOTALL)
+          src = re.sub(r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova)[^*]* \*/ = \{[^}]*productRef[^}]*\};\n?', '', src, flags=re.DOTALL)
+          src = re.sub(r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova) in Frameworks \*/,?\n?', '', src)
+          open(path, 'w').write(src)
+          print('SPM references stripped from project.pbxproj')
+          "
 
           # Also nuke any Package.swift that was written
           rm -f ios/App/App/Package.swift ios/App/Package.swift
@@ -124,8 +93,8 @@ PYEOF
       - name: Install CocoaPods
         script: |
           # Write Podfile after sync (sync may have overwritten it)
-          cat > ios/App/Podfile << 'PODEOF'
-require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+          python3 -c "
+          podfile = '''require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
 platform :ios, '16.0'
 use_frameworks!
@@ -142,7 +111,10 @@ end
 target 'App' do
   capacitor_pods
 end
-PODEOF
+'''
+          open('ios/App/Podfile', 'w').write(podfile)
+          print('Podfile written')
+          "
 
           echo "--- Podfile ---"
           cat ios/App/Podfile

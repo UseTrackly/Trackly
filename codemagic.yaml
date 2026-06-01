@@ -74,48 +74,48 @@ workflows:
           # so CocoaPods is the sole integrator.
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           python3 - "$PBXPROJ" << 'PYEOF'
-import sys, re
+          import sys, re
 
-path = sys.argv[1]
-with open(path, 'r') as f:
-    src = f.read()
+          path = sys.argv[1]
+          with open(path, 'r') as f:
+          src = f.read()
 
-# 1. Remove XCRemoteSwiftPackageReference blocks (the SPM package declarations)
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* XCRemoteSwiftPackageReference ".*?" \*/ = \{[^}]*\};\n?',
-    '', src, flags=re.DOTALL)
+          # 1. Remove XCRemoteSwiftPackageReference blocks (the SPM package declarations)
+          src = re.sub(
+          r'\s*[A-F0-9]{24} /\* XCRemoteSwiftPackageReference ".*?" \*/ = \{[^}]*\};\n?',
+          '', src, flags=re.DOTALL)
 
-# 2. Remove XCSwiftPackageProductDependency blocks (per-product refs)
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* XCSwiftPackageProductDependency \*/ = \{[^}]*\};\n?',
-    '', src, flags=re.DOTALL)
+          # 2. Remove XCSwiftPackageProductDependency blocks (per-product refs)
+          src = re.sub(
+          r'\s*[A-F0-9]{24} /\* XCSwiftPackageProductDependency \*/ = \{[^}]*\};\n?',
+          '', src, flags=re.DOTALL)
 
-# 3. Remove packageReferences array entries in PBXProject
-src = re.sub(
-    r'\s*packageReferences = \([^)]*\);\n?',
-    '', src, flags=re.DOTALL)
+          # 3. Remove packageReferences array entries in PBXProject
+          src = re.sub(
+          r'\s*packageReferences = \([^)]*\);\n?',
+          '', src, flags=re.DOTALL)
 
-# 4. Remove packageProductDependencies array entries in PBXNativeTarget
-src = re.sub(
-    r'\s*packageProductDependencies = \([^)]*\);\n?',
-    '', src, flags=re.DOTALL)
+          # 4. Remove packageProductDependencies array entries in PBXNativeTarget
+          src = re.sub(
+          r'\s*packageProductDependencies = \([^)]*\);\n?',
+          '', src, flags=re.DOTALL)
 
-# 5. Remove any build file entries that reference SPM products
-#    (lines like: ABC /\* Capacitor in Frameworks \*/ = {isa = PBXBuildFile; productRef = XYZ ...}
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova)[^*]* \*/ = \{[^}]*productRef[^}]*\};\n?',
-    '', src, flags=re.DOTALL)
+          # 5. Remove any build file entries that reference SPM products
+          #    (lines like: ABC /\* Capacitor in Frameworks \*/ = {isa = PBXBuildFile; productRef = XYZ ...}
+          src = re.sub(
+          r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova)[^*]* \*/ = \{[^}]*productRef[^}]*\};\n?',
+          '', src, flags=re.DOTALL)
 
-# 6. Remove dangling SPM build-file refs from PBXFrameworksBuildPhase files lists
-src = re.sub(
-    r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova) in Frameworks \*/,?\n?',
-    '', src)
+          # 6. Remove dangling SPM build-file refs from PBXFrameworksBuildPhase files lists
+          src = re.sub(
+          r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova) in Frameworks \*/,?\n?',
+          '', src)
 
-with open(path, 'w') as f:
-    f.write(src)
+          with open(path, 'w') as f:
+          f.write(src)
 
-print("SPM references stripped from project.pbxproj")
-PYEOF
+          print("SPM references stripped from project.pbxproj")
+          PYEOF
 
           # Also nuke any Package.swift that was written
           rm -f ios/App/App/Package.swift ios/App/Package.swift
@@ -125,24 +125,24 @@ PYEOF
         script: |
           # Write Podfile after sync (sync may have overwritten it)
           cat > ios/App/Podfile << 'PODEOF'
-require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '16.0'
-use_frameworks!
+          platform :ios, '16.0'
+          use_frameworks!
 
-install! 'cocoapods', :deterministic_uuids => false
+          install! 'cocoapods', :deterministic_uuids => false
 
-def capacitor_pods
-  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
-  pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
-end
+          def capacitor_pods
+          pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+          pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
+          end
 
-target 'App' do
-  capacitor_pods
-end
-PODEOF
+          target 'App' do
+          capacitor_pods
+          end
+          PODEOF
 
           echo "--- Podfile ---"
           cat ios/App/Podfile

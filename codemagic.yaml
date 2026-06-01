@@ -57,7 +57,7 @@ workflows:
           },
           "cordova": {
           "swiftPackageManager": false
-            }
+          }
           }
           CAPEOF
           # Remove .ts config so CLI uses JSON (JSON takes precedence when .ts is absent)

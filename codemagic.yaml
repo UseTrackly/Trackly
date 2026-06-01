@@ -28,13 +28,7 @@ workflows:
           npm install @revenuecat/purchases-capacitor@^10.4.0
           npm install @capacitor/browser@^8.0.0
 
-      - name: Add Capacitor iOS platform
-        script: |
-          git rm -rf ios --ignore-unmatch || true
-          rm -rf ios
-          npx cap add ios
-
-      - name: Sync Capacitor assets
+      - name: Write capacitor config (SPM mode)
         script: |
           rm -f capacitor.config.ts
           python3 -c "
@@ -51,134 +45,52 @@ workflows:
               'limitsNavigationsToAppBoundDomains': False,
               'scheme': 'trackly',
               'backgroundColor': '#0a0a0a'
-            },
-            'cordova': {'swiftPackageManager': False}
+            }
           }
           open('capacitor.config.json','w').write(json.dumps(cfg, indent=2))
           print('capacitor.config.json written')
           "
-          echo "--- Active capacitor config ---"
           cat capacitor.config.json
 
-          # Sync web assets only
-          npx cap sync ios || true
-
-          # ── Strip ALL SPM references from the Xcode project ──────────────────
-          # cap sync re-injects SPM entries even when swiftPackageManager:false.
-          # We run cleanup AFTER sync so it is the final state before pod install.
-          PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
-
-          python3 << 'PYEOF'
-          import re, sys
-
-          path = 'ios/App/App.xcodeproj/project.pbxproj'
-          src = open(path).read()
-          original_len = len(src)
-
-          # 1. Remove entire XCRemoteSwiftPackageReference object blocks
-          src = re.sub(
-          r'\t*[0-9A-F]{24} /\* XCRemoteSwiftPackageReference "[^"]*" \*/ = \{[^}]*\};\n?',
-          '', src, flags=re.DOTALL | re.IGNORECASE)
-
-          # 2. Remove entire XCSwiftPackageProductDependency object blocks
-          src = re.sub(
-          r'\t*[0-9A-F]{24} /\* XCSwiftPackageProductDependency \*/ = \{[^}]*\};\n?',
-          '', src, flags=re.DOTALL | re.IGNORECASE)
-
-          # 3. Remove packageReferences = ( ... ); arrays
-          src = re.sub(
-          r'\t*packageReferences = \([^)]*\);\n?',
-          '', src, flags=re.DOTALL)
-
-          # 4. Remove packageProductDependencies = ( ... ); arrays
-          src = re.sub(
-          r'\t*packageProductDependencies = \([^)]*\);\n?',
-          '', src, flags=re.DOTALL)
-
-          # 5. Remove PBXBuildFile entries that have a productRef (SPM style)
-          src = re.sub(
-          r'\t*[0-9A-F]{24} /\*[^*]*\*/ = \{[^}]*productRef = [0-9A-F]{24}[^}]*\};\n?',
-          '', src, flags=re.DOTALL | re.IGNORECASE)
-
-          # 6. Remove dangling hex refs in frameworks lists for Capacitor/Cordova
-          src = re.sub(
-          r'\t+[0-9A-F]{24} /\*[^*]*(Capacitor|Cordova|CapacitorCordova)[^*]*\*/ /\* in Frameworks \*/,?\n',
-          '', src, flags=re.IGNORECASE)
-
-          open(path, 'w').write(src)
-          removed = original_len - len(src)
-          print(f'SPM cleanup done — removed {removed} chars from project.pbxproj')
-
-          # Verification
-          checks = [
-          ('XCRemoteSwiftPackageReference', src),
-          ('XCSwiftPackageProductDependency', src),
-          ('packageReferences', src),
-          ('packageProductDependencies', src),
-          ]
-          failed = [k for k, s in checks if k in s]
-          if failed:
-          print('WARNING: These SPM keywords still present after cleanup:', failed)
-          for k in failed:
-          idx = src.index(k)
-          print(f'  [{k}] context:', repr(src[max(0,idx-80):idx+120]))
-          else:
-          print('VERIFIED: No SPM keywords remain in project.pbxproj')
-          PYEOF
-
-          echo ""
-          echo "=== project.pbxproj FULL DUMP (post-cleanup) ==="
-          cat "$PBXPROJ"
-          echo "=== END project.pbxproj DUMP ==="
-
-          rm -f ios/App/App/Package.swift ios/App/Package.swift
-          echo "--- SPM cleanup complete ---"
-
-      - name: Install CocoaPods
+      - name: Add and sync Capacitor iOS (SPM only — no CocoaPods)
         script: |
-          python3 -c "
-          podfile = '''require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+          git rm -rf ios --ignore-unmatch || true
+          rm -rf ios
 
-          platform :ios, '16.0'
-          use_frameworks!
+          # cap add ios will scaffold the Xcode project using SPM
+          npx cap add ios
 
-          install! 'cocoapods', :deterministic_uuids => false
+          # Sync web assets and plugin references into the project
+          npx cap sync ios
 
-          def capacitor_pods
-          pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
-          pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-          pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
-          pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
-          end
-
-          target 'App' do
-          capacitor_pods
-          end
-          '''
-          open('ios/App/Podfile', 'w').write(podfile)
-          print('Podfile written')
-          "
-
-          echo "--- Podfile ---"
-          cat ios/App/Podfile
-
-          cd ios/App
-          echo "--- Running pod install ---"
-          pod install --repo-update
-          POD_EXIT=$?
-          echo "--- pod install exit code: $POD_EXIT ---"
-          if [ $POD_EXIT -ne 0 ]; then
-            exit $POD_EXIT
+          echo "--- Verifying NO Podfile exists (CocoaPods must not be present) ---"
+          if [ -f ios/App/Podfile ]; then
+            echo "ERROR: Podfile found — removing it so CocoaPods is not used"
+            rm -f ios/App/Podfile ios/App/Podfile.lock
+          else
+            echo "OK: No Podfile — SPM is the sole integrator"
           fi
 
-          if [ ! -d "App.xcworkspace" ]; then
-            echo "FATAL: pod install did not create App.xcworkspace"
-            exit 1
-          fi
-          echo "SUCCESS: App.xcworkspace exists"
+          echo "--- Package.swift contents ---"
+          cat ios/App/App/Package.swift 2>/dev/null || cat ios/App/Package.swift 2>/dev/null || echo "No Package.swift found at expected paths"
 
-          echo "--- Podfile.lock RevenueCat entries ---"
-          grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" Podfile.lock || echo "WARNING: RevenueCat not found in Podfile.lock!"
+          echo "--- project.pbxproj SPM sections ---"
+          grep -c "XCRemoteSwiftPackageReference\|XCSwiftPackageProductDependency" ios/App/App.xcodeproj/project.pbxproj 2>/dev/null || true
+          echo "--- Done ---"
+
+      - name: Resolve Swift packages
+        script: |
+          WORKSPACE="ios/App/App.xcworkspace"
+          if [ ! -d "$WORKSPACE" ]; then
+            echo "No xcworkspace — resolving from xcodeproj"
+            xcodebuild -resolvePackageDependencies \
+              -project ios/App/App.xcodeproj \
+              -scheme App 2>&1
+          else
+            xcodebuild -resolvePackageDependencies \
+              -workspace "$WORKSPACE" \
+              -scheme App 2>&1
+          fi
 
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
@@ -216,20 +128,21 @@ workflows:
 
       - name: Build iOS
         script: |
-          WORKSPACE="ios/App/App.xcworkspace"
-          if [ ! -d "$WORKSPACE" ]; then
-            echo "ERROR: Expected workspace not found at $WORKSPACE"
-            exit 1
+          # Prefer xcworkspace (created by SPM resolution), fall back to xcodeproj
+          if [ -d "ios/App/App.xcworkspace" ]; then
+            WORKSPACE="ios/App/App.xcworkspace"
+            echo "Building with workspace: $WORKSPACE"
+            xcode-project build-ipa \
+              --workspace "$WORKSPACE" \
+              --scheme "App" \
+              --export-options-plist /Users/builder/export_options.plist
+          else
+            echo "Building with xcodeproj (no xcworkspace)"
+            xcode-project build-ipa \
+              --project "ios/App/App.xcodeproj" \
+              --scheme "App" \
+              --export-options-plist /Users/builder/export_options.plist
           fi
-
-          echo "--- Listing schemes in workspace ---"
-          xcodebuild -list -workspace "$WORKSPACE" 2>&1 || true
-
-          echo "--- Building IPA ---"
-          xcode-project build-ipa \
-            --workspace "$WORKSPACE" \
-            --scheme "App" \
-            --export-options-plist /Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa

@@ -69,8 +69,11 @@ async function ensureReady() {
     );
   }
   if (!_rcConfigured) {
-    await Purchases.configure({ apiKey: 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ' });
+    const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
+    console.log('[IAP] Configuring RevenueCat with API key:', apiKey.substring(0, 15) + '...');
+    await Purchases.configure({ apiKey });
     _rcConfigured = true;
+    console.log('[IAP] RevenueCat configured successfully');
   }
 }
 
@@ -79,7 +82,27 @@ async function ensureReady() {
  */
 export async function loadProducts() {
   await ensureReady();
+  console.log('[IAP] Fetching offerings from RevenueCat...');
   const { offerings } = await Purchases.getOfferings();
+  console.log('[IAP] Offerings received:', JSON.stringify(offerings, null, 2));
+  
+  if (!offerings?.current) {
+    console.warn('[IAP] No current offering available');
+    console.log('[IAP] All offerings:', Object.keys(offerings?.all || {}));
+  } else {
+    console.log('[IAP] Current offering ID:', offerings.current.identifier);
+    console.log('[IAP] Available packages:', offerings.current.availablePackages.length);
+    offerings.current.availablePackages.forEach(pkg => {
+      console.log('[IAP] Package:', {
+        type: pkg.packageType,
+        identifier: pkg.identifier,
+        productId: pkg.product?.productIdentifier,
+        title: pkg.product?.title,
+        price: pkg.product?.priceString,
+      });
+    });
+  }
+  
   return offerings?.current?.availablePackages ?? [];
 }
 

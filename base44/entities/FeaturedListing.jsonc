@@ -1,0 +1,85 @@
+{
+  "name": "FeaturedListing",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Listing title"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "cards",
+        "sneakers",
+        "clothing",
+        "electronics",
+        "collectibles",
+        "games",
+        "technology",
+        "vintage",
+        "other"
+      ],
+      "description": "Item category"
+    },
+    "price": {
+      "type": "number",
+      "description": "Current listing price"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "ebay",
+        "stockx",
+        "goat",
+        "poshmark",
+        "depop",
+        "whatnot",
+        "mercari",
+        "facebook",
+        "offerup",
+        "goldin",
+        "amazon",
+        "other"
+      ],
+      "description": "Source platform"
+    },
+    "external_url": {
+      "type": "string",
+      "description": "Direct link to listing"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Listing image"
+    },
+    "location": {
+      "type": "string",
+      "description": "Seller location"
+    },
+    "condition": {
+      "type": "string",
+      "description": "Item condition"
+    },
+    "posted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When listing was posted"
+    },
+    "relevance_score": {
+      "type": "number",
+      "description": "Algorithm score for user personalization"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "price",
+    "platform",
+    "external_url"
+  ],
+  "rls": {
+    "create": false,
+    "read": true,
+    "update": false,
+    "delete": false
+  }
+}

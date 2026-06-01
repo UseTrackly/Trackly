@@ -34,14 +34,15 @@ workflows:
           rm -rf ios
           npx cap add ios
 
-      - name: Sync Capacitor and install CocoaPods
+      - name: Sync Capacitor assets
         script: |
-          # Capacitor 6+ defaults to SPM — sync copies assets/config only.
-          # We manage CocoaPods ourselves afterward.
-          npx cap sync ios --no-deps
+          # Only copy web assets and config — do NOT let Capacitor run pod install
+          npx cap sync ios || true
 
-          # Write Podfile (sync may have overwritten or not created it)
-          cat > ios/App/Podfile << 'EOF'
+      - name: Install CocoaPods
+        script: |
+          # Write Podfile after sync (sync may have overwritten it)
+          cat > ios/App/Podfile << 'PODEOF'
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
 platform :ios, '16.0'
@@ -59,12 +60,13 @@ end
 target 'App' do
   capacitor_pods
 end
-EOF
+PODEOF
+
           echo "--- Podfile ---"
           cat ios/App/Podfile
 
-          echo "--- Running pod install ---"
           cd ios/App
+          echo "--- Running pod install ---"
           pod install --repo-update
           POD_EXIT=$?
           echo "--- pod install exit code: $POD_EXIT ---"
@@ -72,7 +74,6 @@ EOF
             exit $POD_EXIT
           fi
 
-          echo "--- Verifying workspace ---"
           if [ ! -d "App.xcworkspace" ]; then
             echo "FATAL: pod install did not create App.xcworkspace"
             exit 1
@@ -110,8 +111,6 @@ EOF
       - name: Set build number
         script: |
           BUILD_NUM=$((BUILD_NUMBER + 10))
-          agvtool new-version -all $BUILD_NUM || true
-          find ios -name "*.xcodeproj" -maxdepth 3 | head -1 | xargs -I {} sh -c 'cd "{}/.." && agvtool new-version -all '"$BUILD_NUM"' || true'
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist || true
 
       - name: Set up code signing

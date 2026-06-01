@@ -1,0 +1,101 @@
+{
+  "name": "Flip",
+  "type": "object",
+  "properties": {
+    "item_name": {
+      "type": "string",
+      "description": "Name of the item flipped"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "cards",
+        "sneakers",
+        "clothing",
+        "electronics",
+        "collectibles",
+        "games",
+        "technology",
+        "vintage",
+        "other"
+      ],
+      "description": "Category of the item"
+    },
+    "buy_price": {
+      "type": "number",
+      "description": "Purchase price"
+    },
+    "sale_price": {
+      "type": "number",
+      "description": "Sale price"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "ebay",
+        "stockx",
+        "goat",
+        "poshmark",
+        "depop",
+        "whatnot",
+        "mercari",
+        "facebook",
+        "offerup",
+        "goldin",
+        "amazon",
+        "other"
+      ],
+      "description": "Selling platform"
+    },
+    "shipping_cost": {
+      "type": "number",
+      "description": "Shipping cost"
+    },
+    "platform_fee": {
+      "type": "number",
+      "description": "Calculated platform fee"
+    },
+    "processing_fee": {
+      "type": "number",
+      "description": "Payment processing fee"
+    },
+    "custom_expenses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Custom expense line items"
+    },
+    "net_profit": {
+      "type": "number",
+      "description": "Net profit after all fees"
+    },
+    "roi": {
+      "type": "number",
+      "description": "Return on investment percentage"
+    },
+    "date_sold": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the item was sold"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about the flip"
+    }
+  },
+  "required": [
+    "item_name",
+    "buy_price",
+    "sale_price",
+    "platform"
+  ]
+}

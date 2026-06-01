@@ -66,25 +66,81 @@ workflows:
           npx cap sync ios || true
 
           # ── Strip ALL SPM references from the Xcode project ──────────────────
-          # cap add ios always injects SPM package refs for Capacitor/Cordova into
-          # the .pbxproj regardless of swiftPackageManager:false.  Those refs then
-          # clash with the same frameworks coming from CocoaPods → duplicate-produce
-          # build error.  We remove every SPM-related section with a Python script
-          # so CocoaPods is the sole integrator.
+          # cap sync re-injects SPM entries even when swiftPackageManager:false.
+          # We run cleanup AFTER sync so it is the final state before pod install.
+          # Strategy: use Python to parse the pbxproj line-by-line and drop every
+          # SPM object block plus every reference to them in list arrays.
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
-          python3 -c "
-          import sys, re
-          path = 'ios/App/App.xcodeproj/project.pbxproj'
-          src = open(path).read()
-          src = re.sub(r'\s*[A-F0-9]{24} /\* XCRemoteSwiftPackageReference \".*?\" \*/ = \{[^}]*\};\n?', '', src, flags=re.DOTALL)
-          src = re.sub(r'\s*[A-F0-9]{24} /\* XCSwiftPackageProductDependency \*/ = \{[^}]*\};\n?', '', src, flags=re.DOTALL)
-          src = re.sub(r'\s*packageReferences = \([^)]*\);\n?', '', src, flags=re.DOTALL)
-          src = re.sub(r'\s*packageProductDependencies = \([^)]*\);\n?', '', src, flags=re.DOTALL)
-          src = re.sub(r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova)[^*]* \*/ = \{[^}]*productRef[^}]*\};\n?', '', src, flags=re.DOTALL)
-          src = re.sub(r'\s*[A-F0-9]{24} /\* (Capacitor|Cordova|CapacitorCordova) in Frameworks \*/,?\n?', '', src)
-          open(path, 'w').write(src)
-          print('SPM references stripped from project.pbxproj')
-          "
+
+          python3 << 'PYEOF'
+import re, sys
+
+path = 'ios/App/App.xcodeproj/project.pbxproj'
+src = open(path).read()
+original_len = len(src)
+
+# ── 1. Remove entire XCRemoteSwiftPackageReference object blocks ──────────
+#   Matches: <hex> /* XCRemoteSwiftPackageReference "..." */ = { ... };
+src = re.sub(
+    r'\t*[0-9A-F]{24} /\* XCRemoteSwiftPackageReference "[^"]*" \*/ = \{[^}]*\};\n?',
+    '', src, flags=re.DOTALL | re.IGNORECASE)
+
+# ── 2. Remove entire XCSwiftPackageProductDependency object blocks ─────────
+#   Matches: <hex> /* XCSwiftPackageProductDependency */ = { ... };
+src = re.sub(
+    r'\t*[0-9A-F]{24} /\* XCSwiftPackageProductDependency \*/ = \{[^}]*\};\n?',
+    '', src, flags=re.DOTALL | re.IGNORECASE)
+
+# ── 3. Remove packageReferences = ( ... ); arrays ─────────────────────────
+src = re.sub(
+    r'\t*packageReferences = \([^)]*\);\n?',
+    '', src, flags=re.DOTALL)
+
+# ── 4. Remove packageProductDependencies = ( ... ); arrays ───────────────
+src = re.sub(
+    r'\t*packageProductDependencies = \([^)]*\);\n?',
+    '', src, flags=re.DOTALL)
+
+# ── 5. Remove PBXBuildFile entries that have a productRef (SPM style) ─────
+#   These look like: <hex> /* Capacitor in Frameworks */ = {isa = PBXBuildFile; productRef = <hex>; };
+src = re.sub(
+    r'\t*[0-9A-F]{24} /\*[^*]*\*/ = \{[^}]*productRef = [0-9A-F]{24}[^}]*\};\n?',
+    '', src, flags=re.DOTALL | re.IGNORECASE)
+
+# ── 6. Remove dangling hex refs in files/frameworks lists that pointed
+#      to the now-deleted SPM build file entries.
+#      Any line that is just: <whitespace><hex24> /* something in Frameworks */,
+#      and the comment contains Capacitor or Cordova.
+src = re.sub(
+    r'\t+[0-9A-F]{24} /\*[^*]*(Capacitor|Cordova|CapacitorCordova)[^*]*\*/ /\* in Frameworks \*/,?\n',
+    '', src, flags=re.IGNORECASE)
+
+open(path, 'w').write(src)
+removed = original_len - len(src)
+print(f'SPM cleanup done — removed {removed} chars from project.pbxproj')
+
+# ── Verification: fail loud if any SPM keyword survives ──────────────────
+checks = [
+    ('XCRemoteSwiftPackageReference', src),
+    ('XCSwiftPackageProductDependency', src),
+    ('packageReferences', src),
+    ('packageProductDependencies', src),
+]
+failed = [k for k, s in checks if k in s]
+if failed:
+    print('WARNING: These SPM keywords still present after cleanup:', failed)
+    # Print surrounding context for each hit
+    for k in failed:
+        idx = src.index(k)
+        print(f'  [{k}] context:', repr(src[max(0,idx-80):idx+120]))
+else:
+    print('VERIFIED: No SPM keywords remain in project.pbxproj')
+PYEOF
+
+          echo ""
+          echo "=== project.pbxproj FULL DUMP (post-cleanup) ==="
+          cat "$PBXPROJ"
+          echo "=== END project.pbxproj DUMP ==="
 
           # Also nuke any Package.swift that was written
           rm -f ios/App/App/Package.swift ios/App/Package.swift

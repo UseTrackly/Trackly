@@ -67,15 +67,10 @@ workflows:
           rm -rf ios/App/CapApp-SPM || true
 
           # Scrub ALL CapApp-SPM references from the Xcode project file.
-          # cap sync adds an SPM package reference that Xcode will try to resolve
-          # even when we delete the folder, causing "cannot be accessed" errors.
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           if [ -f "$PBXPROJ" ]; then
             echo "--- Removing CapApp-SPM references from project.pbxproj ---"
-            # Remove any line that mentions CapApp-SPM
             sed -i '' '/CapApp-SPM/d' "$PBXPROJ"
-            # Also remove XCRemoteSwiftPackageReference and XCSwiftPackageProductDependency
-            # blocks that reference CapApp-SPM (they span multiple lines; use perl for multi-line)
             perl -i -0pe 's/[^\n]*CapApp[^\n]*\n//g' "$PBXPROJ" || true
             echo "--- Verifying no CapApp-SPM refs remain ---"
             grep -c "CapApp-SPM" "$PBXPROJ" && echo "WARNING: CapApp-SPM refs still present" || echo "OK: No CapApp-SPM refs found"
@@ -110,27 +105,75 @@ workflows:
       - name: Install CocoaPods
         script: |
           cd ios/App
+
+          echo "--- RevenueCat package root contents ---"
+          ls -la ../../node_modules/@revenuecat/purchases-capacitor/
+
           echo "--- RevenueCat podspec files ---"
           find ../../node_modules/@revenuecat/purchases-capacitor -name "*.podspec" -print
+
+          # Dynamically detect the real podspec name
+          PODSPEC_FILE=$(find ../../node_modules/@revenuecat/purchases-capacitor -name "*.podspec" | head -1)
+          if [ -z "$PODSPEC_FILE" ]; then
+            echo "FATAL: No .podspec found in @revenuecat/purchases-capacitor"
+            exit 1
+          fi
+          PODSPEC_NAME=$(basename "$PODSPEC_FILE" .podspec)
+          PODSPEC_DIR=$(dirname "$PODSPEC_FILE")
+          # Make path relative to ios/App
+          PODSPEC_REL_PATH=$(python3 -c "import os.path; print(os.path.relpath('$PODSPEC_DIR', '.'))")
+          echo "--- Detected podspec: name=$PODSPEC_NAME path=$PODSPEC_REL_PATH ---"
+
+          # Rewrite Podfile using the real podspec name and path
+          cat > Podfile << EOF
+          require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+          platform :ios, '16.0'
+          use_frameworks!
+
+          install! 'cocoapods', :deterministic_uuids => false
+
+          def capacitor_pods
+          pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorBrowser', :path => '../../node_modules/@capacitor/browser'
+          pod '$PODSPEC_NAME', :path => '$PODSPEC_REL_PATH'
+          end
+
+          target 'App' do
+          capacitor_pods
+          end
+          EOF
+          echo "--- Final Podfile ---"
+          cat Podfile
+
           echo "--- Running pod install ---"
           pod install --repo-update 2>&1
-          echo "--- pod install exit code: $? ---"
+          POD_EXIT=$?
+          echo "--- pod install exit code: $POD_EXIT ---"
+
+          if [ $POD_EXIT -ne 0 ]; then
+            echo "FATAL: pod install failed with exit code $POD_EXIT"
+            exit $POD_EXIT
+          fi
+
           echo "--- Contents of ios/App after pod install ---"
           ls -la
-          echo "--- Podfile.lock ---"
-          cat Podfile.lock | grep -A2 "RevenueCat\|Purchases\|PurchasesCapacitor" || echo "WARNING: RevenueCat not found in Podfile.lock!"
+
+          echo "--- Podfile.lock RevenueCat entries ---"
+          cat Podfile.lock | grep -A2 "RevenueCat\|Purchases\|$PODSPEC_NAME" || echo "WARNING: RevenueCat not found in Podfile.lock!"
+
           echo "--- Verifying CocoaPods workspace was created ---"
           if [ ! -d "App.xcworkspace" ]; then
             echo "FATAL: pod install did not create App.xcworkspace — aborting build"
             exit 1
           fi
           echo "SUCCESS: App.xcworkspace exists"
+
       - name: Register trackly:// URL scheme for OAuth deep-link
         script: |
           PLIST="ios/App/App/Info.plist"
-          # Add CFBundleURLTypes array if missing
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$PLIST" 2>/dev/null || true
-          # Add first entry (dict) if missing
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$PLIST" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLName string trackly" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :CFBundleURLTypes:0:CFBundleURLName trackly" "$PLIST"
@@ -144,27 +187,30 @@ workflows:
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
+
       - name: Verify project structure
         script: |
           echo "--- Full ios/ tree ---"
           find ios -maxdepth 4 | sort
           echo "--- Web assets in bundle ---"
           ls ios/App/App/public/ | head -20 || echo "WARNING: No web assets found!"
+
       - name: Set build number
         script: |
           BUILD_NUM=$((BUILD_NUMBER + 10))
           agvtool new-version -all $BUILD_NUM || true
           find ios -name "*.xcodeproj" -maxdepth 3 | head -1 | xargs -I {} sh -c 'cd "{}/.." && agvtool new-version -all '"$BUILD_NUM"' || true'
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist || true
+
       - name: Set up code signing
         script: |
           xcode-project use-profiles
+
       - name: Build iOS
         script: |
           echo "--- All xcworkspace files found ---"
           find ios -name "*.xcworkspace" -print
 
-          # Use the known CocoaPods-generated workspace path directly
           WORKSPACE="ios/App/App.xcworkspace"
           if [ ! -d "$WORKSPACE" ]; then
             echo "ERROR: Expected workspace not found at $WORKSPACE"
@@ -185,6 +231,7 @@ workflows:
             --workspace "$WORKSPACE" \
             --scheme "App" \
             --export-options-plist /Users/builder/export_options.plist
+
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:

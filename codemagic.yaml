@@ -36,10 +36,15 @@ workflows:
 
       - name: Sync Capacitor assets
         script: |
+          # Only copy web assets and config — do NOT let Capacitor run pod install
           npx cap sync ios || true
+          # Remove SPM Package.swift to prevent duplicate framework linking with CocoaPods
+          rm -f ios/App/App/Package.swift ios/App/Package.swift
+          echo "--- Removed any SPM Package.swift files ---"
 
       - name: Install CocoaPods
         script: |
+          # Write Podfile after sync (sync may have overwritten it)
           cat > ios/App/Podfile << 'PODEOF'
           require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 

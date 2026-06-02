@@ -106,6 +106,24 @@ workflows:
         script: |
           npx cap sync ios
 
+      - name: Inject iOS permissions into Info.plist (after cap sync)
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          echo "--- Injecting permissions into Info.plist ---"
+
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Trackly needs camera access to take photos of your items and profile picture.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Trackly needs camera access to take photos of your items and profile picture.'" "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Trackly needs photo library access to select photos for your items and profile picture.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'Trackly needs photo library access to select photos for your items and profile picture.'" "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'Trackly needs permission to save photos to your photo library.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'Trackly needs permission to save photos to your photo library.'" "$PLIST"
+
+          echo "NSCameraUsageDescription: $(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$PLIST")"
+          echo "NSPhotoLibraryUsageDescription: $(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$PLIST")"
+          echo "NSPhotoLibraryAddUsageDescription: $(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryAddUsageDescription' "$PLIST")"
+
       - name: Write Podfile with post_install hook
         script: |
           mkdir -p ios/App
@@ -136,9 +154,7 @@ workflows:
           cd ios/App
           if ! pod install --repo-update 2>&1; then
             echo "FATAL: pod install failed"
-            echo "--- Podfile: ---"
             cat Podfile
-            echo "--- Directory: ---"
             ls -la
             exit 1
           fi
@@ -172,19 +188,6 @@ workflows:
         script: |
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" ios/App/App/Info.plist
-
-      - name: Add camera and photo library usage descriptions
-        script: |
-          PLIST="ios/App/App/Info.plist"
-          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Trackly needs camera access to take profile photos and item pictures.'" "$PLIST" 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Trackly needs camera access to take profile photos and item pictures.'" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Trackly needs photo library access to select profile photos and item pictures.'" "$PLIST" 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'Trackly needs photo library access to select profile photos and item pictures.'" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'Trackly needs permission to save images to your photo library.'" "$PLIST" 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'Trackly needs permission to save images to your photo library.'" "$PLIST"
-          echo "Added iOS camera/photo permissions to Info.plist"
-          /usr/libexec/PlistBuddy -c "Print :NSCameraUsageDescription" "$PLIST"
-          /usr/libexec/PlistBuddy -c "Print :NSPhotoLibraryUsageDescription" "$PLIST"
 
       - name: Set build number
         script: |

@@ -18,6 +18,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [inboxFlipId, setInboxFlipId] = useState(null);
+  const [inboxSenderEmail, setInboxSenderEmail] = useState(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -61,6 +62,7 @@ export default function NotificationBell() {
     setOpen(false);
     if (notification.type === 'new_message') {
       setInboxFlipId(notification.metadata?.flip_id || null);
+      setInboxSenderEmail(notification.metadata?.sender || null);
       setInboxOpen(true);
       return;
     }
@@ -139,8 +141,9 @@ export default function NotificationBell() {
 
       <MessageInbox
         open={inboxOpen}
-        onClose={() => { setInboxOpen(false); setInboxFlipId(null); }}
+        onClose={() => { setInboxOpen(false); setInboxFlipId(null); setInboxSenderEmail(null); }}
         initialFlipId={inboxFlipId}
+        initialSenderEmail={inboxSenderEmail}
       />
     </>
   );

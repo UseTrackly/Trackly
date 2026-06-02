@@ -25,6 +25,13 @@
     "avatar_url": {
       "type": "string",
       "description": "Profile picture URL"
+    },
+    "blocked_users": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of blocked user emails"
     }
   },
   "required": [

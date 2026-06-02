@@ -40,7 +40,17 @@ export default function CommunityPage() {
     queryFn: () => base44.entities.CommunityFlip.list('-created_date', 100),
     initialData: [],
   });
-  const communityFlips = Array.isArray(communityFlipsRaw) ? communityFlipsRaw : [];
+
+  // Fetch current user's blocked list
+  const { data: myProfileRaw = [] } = useQuery({
+    queryKey: ['myProfile'],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1),
+    enabled: !!user,
+  });
+  const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
+
+  const communityFlips = (Array.isArray(communityFlipsRaw) ? communityFlipsRaw : [])
+    .filter(f => !blockedUsers.includes(f.posted_by));
 
   const requireAuth = () => {
     if (!user) {

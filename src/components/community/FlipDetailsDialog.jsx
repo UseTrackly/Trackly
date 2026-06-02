@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MapPin, Sparkles, Loader2 } from 'lucide-react';
+import { Send, MapPin, Sparkles, Loader2, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -24,6 +24,15 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
     queryKey: ['me'],
     queryFn: () => base44.auth.me(),
   });
+
+  // Check if poster has blocked the current user (or current user blocked poster)
+  const { data: myProfileRaw = [] } = useQuery({
+    queryKey: ['myProfile'],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1),
+    enabled: !!user && open,
+  });
+  const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
+  const isBlocked = blockedUsers.includes(flip.posted_by);
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', flip.id],
@@ -115,7 +124,15 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
             </div>
 
             {/* Messages */}
-            {!isMyPost && (
+            {!isMyPost && isBlocked && (
+              <div className="border-t border-border pt-3">
+                <div className="flex items-center gap-2 py-4 text-muted-foreground text-sm">
+                  <Ban className="w-4 h-4 text-destructive" />
+                  You have blocked this user.
+                </div>
+              </div>
+            )}
+            {!isMyPost && !isBlocked && (
               <>
                 <div className="border-t border-border pt-3">
                   <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">

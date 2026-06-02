@@ -11,7 +11,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import FlipCard from '@/components/history/FlipCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, isToday, subDays, isAfter } from 'date-fns';
+import { format, isToday, startOfWeek, isAfter, parseISO } from 'date-fns';
 import AIAssistant from '@/components/ai/AIAssistant';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,7 +21,10 @@ import ProUpgradeCard from '@/components/upgrade/ProUpgradeCard';
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('today');
   const queryClient = useQueryClient();
-  const handleRefresh = useCallback(() => queryClient.invalidateQueries(), [queryClient]);
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries();
+    await queryClient.refetchQueries({ queryKey: ['flips'] });
+  }, [queryClient]);
   const { pullDistance, isRefreshing, onTouchStart, onTouchMove, onTouchEnd } = usePullToRefresh(handleRefresh);
   const navigate = useNavigate();
 
@@ -60,16 +63,24 @@ export default function Dashboard() {
 
   const todayFlips = useMemo(() => {
     return allFlips.filter(f => {
-      const date = f.date_sold || f.created_date;
-      return date && isToday(new Date(date));
+      // date_sold is a YYYY-MM-DD string; created_date is an ISO timestamp
+      // Use date_sold when available so the flip appears on the day the user sold it
+      const raw = f.date_sold || f.created_date;
+      if (!raw) return false;
+      // Parse YYYY-MM-DD as local date to avoid UTC-offset shifting the day
+      const date = raw.includes('T') ? new Date(raw) : parseISO(raw);
+      return isToday(date);
     });
   }, [allFlips]);
 
-  const last7DaysFlips = useMemo(() => {
-    const cutoff = subDays(new Date(), 7);
+  // Week = current Mon 00:00 device time → now (resets every Monday midnight)
+  const thisWeekFlips = useMemo(() => {
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // 1 = Monday
     return allFlips.filter(f => {
-      const date = f.date_sold || f.created_date;
-      return date && isAfter(new Date(date), cutoff);
+      const raw = f.date_sold || f.created_date;
+      if (!raw) return false;
+      const date = raw.includes('T') ? new Date(raw) : parseISO(raw);
+      return isAfter(date, weekStart) || date.getTime() === weekStart.getTime();
     });
   }, [allFlips]);
 
@@ -89,17 +100,17 @@ export default function Dashboard() {
   }, [todayFlips]);
 
   const weekStats = useMemo(() => {
-    const totalProfit = last7DaysFlips.reduce((s, f) => s + (f.net_profit || 0), 0);
-    const avgRoi = last7DaysFlips.length > 0
-      ? last7DaysFlips.reduce((s, f) => s + (f.roi || 0), 0) / last7DaysFlips.length
+    const totalProfit = thisWeekFlips.reduce((s, f) => s + (f.net_profit || 0), 0);
+    const avgRoi = thisWeekFlips.length > 0
+      ? thisWeekFlips.reduce((s, f) => s + (f.roi || 0), 0) / thisWeekFlips.length
       : 0;
 
     return {
-      totalFlips: last7DaysFlips.length,
+      totalFlips: thisWeekFlips.length,
       totalProfit: Math.round(totalProfit * 100) / 100,
       avgRoi: Math.round(avgRoi * 10) / 10,
     };
-  }, [last7DaysFlips]);
+  }, [thisWeekFlips]);
 
   const displayName = userProfile?.display_name || user?.full_name || '';
   const firstName = displayName.split(' ')[0] || 'Reseller';
@@ -233,7 +244,7 @@ export default function Dashboard() {
 
         {/* Week Tab */}
         <TabsContent value="week" className="space-y-4">
-          {last7DaysFlips.length === 0 ? (
+          {thisWeekFlips.length === 0 ? (
             <EmptyState
               icon={TrendingUp}
               title="No activity this week"
@@ -258,9 +269,9 @@ export default function Dashboard() {
 
               <div className="space-y-3">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Last 7 Days
+                  This Week (Mon–Today)
                 </h3>
-                {last7DaysFlips.map((flip, i) => (
+                {thisWeekFlips.map((flip, i) => (
                   <FlipCard key={flip.id} flip={flip} index={i} currency={user?.currency} />
                 ))}
               </div>

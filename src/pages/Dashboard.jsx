@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, TrendingUp, Hash, AlertTriangle, Calculator, ArrowRight, MessageSquare, Users, User as UserIcon } from 'lucide-react';
+import { DollarSign, TrendingUp, Hash, AlertTriangle, Calculator, ArrowRight, MessageSquare, Users, User as UserIcon, ImageIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import StatCard from '@/components/shared/StatCard';
 import EmptyState from '@/components/shared/EmptyState';
@@ -285,7 +285,7 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Community Listings Scroll */}
+      {/* Community Recent Flips */}
       {communityFlips.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -295,7 +295,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">Community Flips</h3>
+              <h3 className="text-sm font-semibold">Community Recent Flips</h3>
             </div>
             <Button
               variant="ghost"
@@ -312,22 +312,29 @@ export default function Dashboard() {
                 <div
                   key={flip.id}
                   onClick={() => navigate('/community')}
-                  className="flex-shrink-0 w-48 bg-card border border-border rounded-xl p-3 cursor-pointer hover:border-primary/50 transition-colors"
+                  className="flex-shrink-0 w-44 bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
                 >
-                  {flip.image_url && (
+                  {/* Thumbnail — always shown */}
+                  {flip.image_url ? (
                     <img
                       src={flip.image_url}
                       alt={flip.item_name}
-                      className="w-full h-28 object-cover rounded-lg mb-2"
+                      className="w-full h-28 object-cover"
                     />
+                  ) : (
+                    <div className="w-full h-28 bg-secondary flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                    </div>
                   )}
-                  <h4 className="font-semibold text-sm line-clamp-1 mb-1">{flip.item_name}</h4>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{flip.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary capitalize">
-                      {flip.category}
-                    </span>
-                    <span className="text-sm font-bold text-primary">${flip.price}</span>
+                  <div className="p-2.5">
+                    <h4 className="font-semibold text-xs line-clamp-1 mb-1">{flip.item_name}</h4>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary capitalize">
+                        {flip.category}
+                      </span>
+                      <span className="text-xs font-bold text-primary">${flip.price}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">by {flip.posted_by_name?.split(' ')[0] || 'User'}</p>
                   </div>
                 </div>
               ))}

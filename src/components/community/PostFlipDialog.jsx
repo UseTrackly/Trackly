@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Loader2, Crown } from 'lucide-react';
+import AIImageSearch from '@/components/community/AIImageSearch';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
 import { canPostCommunity, FREE_LIMITS } from '@/lib/proGate';
@@ -28,9 +29,16 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ];
 
-export default function PostFlipDialog({ open, onClose }) {
+export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('other');
+
+  useEffect(() => {
+    if (open && prefillData) {
+      if (prefillData.item_name) setItemName(prefillData.item_name);
+      if (prefillData.category) setCategory(prefillData.category);
+    }
+  }, [open]);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [location, setLocation] = useState('');
@@ -41,6 +49,7 @@ export default function PostFlipDialog({ open, onClose }) {
   const [grade, setGrade] = useState('');
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
+  const [aiImageUrl, setAiImageUrl] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -70,7 +79,9 @@ export default function PostFlipDialog({ open, onClose }) {
         throw new Error('Your post contains inappropriate content. Please revise and try again.');
       }
       
-      if (certImageUrl && !imageFile) {
+      if (aiImageUrl && !imageFile) {
+        imageUrl = aiImageUrl;
+      } else if (certImageUrl && !imageFile) {
         imageUrl = certImageUrl;
       }
 
@@ -146,6 +157,7 @@ export default function PostFlipDialog({ open, onClose }) {
     setGrade('');
     setCertNumber('');
     setCertImageUrl(null);
+    setAiImageUrl(null);
     onClose();
   };
 
@@ -302,7 +314,17 @@ export default function PostFlipDialog({ open, onClose }) {
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Image
             </label>
-            {certImageUrl && !imageFile ? (
+            {aiImageUrl && !imageFile ? (
+              <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
+                <img src={aiImageUrl} alt="AI" className="w-12 h-12 object-cover rounded-lg border border-border bg-background" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary mb-1">AI-generated image</p>
+                  <button type="button" onClick={() => setAiImageUrl(null)} className="text-xs text-muted-foreground underline cursor-pointer">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : certImageUrl && !imageFile ? (
               <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
                 <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
                 <div className="flex-1 min-w-0">
@@ -322,23 +344,30 @@ export default function PostFlipDialog({ open, onClose }) {
                 </div>
               </div>
             ) : (
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                  onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
-                  className="hidden"
-                  id="flip-image"
+              <div className="space-y-2">
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                    onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                    className="hidden"
+                    id="flip-image"
+                  />
+                  <label
+                    htmlFor="flip-image"
+                    className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
+                  >
+                    <Upload className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {imageFile ? imageFile.name : 'Upload image'}
+                    </span>
+                  </label>
+                </div>
+                <AIImageSearch
+                  itemName={itemName}
+                  category={category}
+                  onImageFound={(url) => setAiImageUrl(url)}
                 />
-                <label
-                  htmlFor="flip-image"
-                  className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background cursor-pointer hover:bg-secondary transition-colors"
-                >
-                  <Upload className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {imageFile ? imageFile.name : 'Upload image'}
-                  </span>
-                </label>
               </div>
             )}
           </div>

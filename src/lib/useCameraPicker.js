@@ -17,27 +17,24 @@ export function useCameraPicker({ onImageSelected }) {
       return;
     }
 
-    // iOS native - use Capacitor Camera
+    // iOS native - use Capacitor Camera with Prompt source
+    // This lets iOS show its native "Camera / Photo Library" action sheet
+    // and triggers the correct permission requests for both.
     setIsUploading(true);
     try {
       const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
 
-      // Simple native dialog to choose source
-      const useCamera = await new Promise((resolve) => {
-        const result = window.confirm('Choose an option:\n\nOK = Take Photo\nCancel = Choose from Library');
-        resolve(result);
-      });
-
-      const source = useCamera ? CameraSource.Camera : CameraSource.Photos;
+      // First explicitly request permissions so iOS registers them
+      await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
 
       const photo = await Camera.getPhoto({
         resultType: CameraResultType.Uri,
-        source: source,
-        quality: 90,
+        source: CameraSource.Prompt,   // native iOS picker: Camera OR Photos
+        quality: 85,
         allowEditing: false,
-        promptLabelHeader: 'Photo',
-        promptLabelPhoto: 'Choose',
-        promptLabelPicture: 'Library',
+        promptLabelHeader: 'Select Photo',
+        promptLabelPhoto: 'Choose from Library',
+        promptLabelPicture: 'Take Photo',
         promptLabelCancel: 'Cancel',
       });
 
@@ -48,17 +45,18 @@ export function useCameraPicker({ onImageSelected }) {
         await onImageSelected?.(file);
       }
     } catch (err) {
-      // User cancelled or permission denied
-      if (err?.message?.includes('cancelled') || err?.code === 1) {
-        // Silent cancel - no error shown
+      const msg = (err?.message || '').toLowerCase();
+      // Silent on user cancel
+      if (
+        msg.includes('cancel') ||
+        msg.includes('user denied') ||
+        msg.includes('no image picked') ||
+        err?.code === 1
+      ) {
         return;
       }
       console.error('[CameraPicker] Error:', err);
-      toast.error('Camera unavailable. Using photo library instead.');
-      
-      // Fallback to file input
-      const input = document.getElementById(inputId);
-      if (input) input.click();
+      toast.error('Could not open camera. Please check permissions in Settings → Trackly.');
     } finally {
       setIsUploading(false);
     }

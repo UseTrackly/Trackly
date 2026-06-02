@@ -86,12 +86,17 @@ export async function loadProducts() {
   const { offerings } = await Purchases.getOfferings();
   console.log('[IAP] Offerings received:', JSON.stringify(offerings, null, 2));
 
+  // Try current first, then explicit 'default', then all offerings
   let packages = offerings?.current?.availablePackages ?? [];
 
-  // If current offering has no packages, fall back to all offerings
+  if (packages.length === 0 && offerings?.all?.default) {
+    console.log('[IAP] current is empty, using default offering');
+    packages = offerings.all.default.availablePackages ?? [];
+  }
+
   if (packages.length === 0 && offerings?.all) {
     const allKeys = Object.keys(offerings.all);
-    console.log('[IAP] No current offering packages, checking all offerings:', allKeys);
+    console.log('[IAP] Falling back to all offerings:', allKeys);
     packages = allKeys.flatMap(key => offerings.all[key].availablePackages ?? []);
   }
 
@@ -118,6 +123,10 @@ export async function purchasePlan(plan) {
 
   const { offerings } = await Purchases.getOfferings();
   let packages = offerings?.current?.availablePackages ?? [];
+
+  if (packages.length === 0 && offerings?.all?.default) {
+    packages = offerings.all.default.availablePackages ?? [];
+  }
 
   if (packages.length === 0 && offerings?.all) {
     packages = Object.values(offerings.all).flatMap(o => o.availablePackages ?? []);

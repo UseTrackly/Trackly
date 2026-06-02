@@ -85,25 +85,28 @@ export async function loadProducts() {
   console.log('[IAP] Fetching offerings from RevenueCat...');
   const { offerings } = await Purchases.getOfferings();
   console.log('[IAP] Offerings received:', JSON.stringify(offerings, null, 2));
-  
-  if (!offerings?.current) {
-    console.warn('[IAP] No current offering available');
-    console.log('[IAP] All offerings:', Object.keys(offerings?.all || {}));
-  } else {
-    console.log('[IAP] Current offering ID:', offerings.current.identifier);
-    console.log('[IAP] Available packages:', offerings.current.availablePackages.length);
-    offerings.current.availablePackages.forEach(pkg => {
-      console.log('[IAP] Package:', {
-        type: pkg.packageType,
-        identifier: pkg.identifier,
-        productId: pkg.product?.productIdentifier,
-        title: pkg.product?.title,
-        price: pkg.product?.priceString,
-      });
-    });
+
+  let packages = offerings?.current?.availablePackages ?? [];
+
+  // If current offering has no packages, fall back to all offerings
+  if (packages.length === 0 && offerings?.all) {
+    const allKeys = Object.keys(offerings.all);
+    console.log('[IAP] No current offering packages, checking all offerings:', allKeys);
+    packages = allKeys.flatMap(key => offerings.all[key].availablePackages ?? []);
   }
-  
-  return offerings?.current?.availablePackages ?? [];
+
+  console.log('[IAP] Total packages found:', packages.length);
+  packages.forEach((pkg, i) => {
+    console.log(`[IAP] Package[${i}]:`, {
+      type: pkg.packageType,
+      identifier: pkg.identifier,
+      productId: pkg.product?.productIdentifier,
+      title: pkg.product?.title,
+      price: pkg.product?.priceString,
+    });
+  });
+
+  return packages;
 }
 
 /**

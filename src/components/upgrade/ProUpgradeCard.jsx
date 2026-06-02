@@ -48,10 +48,18 @@ export default function ProUpgradeCard({ compact = false }) {
       log(`RC API key: ${RC_API_KEY.substring(0, 20)}...`);
 
       try {
+        // Also log raw offerings for diagnosis
+        const { Purchases } = await import('@revenuecat/purchases-capacitor');
+        const { offerings } = await Purchases.getOfferings();
+        const allKeys = Object.keys(offerings?.all || {});
+        log(`Offering keys: [${allKeys.join(', ') || 'none'}]`);
+        log(`Current offering: ${offerings?.current?.identifier ?? 'null'}`);
+        log(`Current pkg count: ${offerings?.current?.availablePackages?.length ?? 0}`);
+
         const packages = await loadProducts();
-        log(`Packages count: ${packages.length}`);
+        log(`Total packages loaded: ${packages.length}`);
         if (packages.length === 0) {
-          log('⚠️ No packages returned — check RC dashboard offerings');
+          log('⚠️ No packages — verify products exist in App Store Connect & RC dashboard');
         } else {
           packages.forEach((pkg, i) => {
             log(`[${i}] type=${pkg.packageType} id=${pkg.identifier} productId=${pkg.product?.productIdentifier} price=${pkg.product?.priceString}`);

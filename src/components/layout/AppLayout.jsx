@@ -58,6 +58,7 @@ function AppLayoutInner() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        touchAction: 'none',
       }}
     >
       {/* Skip to content */}
@@ -92,8 +93,10 @@ function AppLayoutInner() {
         style={{
           paddingTop: 'calc(3rem + env(safe-area-inset-top, 0px))',
           paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
-          // Prevent iOS rubber-band from making nav bars jump
           WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'none',
+          touchAction: 'pan-y',
+          isolation: 'isolate',
         }}
       >
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}

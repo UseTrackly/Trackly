@@ -60,6 +60,28 @@ workflows:
           rm -rf ios
           npx cap add ios
 
+      - name: Inject permissions into Info.plist template (before cap sync)
+        script: |
+          PLIST="ios/App/App/Info.plist"
+          echo "--- Injecting permissions into scaffolded Info.plist ---"
+
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Trackly needs camera access to take photos of your items and profile picture.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Trackly needs camera access to take photos of your items and profile picture.'" "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Trackly needs photo library access to select photos for your items and profile picture.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'Trackly needs photo library access to select photos for your items and profile picture.'" "$PLIST"
+
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'Trackly needs permission to save photos to your photo library.'" "$PLIST" 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'Trackly needs permission to save photos to your photo library.'" "$PLIST"
+
+          echo "Pre-sync permissions:"
+          /usr/libexec/PlistBuddy -c "Print :NSCameraUsageDescription" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :NSPhotoLibraryUsageDescription" "$PLIST"
+
+      # ── CRITICAL: strip all SPM references from the Xcode project before
+      # cap sync so that CocoaPods becomes the sole native integrator for
+      # Capacitor plugins (including RevenueCat).  If SPM refs remain,
+      # Capacitor.framework and Cordova.framework get linked twice → archive fails.
       - name: Remove SPM from Xcode project (CocoaPods will be sole integrator)
         script: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
@@ -69,19 +91,25 @@ workflows:
           path = "ios/App/App.xcodeproj/project.pbxproj"
           src  = open(path).read()
 
+          # 1. Delete every XCRemoteSwiftPackageReference block
           src = re.sub(
               r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCRemoteSwiftPackageReference[^}]*\};',
               '', src, flags=re.DOTALL)
 
+          # 2. Delete every XCSwiftPackageProductDependency block
           src = re.sub(
               r'\s*[A-F0-9]{24} /\* [^*]+ \*/ = \{[^}]*isa = XCSwiftPackageProductDependency[^}]*\};',
               '', src, flags=re.DOTALL)
 
+          # 3. Delete packageReferences array entries inside PBXProject
           src = re.sub(r'\s*packageReferences = \([^)]*\);', '', src, flags=re.DOTALL)
+
+          # 4. Delete packageProductDependencies array entries inside PBXNativeTarget
           src = re.sub(r'\s*packageProductDependencies = \([^)]*\);', '', src, flags=re.DOTALL)
 
           open(path, 'w').write(src)
 
+          # Verify
           remaining = [kw for kw in [
               'XCRemoteSwiftPackageReference',
               'XCSwiftPackageProductDependency',
@@ -96,8 +124,11 @@ workflows:
 
       - name: Set iOS deployment target in Xcode project
         script: |
+          # Capacitor 8 requires iOS 15.0 minimum
           /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 15.0" ios/App/App/Info.plist || \
           /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string 15.0" ios/App/App/Info.plist
+          
+          # Update project.pbxproj IPHONEOS_DEPLOYMENT_TARGET
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PBXPROJ"
           echo "Set iOS deployment target to 15.0"
@@ -111,15 +142,19 @@ workflows:
           PLIST="ios/App/App/Info.plist"
           echo "--- Injecting permissions into Info.plist ---"
 
+          # NSCameraUsageDescription
           /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Trackly needs camera access to take photos of your items and profile picture.'" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'Trackly needs camera access to take photos of your items and profile picture.'" "$PLIST"
 
+          # NSPhotoLibraryUsageDescription
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'Trackly needs photo library access to select photos for your items and profile picture.'" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'Trackly needs photo library access to select photos for your items and profile picture.'" "$PLIST"
 
+          # NSPhotoLibraryAddUsageDescription
           /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'Trackly needs permission to save photos to your photo library.'" "$PLIST" 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'Trackly needs permission to save photos to your photo library.'" "$PLIST"
 
+          # Verify
           echo "NSCameraUsageDescription: $(/usr/libexec/PlistBuddy -c 'Print :NSCameraUsageDescription' "$PLIST")"
           echo "NSPhotoLibraryUsageDescription: $(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryUsageDescription' "$PLIST")"
           echo "NSPhotoLibraryAddUsageDescription: $(/usr/libexec/PlistBuddy -c 'Print :NSPhotoLibraryAddUsageDescription' "$PLIST")"
@@ -154,7 +189,9 @@ workflows:
           cd ios/App
           if ! pod install --repo-update 2>&1; then
             echo "FATAL: pod install failed"
+            echo "--- Podfile: ---"
             cat Podfile
+            echo "--- Directory: ---"
             ls -la
             exit 1
           fi
@@ -165,11 +202,15 @@ workflows:
       - name: Force all pod targets to iOS 15.0
         script: |
           cd ios/App
+          # Update Pod target deployment targets in Pods project
           PODS_XCPROJ="Pods/Pods.xcodeproj/project.pbxproj"
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PODS_XCPROJ"
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 13\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PODS_XCPROJ"
+          
+          # Update Pod target settings in xcconfig files
           find Pods/Target\ Support\ Files -name "*.xcconfig" -exec sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' {} \;
           find Pods/Target\ Support\ Files -name "*.xcconfig" -exec sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 13\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' {} \;
+          
           echo "Forced all Pod targets to iOS 15.0"
 
       - name: Register trackly:// URL scheme
@@ -196,18 +237,24 @@ workflows:
 
       - name: Force App target and all dependencies to iOS 15.0
         script: |
+          # Update main app project deployment target
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PBXPROJ"
           sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 13\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PBXPROJ"
+          
+          # Update Pods.xcodeproj (generated by CocoaPods)
           PODS_PBXPROJ="ios/App/Pods/Pods.xcodeproj/project.pbxproj"
           if [ -f "$PODS_PBXPROJ" ]; then
             sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 14\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PODS_PBXPROJ"
             sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 13\.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' "$PODS_PBXPROJ"
             echo "Updated Pods.xcodeproj deployment targets"
           fi
+          
+          # Update RevenueCatPurchasesCapacitor target specifically
           if [ -f "$PODS_PBXPROJ" ]; then
             grep -n "RevenueCat" "$PODS_PBXPROJ" | head -5 || true
           fi
+          
           echo "Forced all project targets to iOS 15.0"
 
       - name: Set up code signing

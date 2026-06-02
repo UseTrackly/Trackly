@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
       type: 'new_message',
       title: '💬 New Message',
       message: `${data.sender_name} sent you a message`,
-      link: '/community',
+      link: `/community?inbox=1&flip_id=${data.community_flip_id}`,
       metadata: {
         message_id: data.id,
         sender: data.sender_email,

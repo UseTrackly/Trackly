@@ -50,14 +50,24 @@ function AppLayoutInner() {
   }, [location.pathname, isChildPage]);
 
   return (
-    <div className="min-h-screen bg-background relative text-sm">
-      {/* Skip to content — visible on focus for keyboard users */}
+    <div
+      className="bg-background text-sm"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Skip to content */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-medium"
       >
         Skip to content
       </a>
+
       {/* Grid background */}
       <div
         className="fixed inset-0 z-0 pointer-events-none"
@@ -71,11 +81,20 @@ function AppLayoutInner() {
         }}
       />
       <Suspense fallback={null}><GlowOrbs /></Suspense>
+
+      {/* Fixed header */}
       <MobileHeader />
+
+      {/* Scrollable content — sits between fixed header and fixed bottom nav */}
       <main
         id="main-content"
-        className="pb-16 max-w-2xl mx-auto relative z-10"
-        style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top, 0px))' }}
+        className="flex-1 overflow-y-auto relative z-10 max-w-2xl w-full mx-auto"
+        style={{
+          paddingTop: 'calc(3rem + env(safe-area-inset-top, 0px))',
+          paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
+          // Prevent iOS rubber-band from making nav bars jump
+          WebkitOverflowScrolling: 'touch',
+        }}
       >
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
@@ -105,6 +124,8 @@ function AppLayoutInner() {
           </AnimatePresence>
         )}
       </main>
+
+      {/* Fixed bottom nav */}
       <BottomNav />
     </div>
   );

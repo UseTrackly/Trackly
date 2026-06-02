@@ -1,14 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import MessageInbox from '@/components/community/MessageInbox';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 
 const CHILD_ROUTES = ['/terms', '/privacy'];
-const ROOT_TABS = ['/', '/calculator', '/inventory', '/history', '/community', '/profile'];
 
 export default function MobileHeader() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [inboxOpen, setInboxOpen] = useState(false);
+
+  const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
+
+  const { data: messagesRaw = [] } = useQuery({
+    queryKey: ['myMessages'],
+    queryFn: () => base44.entities.Message.list('-created_date', 200),
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
+
+  const unreadMsgCount = messagesRaw.filter(m => !m.is_read && m.recipient_email === user?.email).length;
 
   if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories') return null;
 
@@ -20,34 +35,53 @@ export default function MobileHeader() {
   };
 
   return (
-    <div
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border"
-      style={{ paddingTop: 'calc(0.625rem + env(safe-area-inset-top, 0px))', paddingBottom: '0.625rem' }}
-    >
-      {isChildPage ? (
-        <>
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px]"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <span className="text-sm font-semibold absolute left-1/2 -translate-x-1/2">
-            {PAGE_TITLES[location.pathname] || ''}
-          </span>
-          <div className="w-12" />
-        </>
-      ) : (
-        <>
-          <img
-            src="https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/c29d404d0_logo_no_bg_final.png"
-            alt="Trackly"
-            className="h-8"
-          />
-          <NotificationBell />
-        </>
-      )}
-    </div>
+    <>
+      <div
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border"
+        style={{ paddingTop: 'calc(0.625rem + env(safe-area-inset-top, 0px))', paddingBottom: '0.625rem' }}
+      >
+        {isChildPage ? (
+          <>
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px]"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+            <span className="text-sm font-semibold absolute left-1/2 -translate-x-1/2">
+              {PAGE_TITLES[location.pathname] || ''}
+            </span>
+            <div className="w-12" />
+          </>
+        ) : (
+          <>
+            <img
+              src="https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/c29d404d0_logo_no_bg_final.png"
+              alt="Trackly"
+              className="h-8"
+            />
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={() => setInboxOpen(true)}
+              >
+                <MessageCircle className="w-5 h-5" />
+                {unreadMsgCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
+                  </span>
+                )}
+              </Button>
+              <NotificationBell />
+            </div>
+          </>
+        )}
+      </div>
+
+      <MessageInbox open={inboxOpen} onClose={() => setInboxOpen(false)} />
+    </>
   );
 }

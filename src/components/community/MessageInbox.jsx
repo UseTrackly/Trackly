@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Send, MessageCircle, Image, Loader2, Ban } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -25,7 +25,7 @@ function ThreadItem({ thread, onClick }) {
       </div>
       <p className="text-xs text-muted-foreground truncate">{latest?.content || (latest?.image_url ? '📷 Image' : '')}</p>
       <p className="text-[10px] text-muted-foreground mt-0.5">
-        Re: {thread.flipName} · {latest ? format(new Date(latest.created_date), 'MMM d') : ''}
+        Re: {thread.flipName} · {latest ? format(parseISO(latest.created_date.endsWith('Z') ? latest.created_date : latest.created_date + 'Z'), 'MMM d') : ''}
       </p>
     </button>
   );
@@ -150,7 +150,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
                   ) : (
                     <p className="text-sm">{msg.content}</p>
                   )}
-                  <p className="text-xs opacity-70 mt-0.5">{format(new Date(msg.created_date), 'h:mm a')}</p>
+                  <p className="text-xs opacity-70 mt-0.5">{format(parseISO(msg.created_date.endsWith('Z') ? msg.created_date : msg.created_date + 'Z'), 'h:mm a')}</p>
                 </div>
               </div>
             );
@@ -246,7 +246,19 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
     }
   };
 
-  // Build threads grouped by (flip_id, other_user)
+  // Fetch all user profiles to resolve display names
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ['allProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
+    enabled: !!user && open,
+  });
+
+  const getDisplayName = (email, fallbackName) => {
+    const profile = allProfiles.find(p => p.user_email === email);
+    return profile?.display_name || profile?.username || fallbackName || email;
+  };
+
+  // Build threads grouped by other_user only (one tab per person)
   const threads = useMemo(() => {
     if (!user) return [];
     const myMessages = messagesRaw.filter(m =>
@@ -255,8 +267,8 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
     const threadMap = {};
     myMessages.forEach(m => {
       const otherEmail = m.sender_email === user.email ? m.recipient_email : m.sender_email;
-      const otherName = m.sender_email === user.email ? m.recipient_email : m.sender_name;
-      const key = `${m.community_flip_id}__${otherEmail}`;
+      const fallbackName = m.sender_email === user.email ? m.recipient_email : m.sender_name;
+      const key = otherEmail; // one thread per person
       if (!threadMap[key]) {
         const flip = flipsRaw.find(f => f.id === m.community_flip_id);
         threadMap[key] = {
@@ -264,7 +276,7 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
           flipId: m.community_flip_id,
           flipName: flip?.item_name || 'Flip',
           otherEmail,
-          otherName,
+          otherName: getDisplayName(otherEmail, fallbackName),
           currentUserEmail: user.email,
           messages: [],
         };
@@ -274,7 +286,7 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
     return Object.values(threadMap).sort((a, b) =>
       new Date(b.messages[0]?.created_date) - new Date(a.messages[0]?.created_date)
     );
-  }, [messagesRaw, flipsRaw, user]);
+  }, [messagesRaw, flipsRaw, user, allProfiles]);
 
   // Auto-open thread when initialFlipId + optional senderEmail provided
   useEffect(() => {
@@ -301,7 +313,7 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-4 gap-0">
+      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-4 gap-0 pt-[env(safe-area-inset-top,16px)]" style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}>
         <SheetHeader className="pb-3 shrink-0">
           <SheetTitle className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5 text-primary" />

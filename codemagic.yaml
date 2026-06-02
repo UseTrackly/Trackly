@@ -78,10 +78,10 @@ workflows:
           /usr/libexec/PlistBuddy -c "Print :NSCameraUsageDescription" "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :NSPhotoLibraryUsageDescription" "$PLIST"
 
-      # ── CRITICAL: strip all SPM references from the Xcode project before
-      # cap sync so that CocoaPods becomes the sole native integrator for
-      # Capacitor plugins (including RevenueCat).  If SPM refs remain,
-      # Capacitor.framework and Cordova.framework get linked twice → archive fails.
+          # ── CRITICAL: strip all SPM references from the Xcode project before
+          # cap sync so that CocoaPods becomes the sole native integrator for
+          # Capacitor plugins (including RevenueCat).  If SPM refs remain,
+          # Capacitor.framework and Cordova.framework get linked twice → archive fails.
       - name: Remove SPM from Xcode project (CocoaPods will be sole integrator)
         script: |
           PBXPROJ="ios/App/App.xcodeproj/project.pbxproj"
@@ -169,6 +169,7 @@ workflows:
           target 'App' do
           pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
           pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+          pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
           pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
           end
 

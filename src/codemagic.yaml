@@ -169,6 +169,7 @@ use_frameworks!
 target 'App' do
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
   pod 'RevenuecatPurchasesCapacitor', :path => '../../node_modules/@revenuecat/purchases-capacitor'
 end
 

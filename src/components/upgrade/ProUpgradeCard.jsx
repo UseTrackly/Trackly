@@ -6,8 +6,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import { isIOSApp } from '@/lib/platformDetect';
-import { purchasePlan, restorePurchases, getAppUserID } from '@/lib/iap';
+import { purchasePlan, restorePurchases, getAppUserID, loadProducts } from '@/lib/iap';
 import { toast } from 'sonner';
+
+const RC_API_KEY = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
 
 const PRO_FEATURES = [
   'Unlimited flips tracking',
@@ -25,23 +27,60 @@ export default function ProUpgradeCard({ compact = false }) {
     queryFn: () => base44.auth.me(),
   });
   const queryClient = useQueryClient();
-  const [purchasing, setPurchasing] = useState(null); // plan name being purchased
+  const [purchasing, setPurchasing] = useState(null);
   const [restoring, setRestoring] = useState(false);
-
-  if (user?.is_pro) return null;
+  const [rcDebug, setRcDebug] = useState([]);
 
   const onIOS = isIOSApp();
 
+  // On iOS, probe RevenueCat offerings on mount and log everything
+  useEffect(() => {
+    if (!onIOS) return;
+    const lines = [];
+    const log = (msg) => {
+      console.log('[RC-DEBUG]', msg);
+      lines.push(msg);
+    };
+
+    (async () => {
+      log(`Platform: ${window?.Capacitor?.getPlatform?.() ?? 'unknown'}`);
+      log(`RC plugin present: ${!!(window?.Capacitor?.Plugins?.Purchases)}`);
+      log(`RC API key: ${RC_API_KEY.substring(0, 20)}...`);
+
+      try {
+        const packages = await loadProducts();
+        log(`Packages count: ${packages.length}`);
+        if (packages.length === 0) {
+          log('⚠️ No packages returned — check RC dashboard offerings');
+        } else {
+          packages.forEach((pkg, i) => {
+            log(`[${i}] type=${pkg.packageType} id=${pkg.identifier} productId=${pkg.product?.productIdentifier} price=${pkg.product?.priceString}`);
+          });
+        }
+      } catch (err) {
+        log(`❌ loadProducts error: ${err?.message} (code: ${err?.code ?? 'n/a'})`);
+      }
+
+      setRcDebug([...lines]);
+    })();
+  }, [onIOS]);
+
+  if (user?.is_pro) return null;
+
   const handleIOSPurchase = async (plan) => {
+    console.log(`[RC-DEBUG] Tapped plan: ${plan}`);
+    console.log(`[RC-DEBUG] RC plugin present: ${!!(window?.Capacitor?.Plugins?.Purchases)}`);
     setPurchasing(plan);
     try {
       const appUserID = await purchasePlan(plan);
+      console.log(`[RC-DEBUG] Purchase success, appUserID: ${appUserID}`);
       const res = await base44.functions.invoke('verifyAppleIAP', { appUserID, plan });
       if (res.data?.error) throw new Error(res.data.error);
       queryClient.invalidateQueries({ queryKey: ['me'] });
       toast.success('Welcome to Pro! 🎉');
     } catch (err) {
       const msg = err.message || '';
+      console.log(`[RC-DEBUG] Purchase error: ${msg} | code: ${err?.code ?? 'n/a'}`);
       if (msg.toLowerCase().includes('cancel') || msg.includes('1')) return;
       toast.error(msg || 'Purchase failed. Please try again.');
     } finally {
@@ -203,6 +242,16 @@ export default function ProUpgradeCard({ compact = false }) {
             <RotateCcw className="w-3 h-3" />
             {restoring ? 'Restoring...' : 'Restore Purchases'}
           </button>
+        )}
+
+        {/* RevenueCat debug panel — visible in TestFlight builds */}
+        {onIOS && rcDebug.length > 0 && (
+          <div className="mt-4 p-3 rounded-lg bg-black/60 border border-yellow-500/40">
+            <p className="text-[10px] font-bold text-yellow-400 mb-1">RC DEBUG</p>
+            {rcDebug.map((line, i) => (
+              <p key={i} className="text-[9px] text-yellow-200 font-mono leading-4 break-all">{line}</p>
+            ))}
+          </div>
         )}
     </motion.div>
   );

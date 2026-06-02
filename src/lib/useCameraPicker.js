@@ -17,20 +17,23 @@ export function useCameraPicker({ onImageSelected }) {
       return;
     }
 
-    // iOS native - use Capacitor Camera with Prompt source
-    // This lets iOS show its native "Camera / Photo Library" action sheet
-    // and triggers the correct permission requests for both.
+    // iOS native - use Capacitor Camera
     setIsUploading(true);
     try {
       const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
 
-      // First explicitly request permissions so iOS registers them
-      await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
+      // Request both permissions upfront — iOS needs NSCameraUsageDescription in
+      // Info.plist for this to work. Ignore the result; getPhoto will handle denial.
+      try {
+        await Camera.requestPermissions({ permissions: ['camera', 'photos'] });
+      } catch (_) {
+        // Permission request itself may fail if key missing; proceed anyway
+      }
 
       const photo = await Camera.getPhoto({
-        resultType: CameraResultType.Uri,
-        source: CameraSource.Prompt,   // native iOS picker: Camera OR Photos
-        quality: 85,
+        resultType: CameraResultType.DataUrl, // DataUrl is more reliable than Uri on iOS
+        source: CameraSource.Prompt,
+        quality: 80,
         allowEditing: false,
         promptLabelHeader: 'Select Photo',
         promptLabelPhoto: 'Choose from Library',
@@ -38,10 +41,11 @@ export function useCameraPicker({ onImageSelected }) {
         promptLabelCancel: 'Cancel',
       });
 
-      if (photo?.webPath) {
-        const response = await fetch(photo.webPath);
-        const blob = await response.blob();
-        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+      if (photo?.dataUrl) {
+        // Convert base64 dataUrl → File
+        const res = await fetch(photo.dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' });
         await onImageSelected?.(file);
       }
     } catch (err) {
@@ -51,12 +55,13 @@ export function useCameraPicker({ onImageSelected }) {
         msg.includes('cancel') ||
         msg.includes('user denied') ||
         msg.includes('no image picked') ||
+        msg.includes('dismissed') ||
         err?.code === 1
       ) {
         return;
       }
-      console.error('[CameraPicker] Error:', err);
-      toast.error('Could not open camera. Please check permissions in Settings → Trackly.');
+      console.error('[CameraPicker] Error:', err?.message, err);
+      toast.error('Could not open photo picker. Please allow camera/photo access in Settings → Trackly.');
     } finally {
       setIsUploading(false);
     }

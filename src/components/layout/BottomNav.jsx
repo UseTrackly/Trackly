@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTabReset } from '@/lib/TabResetContext';
-import { Home, Calculator, Users, User, Package } from 'lucide-react';
+import { Home, Calculator, Users, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const tabs = [
@@ -9,7 +9,6 @@ const tabs = [
   { path: '/calculator', icon: Calculator, label: 'Calculator' },
   { path: '/inventory', icon: Package, label: 'Inventory' },
   { path: '/community', icon: Users, label: 'Community' },
-  { path: '/profile', icon: User, label: 'Profile' },
 ];
 
 export default function BottomNav() {

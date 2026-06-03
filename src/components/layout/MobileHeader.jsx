@@ -58,19 +58,24 @@ export default function MobileHeader() {
           </>
         ) : (
           <>
-            {/* Left: profile avatar */}
+            {/* Left: profile avatar + label */}
             <button
               onClick={() => navigate('/profile')}
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary border border-border overflow-hidden shrink-0"
+              className="flex items-center gap-2 rounded-full bg-secondary border border-border overflow-hidden shrink-0 pr-2.5"
               aria-label="Profile"
             >
-              {user?.profile_picture ? (
-                <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xs font-semibold text-muted-foreground">
-                  {user?.full_name?.[0]?.toUpperCase() || '?'}
-                </span>
-              )}
+              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                {user?.profile_picture ? (
+                  <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {user?.full_name?.[0]?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <span className="text-xs font-semibold text-foreground">Profile</span>
             </button>
 
             {/* Right: messages, notifications, history */}

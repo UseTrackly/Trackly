@@ -38,15 +38,15 @@
     "user_email"
   ],
   "rls": {
-    "create": {},
+    "create": false,
     "read": {
-      "created_by": "{{user.email}}"
+      "user_email": "{{user.email}}"
     },
     "update": {
-      "created_by": "{{user.email}}"
+      "user_email": "{{user.email}}"
     },
     "delete": {
-      "created_by": "{{user.email}}"
+      "user_email": "{{user.email}}"
     }
   }
 }

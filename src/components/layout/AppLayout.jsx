@@ -23,6 +23,7 @@ const TAB_ROUTES = [
 ];
 
 const TAB_PATHS = TAB_ROUTES.map(r => r.path);
+const FULLSCREEN_PATHS = ['/upgrade'];
 
 const TabSpinner = () => (
   <div className="flex items-center justify-center min-h-[40vh]">
@@ -34,6 +35,7 @@ function AppLayoutInner() {
   const location = useLocation();
   const { tabKeys } = useTabReset();
   const isChildPage = !TAB_PATHS.includes(location.pathname);
+  const isFullscreen = FULLSCREEN_PATHS.includes(location.pathname);
 
   // Track which tabs have been visited so we only mount them once they're first accessed
   const [mountedTabs, setMountedTabs] = useState(() => new Set([location.pathname]));
@@ -91,8 +93,8 @@ function AppLayoutInner() {
         id="main-content"
         className="flex-1 overflow-y-auto relative z-10 max-w-2xl w-full mx-auto"
         style={{
-          paddingTop: 'calc(3.5rem + max(env(safe-area-inset-top, 0px), 10px))',
-          paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
+          paddingTop: isFullscreen ? '0px' : 'calc(3.5rem + max(env(safe-area-inset-top, 0px), 10px))',
+          paddingBottom: isFullscreen ? '0px' : 'calc(4rem + env(safe-area-inset-bottom, 0px))',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'none',
           touchAction: 'pan-y',

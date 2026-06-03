@@ -15,7 +15,7 @@ export default function BottomNav() {
   const navigate = useNavigate();
   const { resetTab } = useTabReset();
 
-  if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories') return null;
+  if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories' || location.pathname === '/upgrade') return null;
 
   return (
     <nav

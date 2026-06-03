@@ -37,7 +37,7 @@ export default function MobileHeader() {
 
   const unreadMsgCount = messagesRaw.filter(m => !m.is_read && m.recipient_email === user?.email).length;
 
-  if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories') return null;
+  if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories' || location.pathname === '/upgrade') return null;
 
   const isChildPage = CHILD_ROUTES.includes(location.pathname);
 

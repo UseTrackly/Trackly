@@ -4,7 +4,7 @@ import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
-import { base44 } from '@/api/base44Client';
+import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 const CHILD_ROUTES = ['/terms', '/privacy'];
 
@@ -13,6 +13,20 @@ export default function MobileHeader() {
   const location = useLocation();
   const [inboxOpen, setInboxOpen] = useState(false);
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
+
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile', user?.email],
+    queryFn: async () => {
+      await ensureTokenSynced();
+      const token = await nativeStorage.get();
+      const res = await base44.functions.invoke('profileManager', { action: 'get', token });
+      return res.data?.profile ?? null;
+    },
+    enabled: !!user?.email,
+    staleTime: 0,
+  });
+
+  const avatarUrl = profile?.avatar_url || user?.profile_picture;
 
   const { data: messagesRaw = [] } = useQuery({
     queryKey: ['myMessages'],
@@ -64,8 +78,8 @@ export default function MobileHeader() {
               aria-label="Profile"
             >
               <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
-                {user?.profile_picture ? (
-                  <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-xs font-semibold text-muted-foreground">

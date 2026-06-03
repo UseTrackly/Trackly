@@ -127,7 +127,10 @@ export default function ProfilePage() {
       return res.data?.profile;
     },
     onSuccess: async () => {
-      await refetchProfile();
+      await Promise.all([
+        refetchProfile(),
+        queryClient.invalidateQueries({ queryKey: ['me'] }),
+      ]);
       setShowEditProfile(false);
       toast.success('Profile updated');
     },

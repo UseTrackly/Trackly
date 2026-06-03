@@ -202,7 +202,7 @@ export default function ProfilePage() {
       if (res.data?.error) throw new Error(res.data.error);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['me'] }),
-        refetchProfile(),
+        queryClient.invalidateQueries({ queryKey: ['userProfile'] }),
       ]);
       toast.success('Profile picture updated');
     } catch (error) {

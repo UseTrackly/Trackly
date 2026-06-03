@@ -36,7 +36,10 @@ export default function MobileHeader() {
     <>
       <div
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border"
-        style={{ paddingTop: 'calc(0.625rem + env(safe-area-inset-top, 0px))', paddingBottom: '0.625rem' }}
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 10px)',
+          paddingBottom: '0.625rem',
+        }}
       >
         {isChildPage ? (
           <>

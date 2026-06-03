@@ -91,7 +91,7 @@ function AppLayoutInner() {
         id="main-content"
         className="flex-1 overflow-y-auto relative z-10 max-w-2xl w-full mx-auto"
         style={{
-          paddingTop: 'calc(3rem + env(safe-area-inset-top, 0px))',
+          paddingTop: 'calc(3.5rem + max(env(safe-area-inset-top, 0px), 10px))',
           paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'none',

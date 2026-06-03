@@ -126,11 +126,12 @@ export default function ProfilePage() {
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;
     },
-    onSuccess: async () => {
-      await Promise.all([
-        refetchProfile(),
-        queryClient.invalidateQueries({ queryKey: ['me'] }),
-      ]);
+    onSuccess: (savedProfile) => {
+      // Use the returned profile directly — avoids re-fetch race condition
+      if (savedProfile) {
+        queryClient.setQueryData(['userProfile', user?.email], savedProfile);
+      }
+      queryClient.invalidateQueries({ queryKey: ['me'] });
       setShowEditProfile(false);
       toast.success('Profile updated');
     },

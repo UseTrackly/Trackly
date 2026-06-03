@@ -84,9 +84,7 @@ Deno.serve(async (req) => {
       // privileged User fields like is_pro, role, stripe_customer_id, etc.
       const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users'];
       const cleanData = Object.fromEntries(
-        Object.entries(data).filter(([k, v]) =>
-          ALLOWED_PROFILE_FIELDS.includes(k) && v !== null && v !== undefined && v !== ''
-        )
+        Object.entries(data).filter(([k]) => ALLOWED_PROFILE_FIELDS.includes(k))
       );
 
       const records = await svc.entities.UserProfile.filter({ user_email: user.email });

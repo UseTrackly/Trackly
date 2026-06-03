@@ -48,8 +48,8 @@ export default function BottomNav() {
               {isActive && (
                 <motion.div
                   layoutId="navDot"
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-primary"
-                  style={{ boxShadow: '0 0 8px 2px hsl(var(--primary) / 0.6)' }}
+                  className="absolute top-0 w-8 h-[2px] rounded-full bg-primary"
+                  style={{ left: '50%', transform: 'translateX(-50%)', boxShadow: '0 0 8px 2px hsl(var(--primary) / 0.6)' }}
                   transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                 />
               )}

@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, MessageCircle, Image, Loader2, Ban } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Image, Loader2, Ban, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -313,17 +313,27 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-4 gap-0 pt-[env(safe-area-inset-top,16px)]" style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)' }}>
+      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-4 gap-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 16px, 52px)' }}>
         <SheetHeader className="pb-3 shrink-0">
-          <SheetTitle className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-primary" />
-            Messages
-            {unreadCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
-                {unreadCount}
-              </span>
-            )}
-          </SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-primary" />
+              Messages
+              {unreadCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                  {unreadCount}
+                </span>
+              )}
+            </SheetTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-10 w-10 rounded-full shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
         </SheetHeader>
 
         <div className="flex-1 overflow-hidden">

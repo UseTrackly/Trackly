@@ -60,7 +60,6 @@ function AppLayoutInner() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        touchAction: 'none',
       }}
     >
       {/* Skip to content */}

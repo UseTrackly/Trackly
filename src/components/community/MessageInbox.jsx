@@ -160,20 +160,34 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
       </ScrollArea>
 
       {!isBlocked && (
-        <div className="flex gap-2 shrink-0">
-          <label className="cursor-pointer">
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            <div className="h-9 w-9 rounded-md border border-input flex items-center justify-center hover:bg-secondary transition-colors">
-              {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4 text-muted-foreground" />}
-            </div>
-          </label>
-          <Input
-            value={text}
-            onChange={e => setText(e.target.value)}
-            onKeyPress={e => e.key === 'Enter' && text.trim() && handleSendText()}
-            placeholder="Type a message..."
-            className="bg-background flex-1"
-          />
+      <div className="flex gap-2 shrink-0">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          disabled={uploadingImg}
+          onClick={() => document.getElementById('msg-img-upload').click()}
+        >
+          {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4 text-muted-foreground" />}
+        </Button>
+        <input
+          id="msg-img-upload"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
+        <Input
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => {
+            e.stopPropagation();
+            if (e.key === 'Enter' && text.trim()) handleSendText();
+          }}
+          placeholder="Type a message..."
+          className="bg-background flex-1"
+        />
           <Button
             onClick={handleSendText}
             disabled={!text.trim() || sendMutation.isPending}
@@ -313,7 +327,12 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-4 gap-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 16px, 52px)' }}>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md flex flex-col p-4 gap-0"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 16px, 52px)' }}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <SheetHeader className="pb-3 shrink-0">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">

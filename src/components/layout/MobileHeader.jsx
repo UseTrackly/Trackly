@@ -18,13 +18,6 @@ export default function MobileHeader() {
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
 
-  const { data: myProfile } = useQuery({
-    queryKey: ['myProfileHeader'],
-    queryFn: () => base44.entities.UserProfile.filter({ user_email: user.email }, '-created_date', 1),
-    enabled: !!user,
-    select: (data) => Array.isArray(data) ? data[0] : null,
-  });
-
   const { data: messagesRaw = [] } = useQuery({
     queryKey: ['myMessages'],
     queryFn: () => base44.entities.Message.list('-created_date', 200),
@@ -71,8 +64,8 @@ export default function MobileHeader() {
               className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary border border-border overflow-hidden shrink-0"
               aria-label="Profile"
             >
-              {myProfile?.avatar_url ? (
-                <img src={myProfile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              {user?.profile_picture ? (
+                <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-xs font-semibold text-muted-foreground">
                   {user?.full_name?.[0]?.toUpperCase() || '?'}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Sparkles, Check, Crown, RotateCcw, TrendingUp, BarChart3,
-  Package, Bot, Palette, Download, Zap, Shield, ArrowLeft, Star
+  Package, Palette, Download, Shield, ArrowLeft, Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -16,42 +16,32 @@ const FEATURES = [
   {
     icon: TrendingUp,
     title: 'Unlimited Flip Tracking',
-    description: 'Track every deal with no limits — flips, sessions, bets, all of it.',
+    description: 'Remove the 3-flip/day limit — track every deal with no restrictions.',
   },
   {
     icon: BarChart3,
     title: 'Advanced Analytics & Reports',
-    description: 'Profit charts, ROI breakdowns, win rates, and weekly trend reports.',
-  },
-  {
-    icon: Bot,
-    title: 'Priority AI Assistant',
-    description: 'Get instant flip analysis, market insights, and deal scoring powered by AI.',
+    description: 'Unlock win rates, ROI distribution, weekly trend reports, and category breakdowns — beyond the basic charts.',
   },
   {
     icon: Package,
-    title: 'Full Inventory Management',
-    description: 'Track your entire inventory with cost basis, grading details, and target prices.',
+    title: 'Unlimited Inventory',
+    description: 'Free users are capped at 10 items. Go unlimited with Pro — cost basis, grading details, target prices, and more.',
   },
   {
     icon: Download,
     title: 'Export to CSV / PDF',
-    description: 'Download your data anytime for taxes, accounting, or your own records.',
+    description: 'Download your flip data anytime for taxes, accounting, or your own records.',
   },
   {
     icon: Palette,
-    title: 'Custom Backgrounds',
-    description: 'Personalize the app with premium animated backgrounds and themes.',
-  },
-  {
-    icon: Zap,
-    title: 'Market Price Alerts',
-    description: 'Set target prices and get notified when the market hits your number.',
+    title: 'Custom Themes & Backgrounds',
+    description: 'Personalize the app with premium color themes and animated backgrounds.',
   },
   {
     icon: Shield,
-    title: 'Ad-Free Experience',
-    description: 'No ads, no distractions — just a clean, fast app built for resellers.',
+    title: 'Support Indie Development',
+    description: 'Trackly is built by a small team. Pro keeps the app growing, fast, and ad-free forever.',
   },
 ];
 

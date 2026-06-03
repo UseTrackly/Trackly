@@ -21,9 +21,88 @@ export default function BottomNav() {
     <nav
       role="navigation"
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-t border-white/[0.06]"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.06]"
+      style={{ overflow: 'hidden' }}
     >
-      <div className="flex items-center justify-around" style={{ paddingTop: '8px', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}>
+      {/* Animated gradient background */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          background: 'hsl(var(--background) / 0.55)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Orb 1 */}
+        <div style={{
+          position: 'absolute',
+          width: 180,
+          height: 80,
+          borderRadius: '50%',
+          background: 'hsl(var(--primary) / 0.18)',
+          filter: 'blur(32px)',
+          top: '-20px',
+          left: '-10%',
+          animation: 'bnav-drift1 8s ease-in-out infinite',
+          willChange: 'transform',
+        }} />
+        {/* Orb 2 */}
+        <div style={{
+          position: 'absolute',
+          width: 140,
+          height: 70,
+          borderRadius: '50%',
+          background: 'hsl(var(--primary) / 0.12)',
+          filter: 'blur(28px)',
+          top: '-10px',
+          right: '5%',
+          animation: 'bnav-drift2 10s ease-in-out infinite',
+          willChange: 'transform',
+        }} />
+        {/* Subtle shimmer line */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent)',
+          animation: 'bnav-shimmer 4s ease-in-out infinite',
+        }} />
+      </div>
+
+      <style>{`
+        @keyframes bnav-drift1 {
+          0%, 100% { transform: translateX(0px) scale(1); }
+          50% { transform: translateX(60px) scale(1.1); }
+        }
+        @keyframes bnav-drift2 {
+          0%, 100% { transform: translateX(0px) scale(1); }
+          50% { transform: translateX(-50px) scale(0.95); }
+        }
+        @keyframes bnav-shimmer {
+          0%, 100% { opacity: 0.3; transform: scaleX(0.6); }
+          50% { opacity: 1; transform: scaleX(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .bnav-drift1, .bnav-drift2, .bnav-shimmer { animation: none !important; }
+        }
+      `}</style>
+
+      <div className="relative flex items-center justify-around" style={{ zIndex: 2, paddingTop: '8px', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;

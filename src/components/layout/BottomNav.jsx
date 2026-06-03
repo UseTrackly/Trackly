@@ -1,14 +1,13 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTabReset } from '@/lib/TabResetContext';
-import { Home, Calculator, History, Users, User, Package } from 'lucide-react';
+import { Home, Calculator, Users, User, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
   { path: '/calculator', icon: Calculator, label: 'Calculator' },
   { path: '/inventory', icon: Package, label: 'Inventory' },
-  { path: '/history', icon: History, label: 'History' },
   { path: '/community', icon: Users, label: 'Community' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];

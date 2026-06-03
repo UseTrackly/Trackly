@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MessageCircle, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { useTabReset } from '@/lib/TabResetContext';
 
 const CHILD_ROUTES = ['/terms', '/privacy'];
 
@@ -13,6 +14,7 @@ export default function MobileHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const [inboxOpen, setInboxOpen] = useState(false);
+  const { resetTab } = useTabReset();
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
 
@@ -56,11 +58,22 @@ export default function MobileHeader() {
           </>
         ) : (
           <>
-            <img
-              src="https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/c29d404d0_logo_no_bg_final.png"
-              alt="Trackly"
-              className="h-8"
-            />
+            {/* Left: profile avatar */}
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary border border-border overflow-hidden shrink-0"
+              aria-label="Profile"
+            >
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {user?.full_name?.[0]?.toUpperCase() || '?'}
+                </span>
+              )}
+            </button>
+
+            {/* Right: messages, notifications, history */}
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -76,6 +89,18 @@ export default function MobileHeader() {
                 )}
               </Button>
               <NotificationBell />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (location.pathname === '/history') resetTab('/history');
+                  else navigate('/history');
+                }}
+                aria-label="History"
+                className={location.pathname === '/history' ? 'text-primary' : ''}
+              >
+                <History className="w-5 h-5" />
+              </Button>
             </div>
           </>
         )}

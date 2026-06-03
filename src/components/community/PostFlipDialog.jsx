@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Loader2, Crown } from 'lucide-react';
+import { Upload, Loader2, Crown, Sparkles } from 'lucide-react';
 import AIImageSearch from '@/components/community/AIImageSearch';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
@@ -32,6 +32,7 @@ const CATEGORIES = [
 export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('other');
+  const [aiCategory, setAiCategory] = useState(null);
 
   useEffect(() => {
     if (open && prefillData) {
@@ -67,7 +68,8 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const postAllowed = canPostCommunity(user, myPosts);
 
   const postMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async (initialData) => {
+      let data = { ...initialData };
       let imageUrl = null;
 
       // Moderate item name and description
@@ -78,7 +80,17 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       if (textModResult.toLowerCase().includes('rejected')) {
         throw new Error('Your post contains inappropriate content. Please revise and try again.');
       }
-      
+
+      // AI auto-classify category
+      const VALID_CATS = ['cards','sneakers','clothing','electronics','collectibles','games','technology','vintage','other'];
+      const catResult = await base44.integrations.Core.InvokeLLM({
+        prompt: `Classify this resale item into exactly one of these categories: cards, sneakers, clothing, electronics, collectibles, games, technology, vintage, other.\nItem: "${data.item_name}"\nDescription: "${data.description || ''}"\nRespond with only the single category word, lowercase.`
+      });
+      const detectedCat = catResult.trim().toLowerCase().split(/\s/)[0];
+      const resolvedCategory = VALID_CATS.includes(detectedCat) ? detectedCat : 'other';
+      data = { ...data, category: resolvedCategory };
+      setAiCategory(resolvedCategory);
+
       if (aiImageUrl && !imageFile) {
         imageUrl = aiImageUrl;
       } else if (certImageUrl && !imageFile) {
@@ -158,6 +170,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     setCertNumber('');
     setCertImageUrl(null);
     setAiImageUrl(null);
+    setAiCategory(null);
     onClose();
   };
 
@@ -192,18 +205,12 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Category *
+                Category
               </label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(c => (
-                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1.5 h-9 px-3 rounded-md border border-border bg-background text-sm text-muted-foreground">
+                <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="capitalize">{aiCategory || 'AI will detect'}</span>
+              </div>
             </div>
 
             <div className="space-y-2">

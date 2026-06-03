@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -55,8 +55,15 @@ export default function InventoryPage() {
   const [histTab, setHistTab] = useState('history');
   const [range, setRange] = useState(3);
   const queryClient = useQueryClient();
+  const scrollContainerRef = useRef(null);
   const handleRefresh = useCallback(() => queryClient.invalidateQueries(), [queryClient]);
-  const { pullDistance, isRefreshing, onTouchStart, onTouchMove, onTouchEnd } = usePullToRefresh(handleRefresh);
+
+  // Point pull-to-refresh at the actual scrollable <main> container
+  React.useEffect(() => {
+    scrollContainerRef.current = document.getElementById('main-content');
+  }, []);
+
+  const { pullDistance, isRefreshing, onTouchStart, onTouchMove, onTouchEnd } = usePullToRefresh(handleRefresh, scrollContainerRef);
 
   const { data: user } = useQuery({
     queryKey: ['me'],

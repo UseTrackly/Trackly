@@ -3,7 +3,16 @@ import { base44 } from '@/api/base44Client';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Package, Search, SlidersHorizontal, ArrowUpDown, MessageSquare, Receipt } from 'lucide-react';
+import { Plus, Package, Search, SlidersHorizontal, ArrowUpDown, MessageSquare, Receipt, History, TrendingUp, TrendingDown, Download, Lock, Crown } from 'lucide-react';
+import FlipCard from '@/components/history/FlipCard';
+import EditFlipDialog from '@/components/history/EditFlipDialog';
+import StatCard from '@/components/shared/StatCard';
+import ProfitChart from '@/components/dashboard/ProfitChart';
+import PlatformChart from '@/components/dashboard/PlatformChart';
+import ProAnalytics from '@/components/reports/ProAnalytics';
+import { PLATFORMS } from '@/lib/platformFees';
+import { format, subDays, isAfter } from 'date-fns';
+import { canExport } from '@/lib/proGate';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +46,14 @@ export default function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('cost-desc');
   const [showFilters, setShowFilters] = useState(false);
+  // History tab state
+  const [editingFlip, setEditingFlip] = useState(null);
+  const [histSearch, setHistSearch] = useState('');
+  const [platformFilter, setPlatformFilter] = useState('all');
+  const [histSortBy, setHistSortBy] = useState('date-desc');
+  const [showHistFilters, setShowHistFilters] = useState(false);
+  const [histTab, setHistTab] = useState('history');
+  const [range, setRange] = useState(3);
   const queryClient = useQueryClient();
   const handleRefresh = useCallback(() => queryClient.invalidateQueries(), [queryClient]);
   const { pullDistance, isRefreshing, onTouchStart, onTouchMove, onTouchEnd } = usePullToRefresh(handleRefresh);
@@ -52,6 +69,44 @@ export default function InventoryPage() {
     initialData: [],
   });
   const items = Array.isArray(itemsRaw) ? itemsRaw : [];
+
+  const { data: flipsRaw } = useQuery({
+    queryKey: ['flips'],
+    queryFn: () => base44.entities.Flip.list('-created_date', 500),
+    initialData: [],
+  });
+  const flips = Array.isArray(flipsRaw) ? flipsRaw : [];
+
+  const deleteFlipMutation = useMutation({
+    mutationFn: (id) => base44.entities.Flip.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['flips'] });
+      toast.success('Flip deleted');
+    },
+  });
+
+  const editFlipMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Flip.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['flips'] });
+      toast.success('Flip updated');
+    },
+  });
+
+  const DATE_RANGES = [
+    { label: '7D', days: 7 },
+    { label: '30D', days: 30 },
+    { label: '90D', days: 90 },
+    { label: 'All', days: null },
+  ];
+
+  const HIST_SORT_OPTIONS = [
+    { value: 'date-desc', label: 'Newest First' },
+    { value: 'date-asc', label: 'Oldest First' },
+    { value: 'profit-desc', label: 'Highest Profit' },
+    { value: 'profit-asc', label: 'Lowest Profit' },
+    { value: 'roi-desc', label: 'Highest ROI' },
+  ];
 
   const { data: expensesRaw } = useQuery({
     queryKey: ['expenses'],
@@ -141,6 +196,59 @@ export default function InventoryPage() {
     setEditingExpense(null);
   };
 
+  const filteredFlips = useMemo(() => {
+    let result = [...flips];
+    if (histSearch) {
+      const q = histSearch.toLowerCase();
+      result = result.filter(f => f.item_name?.toLowerCase().includes(q));
+    }
+    if (platformFilter !== 'all') result = result.filter(f => f.platform === platformFilter);
+    const [field, direction] = histSortBy.split('-');
+    result.sort((a, b) => {
+      let aVal, bVal;
+      if (field === 'date') { aVal = new Date(a.date_sold || a.created_date); bVal = new Date(b.date_sold || b.created_date); }
+      else if (field === 'profit') { aVal = a.net_profit || 0; bVal = b.net_profit || 0; }
+      else if (field === 'roi') { aVal = a.roi || 0; bVal = b.roi || 0; }
+      return direction === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+    return result;
+  }, [flips, histSearch, platformFilter, histSortBy]);
+
+  const rangeFlips = useMemo(() => {
+    const days = DATE_RANGES[range].days;
+    if (!days) return flips;
+    const cutoff = subDays(new Date(), days);
+    return flips.filter(f => {
+      const date = f.date_sold || f.created_date;
+      return date && isAfter(new Date(date), cutoff);
+    });
+  }, [flips, range]);
+
+  const histStats = useMemo(() => {
+    if (rangeFlips.length === 0) return null;
+    const totalRevenue = rangeFlips.reduce((s, f) => s + (f.sale_price || 0), 0);
+    const totalCost = rangeFlips.reduce((s, f) => s + (f.buy_price || 0), 0);
+    const totalProfit = rangeFlips.reduce((s, f) => s + (f.net_profit || 0), 0);
+    const avgRoi = rangeFlips.reduce((s, f) => s + (f.roi || 0), 0) / rangeFlips.length;
+    const sorted = [...rangeFlips].sort((a, b) => (b.net_profit || 0) - (a.net_profit || 0));
+    return { totalRevenue, totalCost, totalProfit, avgRoi, best: sorted[0], worst: sorted[sorted.length - 1] };
+  }, [rangeFlips]);
+
+  const exportCSV = () => {
+    if (!canExport(user)) { toast.error('CSV export is a Pro feature. Upgrade to unlock!'); return; }
+    const headers = ['Item Name', 'Category', 'Platform', 'Buy Price', 'Sale Price', 'Shipping', 'Platform Fee', 'Processing Fee', 'Net Profit', 'ROI %', 'Date Sold'];
+    const rows = rangeFlips.map(f => [f.item_name, f.category, PLATFORMS[f.platform]?.name || f.platform, f.buy_price?.toFixed(2), f.sale_price?.toFixed(2), f.shipping_cost?.toFixed(2), f.platform_fee?.toFixed(2), f.processing_fee?.toFixed(2), f.net_profit?.toFixed(2), f.roi?.toFixed(1), f.date_sold || '']);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trackly-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSV exported successfully');
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -173,14 +281,18 @@ export default function InventoryPage() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
+          <TabsTrigger value="inventory">Items</TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="w-3.5 h-3.5 mr-1" />
+            History
+          </TabsTrigger>
           <TabsTrigger value="expenses">
-            <Receipt className="w-4 h-4 mr-1.5" />
+            <Receipt className="w-3.5 h-3.5 mr-1" />
             Expenses
           </TabsTrigger>
           <TabsTrigger value="ai">
-            <MessageSquare className="w-4 h-4 mr-1.5" />
+            <MessageSquare className="w-3.5 h-3.5 mr-1" />
             AI
           </TabsTrigger>
         </TabsList>
@@ -288,6 +400,103 @@ export default function InventoryPage() {
           )}
         </TabsContent>
 
+        {/* ── History Tab ─────────────────────────────── */}
+        <TabsContent value="history" className="space-y-4">
+          {flips.length === 0 ? (
+            <EmptyState icon={History} title="No flips yet" description="Save a flip from the calculator and it'll show up here." />
+          ) : (
+            <>
+              <Tabs value={histTab} onValueChange={setHistTab} className="space-y-4">
+                <TabsList className="grid w-full grid-cols-2 bg-card border border-border">
+                  <TabsTrigger value="history">History</TabsTrigger>
+                  <TabsTrigger value="reports">Reports</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="history" className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input value={histSearch} onChange={e => setHistSearch(e.target.value)} placeholder="Search flips..." className="pl-9 bg-card border-border" />
+                  </div>
+                  <button onClick={() => setShowHistFilters(!showHistFilters)} className="flex items-center gap-2 text-xs text-muted-foreground font-medium hover:text-foreground transition-colors">
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    {showHistFilters ? 'Hide Filters' : 'Show Filters'}
+                  </button>
+                  <AnimatePresence>
+                    {showHistFilters && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                        <div className="grid grid-cols-2 gap-3 pb-2">
+                          <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                            <SelectTrigger className="bg-card border-border text-xs"><SelectValue placeholder="Platform" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Platforms</SelectItem>
+                              {Object.entries(PLATFORMS).map(([key, p]) => (
+                                <SelectItem key={key} value={key}>{p.icon} {p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select value={histSortBy} onValueChange={setHistSortBy}>
+                            <SelectTrigger className="bg-card border-border text-xs"><ArrowUpDown className="w-3 h-3 mr-1" /><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {HIST_SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div className="space-y-3">
+                    <AnimatePresence>
+                      {filteredFlips.map((flip, i) => (
+                        <div key={flip.id}>
+                          <FlipCard flip={flip} index={i} currency={user?.currency} onDelete={f => deleteFlipMutation.mutate(f.id)} onEdit={f => setEditingFlip(f)} />
+                        </div>
+                      ))}
+                    </AnimatePresence>
+                    {filteredFlips.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No flips match your filters.</p>}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="reports" className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 bg-card border border-border rounded-xl p-1 flex-1 max-w-xs">
+                      {DATE_RANGES.map((r, i) => (
+                        <button key={r.label} onClick={() => setRange(i)} className={`flex-1 py-2 text-xs font-medium rounded-lg transition-all ${range === i ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>{r.label}</button>
+                      ))}
+                    </div>
+                    {rangeFlips.length > 0 && (
+                      <Button variant="outline" size="sm" onClick={exportCSV} className="text-xs gap-1.5">
+                        {canExport(user) ? <Download className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
+                        Export
+                      </Button>
+                    )}
+                  </div>
+                  {histStats && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <StatCard label="Revenue" value={formatCurrency(histStats.totalRevenue, user?.currency)} delay={0} />
+                        <StatCard label="Total Cost" value={formatCurrency(histStats.totalCost, user?.currency)} delay={0.05} />
+                        <StatCard label="Net Profit" value={formatCurrency(histStats.totalProfit, user?.currency)} icon={histStats.totalProfit >= 0 ? TrendingUp : TrendingDown} delay={0.1} />
+                        <StatCard label="Avg ROI" value={`${histStats.avgRoi.toFixed(1)}%`} delay={0.15} />
+                      </div>
+                      <ProfitChart flips={rangeFlips} />
+                      <PlatformChart flips={rangeFlips} />
+                      {user?.is_pro ? (
+                        <ProAnalytics flips={rangeFlips} currency={user?.currency} />
+                      ) : (
+                        <div className="bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-primary/20 rounded-xl p-5 text-center space-y-2">
+                          <Crown className="w-7 h-7 text-primary mx-auto" />
+                          <p className="font-semibold text-sm">Advanced Analytics</p>
+                          <p className="text-xs text-muted-foreground">Win rate, weekly trends, ROI distribution & more — Pro only.</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </TabsContent>
+
         <TabsContent value="expenses" className="space-y-4">
           <Button
             onClick={() => setShowAddExpense(true)}
@@ -350,6 +559,12 @@ export default function InventoryPage() {
         open={showAddExpense}
         onClose={handleCloseExpenseDialog}
         editingExpense={editingExpense}
+      />
+      <EditFlipDialog
+        open={!!editingFlip}
+        onClose={() => setEditingFlip(null)}
+        onSave={(id, data) => editFlipMutation.mutateAsync({ id, data })}
+        flip={editingFlip}
       />
     </div>
   );

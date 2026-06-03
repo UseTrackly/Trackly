@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/calculator', icon: Calculator, label: 'Calculator' },
+  { path: '/calculator', icon: Calculator, label: 'Calc' },
   { path: '/inventory', icon: Package, label: 'Inventory' },
   { path: '/community', icon: Users, label: 'Community' },
 ];
@@ -22,49 +22,52 @@ export default function BottomNav() {
     <nav
       role="navigation"
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border"
+      className="fixed bottom-0 left-0 right-0 z-50"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="flex items-center justify-around max-w-2xl mx-auto px-2 py-0.5">
-        {tabs.map((tab) => {
-          const isActive = location.pathname === tab.path;
-          const Icon = tab.icon;
-          const handlePress = () => {
-            if (isActive) resetTab(tab.path);
-            else navigate(tab.path);
-          };
-          return (
-            <button
-              key={tab.path}
-              onClick={handlePress}
-              aria-label={tab.label}
-              aria-current={isActive ? 'page' : undefined}
-              className="flex flex-col items-center gap-0.5 py-2 px-3 relative min-h-[44px] min-w-[44px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-lg"
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-primary rounded-full"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <Icon
-                className={`w-5 h-5 transition-colors duration-200 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
-                strokeWidth={isActive ? 2.5 : 1.5}
-                aria-hidden="true"
-              />
-              <span
-                className={`text-xs font-medium transition-colors duration-200 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
+      {/* Frosted glass pill container */}
+      <div className="mx-3 mb-3">
+        <div className="flex items-center justify-around bg-card/70 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl px-2 py-1.5">
+          {tabs.map((tab) => {
+            const isActive = location.pathname === tab.path;
+            const Icon = tab.icon;
+            const handlePress = () => {
+              if (isActive) resetTab(tab.path);
+              else navigate(tab.path);
+            };
+            return (
+              <button
+                key={tab.path}
+                onClick={handlePress}
+                aria-label={tab.label}
+                aria-current={isActive ? 'page' : undefined}
+                className="relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl min-h-[44px] min-w-[44px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 transition-all duration-200"
               >
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-primary/15 rounded-xl"
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <Icon
+                  className={`relative w-[22px] h-[22px] transition-all duration-200 ${
+                    isActive ? 'text-primary' : 'text-muted-foreground/60'
+                  }`}
+                  strokeWidth={isActive ? 2.2 : 1.6}
+                  aria-hidden="true"
+                />
+                <span
+                  className={`relative text-[10px] font-semibold tracking-wide transition-all duration-200 ${
+                    isActive ? 'text-primary' : 'text-muted-foreground/50'
+                  }`}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

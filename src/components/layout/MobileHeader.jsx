@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, History } from 'lucide-react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { useTabReset } from '@/lib/TabResetContext';
-
 const CHILD_ROUTES = ['/terms', '/privacy'];
 
 export default function MobileHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const [inboxOpen, setInboxOpen] = useState(false);
-  const { resetTab } = useTabReset();
-
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
 
   const { data: messagesRaw = [] } = useQuery({
@@ -94,18 +90,6 @@ export default function MobileHeader() {
                 )}
               </Button>
               <NotificationBell />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (location.pathname === '/history') resetTab('/history');
-                  else navigate('/history');
-                }}
-                aria-label="History"
-                className={location.pathname === '/history' ? 'text-primary' : ''}
-              >
-                <History className="w-5 h-5" />
-              </Button>
             </div>
           </>
         )}

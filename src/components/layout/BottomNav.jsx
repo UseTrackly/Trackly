@@ -22,9 +22,8 @@ export default function BottomNav() {
       role="navigation"
       aria-label="Main navigation"
       className="fixed bottom-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-t border-white/[0.06]"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="flex items-center justify-around" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)', paddingTop: '8px' }}>
+      <div className="flex items-center justify-around" style={{ paddingTop: '8px', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;

@@ -29,6 +29,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing appUserID' }, { status: 400 });
     }
 
+    // Security: the appUserID must match the authenticated user's ID.
+    // This prevents Account A from claiming Account B's subscription.
+    if (appUserID !== user.id && appUserID !== user.email) {
+      return Response.json({ error: 'Forbidden: appUserID does not match authenticated user' }, { status: 403 });
+    }
+
     const data = await getRevenueCatCustomerInfo(appUserID);
     const subscriber = data.subscriber;
 

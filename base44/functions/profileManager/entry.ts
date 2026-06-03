@@ -80,9 +80,13 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'data object required' }, { status: 400 });
       }
 
-      // Strip nulls/undefined so we don't overwrite existing fields with null
+      // Whitelist: only allow safe profile fields — never let the client touch
+      // privileged User fields like is_pro, role, stripe_customer_id, etc.
+      const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users'];
       const cleanData = Object.fromEntries(
-        Object.entries(data).filter(([_, v]) => v !== null && v !== undefined && v !== '')
+        Object.entries(data).filter(([k, v]) =>
+          ALLOWED_PROFILE_FIELDS.includes(k) && v !== null && v !== undefined && v !== ''
+        )
       );
 
       const records = await svc.entities.UserProfile.filter({ user_email: user.email });
@@ -106,6 +110,23 @@ Deno.serve(async (req) => {
       const { file_url } = body;
       if (!file_url) {
         return Response.json({ error: 'file_url required' }, { status: 400 });
+      }
+
+      // Only allow URLs from the Base44 media CDN (uploaded via UploadFile integration).
+      // This prevents users from setting arbitrary external URLs as their avatar.
+      const ALLOWED_HOSTS = ['media.base44.com', 'storage.base44.com'];
+      let urlHost = '';
+      try { urlHost = new URL(file_url).hostname; } catch { /* invalid url */ }
+      if (!ALLOWED_HOSTS.some(h => urlHost === h || urlHost.endsWith('.' + h))) {
+        return Response.json({ error: 'Avatar URL must be hosted on Base44 storage' }, { status: 400 });
+      }
+
+      // Block non-image file extensions
+      const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
+      const urlPath = file_url.split('?')[0].toLowerCase();
+      const hasValidExt = ALLOWED_EXTS.some(ext => urlPath.endsWith(ext));
+      if (!hasValidExt) {
+        return Response.json({ error: 'Avatar must be a supported image type (jpg, png, gif, webp, avif)' }, { status: 400 });
       }
 
       const records = await svc.entities.UserProfile.filter({ user_email: user.email });

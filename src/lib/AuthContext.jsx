@@ -86,7 +86,8 @@ export const AuthProvider = ({ children }) => {
         setUser(currentUser);
         setIsAuthenticated(true);
         setShowNativeAuth(false);
-        initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
+        // RC_PUBLIC_KEY is the publishable (client) SDK key — not a secret.
+      initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
       } catch {
         setIsAuthenticated(false);
         setUser(null);

@@ -9,6 +9,8 @@ import { isIOSApp } from '@/lib/platformDetect';
 import { purchasePlan, restorePurchases, getAppUserID, loadProducts } from '@/lib/iap';
 import { toast } from 'sonner';
 
+// RC public (publishable) SDK key — safe to ship in client code.
+// This is NOT a secret key; it cannot read subscriber data or make server-side changes.
 const RC_API_KEY = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
 
 const PRO_FEATURES = [

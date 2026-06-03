@@ -3,6 +3,18 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+
+    // This function is only called internally by scanMarketPrices (service role).
+    // On direct external calls, require admin to prevent notification spam to arbitrary users.
+    const user = await base44.auth.me();
+    if (!user || user.role !== 'admin') {
+      // Allow service-role internal invocations (no user token present)
+      const authHeader = req.headers.get('Authorization') || '';
+      if (authHeader && !authHeader.includes('service')) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
     const { alert } = await req.json();
 
     if (!alert || !alert.user_email) {

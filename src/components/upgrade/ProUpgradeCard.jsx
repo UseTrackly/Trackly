@@ -50,7 +50,9 @@ export default function ProUpgradeCard({ compact = false }) {
       log(`RC API key: ${RC_API_KEY.substring(0, 20)}...`);
 
       try {
-        // Also log raw offerings for diagnosis
+        // Wait briefly for AuthContext to initialize RC with the real userId
+        await new Promise(r => setTimeout(r, 1500));
+
         const { Purchases } = await import('@revenuecat/purchases-capacitor');
         const { offerings } = await Purchases.getOfferings();
         const allKeys = Object.keys(offerings?.all || {});

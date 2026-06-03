@@ -22,32 +22,34 @@ const PACKAGE_TYPES = {
 };
 
 let _rcConfigured = false;
+let _rcUserId = null;
 
 const isNative = () => !!(window?.Capacitor?.isNativePlatform?.());
 
 /**
  * Returns true only if the RevenueCat native plugin is actually registered.
- * The plugin is registered when the Capacitor iOS build includes the pod.
  */
 const isPluginAvailable = () => {
   if (!isNative()) return false;
-  // Capacitor registers plugins on window.Capacitor.Plugins
   return !!(window?.Capacitor?.Plugins?.Purchases);
 };
 
 /**
  * Initialize RevenueCat — call once on app start (native only).
+ * Re-configures if called with a new userId (e.g. after login).
  */
 export async function initRevenueCat(apiKey, userId) {
   if (!isPluginAvailable()) {
     console.warn('[IAP] RevenueCat plugin not available — skipping init. Run `npx cap sync ios` and rebuild.');
     return;
   }
-  if (_rcConfigured) return;
+  // Re-configure if we now have a real userId and previously didn't (or it changed)
+  if (_rcConfigured && _rcUserId === userId) return;
   try {
     await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
     await Purchases.configure({ apiKey, appUserID: userId || undefined });
     _rcConfigured = true;
+    _rcUserId = userId;
     console.log('[IAP] RevenueCat configured for user:', userId);
   } catch (e) {
     console.warn('[IAP] initRevenueCat failed:', e?.message);
@@ -56,6 +58,7 @@ export async function initRevenueCat(apiKey, userId) {
 
 /**
  * Ensure the plugin is available and configured. Throws with actionable messages.
+ * Waits up to 3s for initRevenueCat to be called by AuthContext first.
  */
 async function ensureReady() {
   if (!isNative()) {
@@ -68,12 +71,25 @@ async function ensureReady() {
       'Then rebuild in Xcode.'
     );
   }
+  // Wait for initRevenueCat to be called by AuthContext (with a real userId)
+  if (!_rcConfigured) {
+    console.log('[IAP] Waiting for RC to be configured by AuthContext...');
+    await new Promise((resolve) => {
+      const start = Date.now();
+      const check = setInterval(() => {
+        if (_rcConfigured || Date.now() - start > 3000) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 100);
+    });
+  }
+  // Fallback: if still not configured after wait, configure anonymously
   if (!_rcConfigured) {
     const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
-    console.log('[IAP] Configuring RevenueCat with API key:', apiKey.substring(0, 15) + '...');
+    console.log('[IAP] Fallback: configuring RC anonymously');
     await Purchases.configure({ apiKey });
     _rcConfigured = true;
-    console.log('[IAP] RevenueCat configured successfully');
   }
 }
 

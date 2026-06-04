@@ -4,8 +4,9 @@ import { ArrowLeft, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
-import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
+import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import { useUserProfile } from '@/lib/useUserProfile';
 const CHILD_ROUTES = ['/terms', '/privacy'];
 
 export default function MobileHeader() {
@@ -13,18 +14,7 @@ export default function MobileHeader() {
   const location = useLocation();
   const [inboxOpen, setInboxOpen] = useState(false);
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
-
-  const { data: profile } = useQuery({
-    queryKey: ['userProfile', user?.email],
-    queryFn: async () => {
-      await ensureTokenSynced();
-      const token = await nativeStorage.get();
-      const res = await base44.functions.invoke('profileManager', { action: 'get', token });
-      return res.data?.profile ?? null;
-    },
-    enabled: !!user?.email,
-    staleTime: 0,
-  });
+  const { data: profile } = useUserProfile(user);
 
   const avatarUrl = profile?.avatar_url || user?.profile_picture;
 

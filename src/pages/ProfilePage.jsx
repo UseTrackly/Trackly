@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
+import { useUserProfile } from '@/lib/useUserProfile';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -87,18 +88,8 @@ export default function ProfilePage() {
     return token;
   };
 
-  // UserProfile — fetched via backend function (service role bypasses RLS issues)
-  const { data: profile, refetch: refetchProfile } = useQuery({
-    queryKey: ['userProfile', user?.email],
-    queryFn: async () => {
-      await ensureTokenSynced();
-      const token = await getToken();
-      const res = await base44.functions.invoke('profileManager', { action: 'get', token });
-      return res.data?.profile ?? null;
-    },
-    enabled: !!user?.email,
-    staleTime: 0,
-  });
+  // UserProfile — shared hook keeps cache consistent across all pages
+  const { data: profile, refetch: refetchProfile } = useUserProfile(user);
 
   const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],

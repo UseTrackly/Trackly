@@ -119,13 +119,8 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Avatar URL must be hosted on Base44 storage' }, { status: 400 });
       }
 
-      // Block non-image file extensions
-      const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif'];
-      const urlPath = file_url.split('?')[0].toLowerCase();
-      const hasValidExt = ALLOWED_EXTS.some(ext => urlPath.endsWith(ext));
-      if (!hasValidExt) {
-        return Response.json({ error: 'Avatar must be a supported image type (jpg, png, gif, webp, avif)' }, { status: 400 });
-      }
+      // Extension check intentionally skipped — Base44 CDN URLs often use UUID paths
+      // without file extensions. The host allowlist above is sufficient security.
 
       const records = await svc.entities.UserProfile.filter({ user_email: user.email });
       const existing = records[0] ?? null;

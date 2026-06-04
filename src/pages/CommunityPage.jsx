@@ -41,13 +41,14 @@ export default function CommunityPage() {
     initialData: [],
   });
 
-  // Fetch current user's blocked list
-  const { data: myProfileRaw = [] } = useQuery({
-    queryKey: ['myProfile'],
-    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1),
-    enabled: !!user,
+  // Fetch current user's blocked list — use shared profile cache key
+  const { data: myProfile } = useQuery({
+    queryKey: ['userProfile', user?.email],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1).then(r => r?.[0] ?? null),
+    enabled: !!user?.email,
+    staleTime: 60_000,
   });
-  const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
+  const blockedUsers = myProfile?.blocked_users || [];
 
   const communityFlips = (Array.isArray(communityFlipsRaw) ? communityFlipsRaw : [])
     .filter(f => !blockedUsers.includes(f.posted_by));
@@ -133,7 +134,7 @@ export default function CommunityPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );

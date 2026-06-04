@@ -118,11 +118,10 @@ export default function ProfilePage() {
       return res.data?.profile;
     },
     onSuccess: (savedProfile) => {
-      // Use the returned profile directly — avoids re-fetch race condition
-      if (savedProfile) {
-        queryClient.setQueryData(['userProfile', user?.email], savedProfile);
-      }
-      queryClient.invalidateQueries({ queryKey: ['me'] });
+      // Always update cache immediately with the saved data
+      queryClient.setQueryData(['userProfile', user?.email], savedProfile ?? null);
+      // Then invalidate so next navigation picks up fresh data
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.email] });
       setShowEditProfile(false);
       toast.success('Profile updated');
     },
@@ -171,10 +170,11 @@ export default function ProfilePage() {
   };
 
   const handleEditProfile = () => {
+    // Never fall back to user?.full_name — that may be the auth email
     setBio(profile?.bio || '');
     setLocation(profile?.location || '');
     setUsername(profile?.username || '');
-    setDisplayName(profile?.display_name || user?.full_name || '');
+    setDisplayName(profile?.display_name || '');
     setShowEditProfile(true);
   };
 
@@ -192,10 +192,14 @@ export default function ProfilePage() {
       const token = await getToken();
       const res = await base44.functions.invoke('profileManager', { action: 'setAvatar', file_url, token });
       if (res.data?.error) throw new Error(res.data.error);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['me'] }),
-        queryClient.invalidateQueries({ queryKey: ['userProfile'] }),
-      ]);
+      // Update cache directly with returned profile so UI reflects immediately
+      const updatedProfile = res.data?.profile;
+      if (updatedProfile) {
+        queryClient.setQueryData(['userProfile', user.email], updatedProfile);
+      }
+      // Invalidate with exact key so all consumers re-fetch
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', user.email] });
+      await queryClient.invalidateQueries({ queryKey: ['me'] });
       toast.success('Profile picture updated');
     } catch (error) {
       toast.error('Upload failed: ' + (error?.message || 'unknown error'));

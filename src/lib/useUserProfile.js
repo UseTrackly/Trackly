@@ -3,7 +3,7 @@ import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 
 /**
  * Shared hook — always reads from the same ['userProfile', email] cache key.
- * Use this everywhere instead of fetching profile data directly.
+ * Use this everywhere so all screens share one source of truth for profile data.
  */
 export function useUserProfile(user) {
   return useQuery({
@@ -15,6 +15,7 @@ export function useUserProfile(user) {
       return res.data?.profile ?? null;
     },
     enabled: !!user?.email,
-    staleTime: 60_000, // 1 minute — avoid hammering the function on every render
+    staleTime: 30_000,    // 30s — fresh enough to not hammer, short enough to catch updates
+    gcTime: 5 * 60_000,   // keep in cache for 5 minutes
   });
 }

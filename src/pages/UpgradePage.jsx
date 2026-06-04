@@ -135,9 +135,9 @@ export default function UpgradePage() {
   const selectedPlanData = PLANS.find(p => p.id === selectedPlan);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="flex flex-col h-full">
       {/* Back button */}
-      <div className="flex items-center px-4 pt-4 pb-2">
+      <div className="flex items-center px-4 pt-4 pb-2 shrink-0">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
@@ -147,7 +147,7 @@ export default function UpgradePage() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-40">
+      <div className="flex-1 px-5 pb-40">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -265,9 +265,9 @@ export default function UpgradePage() {
         </motion.div>
       </div>
 
-      {/* Fixed bottom CTA */}
+      {/* Sticky bottom CTA */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border px-5 pt-4"
+        className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border px-5 pt-4 shrink-0"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)' }}
       >
         <Button

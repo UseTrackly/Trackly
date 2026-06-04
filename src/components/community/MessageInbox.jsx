@@ -32,7 +32,7 @@ function ThreadItem({ thread, onClick }) {
 }
 
 // Conversation view
-function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
+function Conversation({ thread, currentUser, senderName, onBack, onBlock, blockedUsers }) {
   const [text, setText] = useState('');
   const [uploadingImg, setUploadingImg] = useState(false);
   const queryClient = useQueryClient();
@@ -68,7 +68,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
     mutationFn: (payload) => base44.entities.Message.create({
       community_flip_id: thread.flipId,
       sender_email: currentUser.email,
-      sender_name: currentUser.full_name,
+      sender_name: senderName || currentUser.full_name || currentUser.email.split('@')[0],
       recipient_email: thread.otherEmail,
       is_read: false,
       ...payload,
@@ -207,13 +207,11 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
-
-  // Fetch user's own profile to get blocked list
   const { data: myProfile } = useQuery({
-    queryKey: ['myProfile'],
-    queryFn: () => base44.entities.UserProfile.filter({ user_email: user.email }, '-created_date', 1),
-    enabled: !!user && open,
-    select: (data) => Array.isArray(data) ? data[0] : null,
+    queryKey: ['userProfile', user?.email],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user.email }, '-created_date', 1).then(r => r?.[0] ?? null),
+    enabled: !!user?.email && open,
+    staleTime: 60_000,
   });
   const blockedUsers = myProfile?.blocked_users || [];
 
@@ -245,8 +243,8 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
       }
       return !isBlocked;
     },
-    onSuccess: (nowBlocked, emailToBlock) => {
-      queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+    onSuccess: (nowBlocked) => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.email] });
       toast.success(nowBlocked ? `User blocked` : `User unblocked`);
     },
     onError: () => toast.error('Failed to update block status'),
@@ -260,16 +258,15 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
     }
   };
 
-  // Fetch all user profiles to resolve display names
-  const { data: allProfiles = [] } = useQuery({
-    queryKey: ['allProfiles'],
-    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
-    enabled: !!user && open,
-  });
-
+  // Display name resolution: use sender_name stored on the message itself (set at send time)
+  // This avoids RLS issues where we can't read other users' UserProfile records.
   const getDisplayName = (email, fallbackName) => {
-    const profile = allProfiles.find(p => p.user_email === email);
-    return profile?.display_name || profile?.username || fallbackName || email;
+    // fallbackName is sender_name from the message — use it if it's not an email address
+    const isEmail = (s) => typeof s === 'string' && s.includes('@');
+    if (fallbackName && !isEmail(fallbackName)) return fallbackName;
+    // Last resort: show the part before @ to avoid showing full email
+    if (isEmail(email)) return email.split('@')[0];
+    return email;
   };
 
   // Build threads grouped by other_user only (one tab per person)
@@ -300,7 +297,7 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
     return Object.values(threadMap).sort((a, b) =>
       new Date(b.messages[0]?.created_date) - new Date(a.messages[0]?.created_date)
     );
-  }, [messagesRaw, flipsRaw, user, allProfiles]);
+  }, [messagesRaw, flipsRaw, user]);
 
   // Auto-open thread when initialFlipId + optional senderEmail provided
   useEffect(() => {
@@ -360,6 +357,7 @@ export default function MessageInbox({ open, onClose, initialFlipId = null, init
             <Conversation
               thread={activeThread}
               currentUser={user}
+              senderName={myProfile?.display_name || myProfile?.username || undefined}
               onBack={() => setActiveThread(null)}
               onBlock={handleBlock}
               blockedUsers={blockedUsers}

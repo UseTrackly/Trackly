@@ -15,7 +15,8 @@ export function useUserProfile(user) {
       return res.data?.profile ?? null;
     },
     enabled: !!user?.email,
-    staleTime: 30_000,    // 30s — fresh enough to not hammer, short enough to catch updates
-    gcTime: 5 * 60_000,   // keep in cache for 5 minutes
+    staleTime: 5 * 60_000,  // 5 min — prevents refetch from overwriting a freshly saved profile
+    gcTime: 10 * 60_000,    // keep in cache for 10 minutes
+    refetchOnWindowFocus: false,  // prevent tab-switch from blowing away saved data
   });
 }

@@ -135,9 +135,12 @@ export default function UpgradePage() {
   const selectedPlanData = PLANS.find(p => p.id === selectedPlan);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Back button */}
-      <div className="flex items-center px-4 pt-4 pb-2 shrink-0">
+    <div className="flex flex-col min-h-full">
+      {/* Back button — padded below iOS safe area */}
+      <div
+        className="flex items-center px-4 pb-2 shrink-0"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
+      >
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
@@ -147,7 +150,7 @@ export default function UpgradePage() {
         </button>
       </div>
 
-      <div className="flex-1 px-5 pb-40">
+      <div className="px-5 pb-48">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}

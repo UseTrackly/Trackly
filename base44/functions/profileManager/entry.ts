@@ -101,12 +101,13 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'file_url required' }, { status: 400 });
       }
 
-      // Only allow URLs from Base44 CDN — no extension check, host is sufficient
-      const ALLOWED_HOSTS = ['media.base44.com', 'storage.base44.com'];
-      let urlHost = '';
-      try { urlHost = new URL(file_url).hostname; } catch { /* invalid url */ }
-      if (!ALLOWED_HOSTS.some(h => urlHost === h || urlHost.endsWith('.' + h))) {
-        return Response.json({ error: 'Avatar URL must be hosted on Base44 storage' }, { status: 400 });
+      // Validate URL is a proper https URL
+      let parsedUrl;
+      try { parsedUrl = new URL(file_url); } catch {
+        return Response.json({ error: 'Invalid avatar URL' }, { status: 400 });
+      }
+      if (parsedUrl.protocol !== 'https:') {
+        return Response.json({ error: 'Avatar URL must use HTTPS' }, { status: 400 });
       }
 
       const records = await svc.entities.UserProfile.filter({ user_email: user.email });

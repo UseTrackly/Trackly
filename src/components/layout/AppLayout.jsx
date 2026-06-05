@@ -84,16 +84,16 @@ function AppLayoutInner() {
       />
       <Suspense fallback={null}><GlowOrbs /></Suspense>
 
-      {/* Fixed header */}
-      <MobileHeader />
+      {/* Header — part of flex column, does NOT scroll */}
+      {!isFullscreen && <MobileHeader asFlexItem />}
 
-      {/* Scrollable content — sits between fixed header and fixed bottom nav */}
+      {/* Scrollable content — flex-1, sandwiched between header and nav */}
       <main
         id="main-content"
         className="flex-1 overflow-y-auto relative z-10 max-w-2xl w-full mx-auto"
         style={{
-          paddingTop: isFullscreen ? '0px' : 'calc(3.5rem + max(env(safe-area-inset-top, 0px), 10px))',
-          paddingBottom: isFullscreen ? '0px' : 'calc(4rem + env(safe-area-inset-bottom, 0px))',
+          paddingTop: isFullscreen ? '0px' : undefined,
+          paddingBottom: isFullscreen ? '0px' : undefined,
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'none',
           touchAction: 'pan-y',
@@ -129,8 +129,8 @@ function AppLayoutInner() {
         )}
       </main>
 
-      {/* Fixed bottom nav */}
-      <BottomNav />
+      {/* Bottom nav — part of flex column, does NOT scroll */}
+      {!isFullscreen && <BottomNav asFlexItem />}
     </div>
   );
 }

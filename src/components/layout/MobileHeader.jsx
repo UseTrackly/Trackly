@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useUserProfile } from '@/lib/useUserProfile';
 const CHILD_ROUTES = ['/terms', '/privacy'];
 
-export default function MobileHeader() {
+export default function MobileHeader({ asFlexItem = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [inboxOpen, setInboxOpen] = useState(false);
@@ -39,7 +39,7 @@ export default function MobileHeader() {
   return (
     <>
       <div
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border"
+        className={`${asFlexItem ? 'relative' : 'fixed top-0 left-0 right-0'} z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border shrink-0`}
         style={{
           paddingTop: 'max(env(safe-area-inset-top, 0px), 10px)',
           paddingBottom: '0.625rem',

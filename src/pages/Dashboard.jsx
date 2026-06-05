@@ -125,7 +125,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="px-3 py-4 space-y-4"
+      className="px-3 py-4 space-y-4 pb-6"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

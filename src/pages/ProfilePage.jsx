@@ -118,12 +118,16 @@ export default function ProfilePage() {
       return res.data?.profile;
     },
     onSuccess: (savedProfile) => {
-      // Always update cache immediately with the saved data
-      queryClient.setQueryData(['userProfile', user?.email], savedProfile ?? null);
-      // Then invalidate so next navigation picks up fresh data
-      queryClient.invalidateQueries({ queryKey: ['userProfile', user?.email] });
+      // Write saved data to cache — do NOT immediately invalidate (would race-overwrite)
+      if (savedProfile) {
+        queryClient.setQueryData(['userProfile', user?.email], savedProfile);
+      }
       setShowEditProfile(false);
       toast.success('Profile updated');
+      // Delayed invalidate so the cache write wins, then background-refreshes
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['userProfile', user?.email] });
+      }, 2000);
     },
     onError: (e) => {
       toast.error(e?.message || 'Failed to save profile');

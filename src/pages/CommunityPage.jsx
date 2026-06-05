@@ -141,7 +141,7 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="px-3 py-4 space-y-4">
+    <div className="px-3 py-4 space-y-4 pb-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

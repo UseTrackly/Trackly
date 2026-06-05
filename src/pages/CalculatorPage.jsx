@@ -90,7 +90,7 @@ export default function CalculatorPage() {
   const isProfitable = calculation?.netProfit > 0;
 
   return (
-    <div className="px-3 py-4 space-y-3">
+    <div className="px-3 py-4 space-y-3 pb-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

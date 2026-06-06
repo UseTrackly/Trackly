@@ -98,21 +98,21 @@ export default function CalculatorPage() {
         animate={{ opacity: 1, y: 0 }}
         className="px-3 pt-4 pb-3"
       >
-        <h1 className="text-lg font-bold tracking-tight">Calculator</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold tracking-tight">Calculator</h1>
+          <button
+            onClick={handleReset}
+            className="p-2.5 rounded-xl hover:bg-card border border-border transition-colors"
+          >
+            <RotateCcw className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />
 
         <TabsContent value="calculator" className="space-y-5 px-3 pb-24">
-          <div className="flex items-center justify-end">
-            <button
-              onClick={handleReset}
-              className="p-2.5 rounded-xl hover:bg-card border border-border transition-colors"
-            >
-              <RotateCcw className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
 
       {/* Main Card */}
       <motion.div

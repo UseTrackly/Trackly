@@ -22,7 +22,7 @@ export default function BottomNav({ asFlexItem = false }) {
       role="navigation"
       aria-label="Main navigation"
       className="relative z-50 border-t border-white/[0.06] shrink-0"
-      style={{ overflow: 'hidden', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)' }}
+      style={{ overflow: 'hidden', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* Animated gradient background */}
       <div
@@ -105,7 +105,7 @@ export default function BottomNav({ asFlexItem = false }) {
         }
       `}</style>
 
-      <div className="relative flex items-center justify-center gap-2" style={{ zIndex: 2, paddingTop: '8px', paddingBottom: '10px' }}>
+      <div className="relative flex items-center justify-center gap-2" style={{ zIndex: 2, paddingTop: '6px', paddingBottom: '6px' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;

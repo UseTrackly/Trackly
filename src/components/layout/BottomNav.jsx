@@ -22,7 +22,7 @@ export default function BottomNav({ asFlexItem = false }) {
       role="navigation"
       aria-label="Main navigation"
       className="relative z-50 border-t border-white/[0.06] shrink-0"
-      style={{ overflow: 'hidden' }}
+      style={{ overflow: 'visible' }}
     >
       {/* Animated gradient background */}
       <div
@@ -40,7 +40,10 @@ export default function BottomNav({ asFlexItem = false }) {
         aria-hidden="true"
         style={{
           position: 'absolute',
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           zIndex: 1,
           pointerEvents: 'none',
           overflow: 'hidden',

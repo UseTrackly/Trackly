@@ -10,9 +10,9 @@ const ROUTE_TABS = {
     { value: 'ai', label: 'AI Assist' },
   ],
   '/inventory': [
-    { value: 'inventory', label: 'Stock' },
-    { value: 'history', label: 'Sales' },
-    { value: 'expenses', label: 'Overhead' },
+    { value: 'inventory', label: 'Inventory' },
+    { value: 'history', label: 'History' },
+    { value: 'expenses', label: 'Expenses' },
     { value: 'ai', label: 'AI Assist' },
   ],
   '/community': [

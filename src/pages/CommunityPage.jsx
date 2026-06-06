@@ -135,7 +135,7 @@ export default function CommunityPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -155,7 +155,7 @@ export default function CommunityPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />
 
-        <TabsContent value="community" className="space-y-3 px-3 pb-20">
+        <TabsContent value="community" className="space-y-3 px-3 pb-24">
           <div className="pb-1">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Community Showcase</p>
             <h2 className="text-lg font-bold tracking-tight">
@@ -342,15 +342,15 @@ export default function CommunityPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="featured" className="px-3 pb-20">
+        <TabsContent value="featured" className="px-3 pb-24">
           <FeaturedListings />
         </TabsContent>
 
-        <TabsContent value="alerts" className="px-3 pb-20">
+        <TabsContent value="alerts" className="px-3 pb-24">
           <MarketAlerts />
         </TabsContent>
 
-        <TabsContent value="manage" className="px-3 pb-20">
+        <TabsContent value="manage" className="px-3 pb-24">
           <ManagePosts />
         </TabsContent>
       </Tabs>

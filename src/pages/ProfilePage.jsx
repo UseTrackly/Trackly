@@ -244,7 +244,7 @@ export default function ProfilePage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="px-3 py-4 space-y-4 pb-20">
+      <div className="px-3 py-4 space-y-4 pb-24">
         <h1 className="text-lg font-bold tracking-tight">Profile</h1>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -270,7 +270,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="px-3 py-4 space-y-4 pb-20">
+    <div className="px-3 py-4 space-y-4 pb-24">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}

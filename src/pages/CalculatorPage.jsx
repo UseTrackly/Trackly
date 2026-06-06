@@ -104,7 +104,7 @@ export default function CalculatorPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />
 
-        <TabsContent value="calculator" className="space-y-5 px-3 pb-20">
+        <TabsContent value="calculator" className="space-y-5 px-3 pb-24">
           <div className="flex items-center justify-end">
             <button
               onClick={handleReset}
@@ -311,15 +311,15 @@ export default function CalculatorPage() {
 
         </TabsContent>
 
-        <TabsContent value="casino" className="px-3 pb-20">
+        <TabsContent value="casino" className="px-3 pb-24">
           <CasinoTracker user={user} />
         </TabsContent>
 
-        <TabsContent value="sports" className="px-3 pb-20">
+        <TabsContent value="sports" className="px-3 pb-24">
           <SportsBetTracker user={user} />
         </TabsContent>
 
-        <TabsContent value="ai" className="px-3 pb-20">
+        <TabsContent value="ai" className="px-3 pb-24">
           <AIAssistant onOpenCalculator={handleOpenCalculator} />
         </TabsContent>
       </Tabs>

@@ -166,7 +166,7 @@ export default function HistoryPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -174,7 +174,7 @@ export default function HistoryPage() {
 
   return (
     <div
-      className="px-3 py-4 space-y-3 pb-20"
+      className="px-3 py-4 space-y-3 pb-24"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

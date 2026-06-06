@@ -259,7 +259,7 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -291,7 +291,7 @@ export default function InventoryPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />
 
-        <TabsContent value="inventory" className="space-y-4 px-3 pb-20">
+        <TabsContent value="inventory" className="space-y-4 px-3 pb-24">
           <Button
             onClick={() => setShowAdd(true)}
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
@@ -395,7 +395,7 @@ export default function InventoryPage() {
         </TabsContent>
 
         {/* ── History Tab ─────────────────────────────── */}
-        <TabsContent value="history" className="space-y-4 px-3 pb-20">
+        <TabsContent value="history" className="space-y-4 px-3 pb-24">
           {flips.length === 0 ? (
             <EmptyState icon={History} title="No flips yet" description="Save a flip from the calculator and it'll show up here." />
           ) : (
@@ -491,7 +491,7 @@ export default function InventoryPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="expenses" className="space-y-4 px-3 pb-20">
+        <TabsContent value="expenses" className="space-y-4 px-3 pb-24">
           <Button
             onClick={() => setShowAddExpense(true)}
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
@@ -531,7 +531,7 @@ export default function InventoryPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="ai" className="px-3 pb-20">
+        <TabsContent value="ai" className="px-3 pb-24">
           <InventoryAIAssistant />
         </TabsContent>
       </Tabs>

@@ -117,7 +117,7 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -125,7 +125,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="px-3 py-4 space-y-4 pb-6"
+      className="px-3 py-4 space-y-4 pb-24"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

@@ -22,7 +22,7 @@ export default function BottomNav({ asFlexItem = false }) {
       role="navigation"
       aria-label="Main navigation"
       className="relative z-50 border-t border-white/[0.06] shrink-0"
-      style={{ overflow: 'hidden', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      style={{ overflow: 'hidden' }}
     >
       {/* Animated gradient background */}
       <div
@@ -30,6 +30,7 @@ export default function BottomNav({ asFlexItem = false }) {
         style={{
           position: 'absolute',
           inset: 0,
+          bottom: '-200px',
           zIndex: 0,
           background: 'hsl(var(--background) / 0.55)',
           backdropFilter: 'blur(20px)',
@@ -104,6 +105,17 @@ export default function BottomNav({ asFlexItem = false }) {
           .bnav-drift1, .bnav-drift2, .bnav-shimmer { animation: none !important; }
         }
       `}</style>
+
+      {/* Solid fill that extends below the nav into the safe area / home indicator zone */}
+      <div style={{
+        position: 'absolute',
+        bottom: '-200px',
+        left: 0,
+        right: 0,
+        height: '200px',
+        background: 'hsl(var(--background))',
+        zIndex: 0,
+      }} />
 
       <div className="relative flex items-center justify-center gap-2" style={{ zIndex: 2, paddingTop: '6px', paddingBottom: '6px' }}>
         {tabs.map((tab) => {

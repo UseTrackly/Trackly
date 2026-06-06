@@ -288,7 +288,7 @@ export default function InventoryPage() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20">
           <TabsTrigger value="inventory">Items</TabsTrigger>
           <TabsTrigger value="history">
             <History className="w-3.5 h-3.5 mr-1" />

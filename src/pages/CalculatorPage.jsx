@@ -101,7 +101,7 @@ export default function CalculatorPage() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20">
           <TabsTrigger value="calculator" className="text-xs">Flip</TabsTrigger>
           <TabsTrigger value="casino" className="text-xs">🎰 Casino</TabsTrigger>
           <TabsTrigger value="sports" className="text-xs">🏈 Bets</TabsTrigger>

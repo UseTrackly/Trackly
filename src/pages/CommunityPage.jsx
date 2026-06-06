@@ -152,7 +152,7 @@ export default function CommunityPage() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20">
           <TabsTrigger value="community">Trackly</TabsTrigger>
           <TabsTrigger value="featured">Featured</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>

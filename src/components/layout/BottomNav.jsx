@@ -22,7 +22,7 @@ export default function BottomNav({ asFlexItem = false }) {
       role="navigation"
       aria-label="Main navigation"
       className="relative z-50 border-t border-white/[0.06] shrink-0"
-      style={{ overflow: 'hidden', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      style={{ overflow: 'hidden', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)' }}
     >
       {/* Animated gradient background */}
       <div
@@ -105,7 +105,7 @@ export default function BottomNav({ asFlexItem = false }) {
         }
       `}</style>
 
-      <div className="relative flex items-center justify-around" style={{ zIndex: 2, paddingTop: '8px', paddingBottom: '10px' }}>
+      <div className="relative flex items-center justify-center gap-2" style={{ zIndex: 2, paddingTop: '8px', paddingBottom: '10px' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
@@ -115,7 +115,7 @@ export default function BottomNav({ asFlexItem = false }) {
               onClick={() => isActive ? resetTab(tab.path) : navigate(tab.path)}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className="relative flex flex-col items-center gap-1 px-5 py-2 min-h-[44px] min-w-[60px] justify-center focus-visible:outline-none"
+              className="relative flex flex-col items-center gap-1 px-6 py-2 min-h-[44px] min-w-[70px] justify-center focus-visible:outline-none"
             >
               {/* Active indicator line */}
               <div

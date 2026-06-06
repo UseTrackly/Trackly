@@ -39,12 +39,8 @@
   ],
   "rls": {
     "create": true,
-    "read": {
-      "data.user_email": "{{user.email}}"
-    },
-    "update": {
-      "data.user_email": "{{user.email}}"
-    },
+    "read": true,
+    "update": true,
     "delete": {
       "data.user_email": "{{user.email}}"
     }

@@ -79,8 +79,8 @@ Deno.serve(async (req) => {
         Object.entries(data).filter(([k]) => ALLOWED_PROFILE_FIELDS.includes(k))
       );
 
-      const records = await svc.entities.UserProfile.filter({ "data.user_email": user.email });
-      const existing = records[0] ?? null;
+      const allSave = await svc.entities.UserProfile.list('-created_date', 500);
+      const existing = allSave.find(r => r.user_email === user.email) ?? null;
 
       let profile;
       if (existing) {
@@ -111,8 +111,8 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Avatar URL must use HTTPS' }, { status: 400 });
       }
 
-      const records = await svc.entities.UserProfile.filter({ "data.user_email": user.email });
-      const existing = records[0] ?? null;
+      const allAvatar = await svc.entities.UserProfile.list('-created_date', 500);
+      const existing = allAvatar.find(r => r.user_email === user.email) ?? null;
 
       let profile;
       if (existing) {

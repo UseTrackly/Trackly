@@ -102,7 +102,7 @@ export default function BottomNav({ asFlexItem = false }) {
         }
       `}</style>
 
-      <div className="relative flex items-center justify-around" style={{ zIndex: 2, paddingTop: '8px', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)' }}>
+      <div className="relative flex items-center justify-around" style={{ zIndex: 2, paddingTop: '8px', paddingBottom: '8px' }}>
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
@@ -147,6 +147,8 @@ export default function BottomNav({ asFlexItem = false }) {
           );
         })}
       </div>
+      {/* iOS safe area spacer — sits below the tabs so labels are never clipped */}
+      <div style={{ height: 'env(safe-area-inset-bottom, 0px)', background: 'transparent' }} />
     </nav>
   );
 }

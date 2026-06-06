@@ -7,7 +7,7 @@
     "hostname": "app"
   },
   "ios": {
-    "contentInset": "never",
+    "contentInset": "automatic",
     "allowsLinkPreview": false,
     "scrollEnabled": true,
     "limitsNavigationsToAppBoundDomains": false,

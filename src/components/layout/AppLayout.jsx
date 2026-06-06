@@ -71,8 +71,8 @@ function AppLayoutInner() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        height: '100%',
-        width: '100%',
+        height: '100dvh',
+        width: '100dvw',
       }}
     >
       {/* Skip to content */}

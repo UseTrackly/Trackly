@@ -93,7 +93,7 @@ export default function InventoryCard({ item, index, onEdit, onDelete }) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 opacity-100 transition-opacity">
             <button
               onClick={() => onEdit?.(item)}
               className="p-1.5 rounded-lg hover:bg-secondary transition-colors"

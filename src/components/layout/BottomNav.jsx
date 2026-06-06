@@ -132,14 +132,14 @@ export default function BottomNav({ asFlexItem = false }) {
                 style={{
                   width: 22,
                   height: 22,
-                  color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.55)',
                   strokeWidth: isActive ? 2 : 1.5,
                 }}
                 aria-hidden="true"
               />
               <span
                 className="text-[10px] font-medium tracking-wider uppercase transition-colors duration-200"
-                style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
+                style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.55)' }}
               >
                 {tab.label}
               </span>

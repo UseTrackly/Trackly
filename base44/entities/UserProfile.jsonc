@@ -38,7 +38,7 @@
     "user_email"
   ],
   "rls": {
-    "create": false,
+    "create": true,
     "read": {
       "data.user_email": "{{user.email}}"
     },

@@ -61,8 +61,9 @@ Deno.serve(async (req) => {
   try {
     // ── GET ─────────────────────────────────────────────────────────────────
     if (action === 'get') {
-      const records = await svc.entities.UserProfile.filter({ user_email: user.email });
-      console.log('[profileManager] GET found', records.length, 'records');
+      const all = await svc.entities.UserProfile.list('-created_date', 500);
+      const records = all.filter(r => r.user_email === user.email);
+      console.log('[profileManager] GET found', records.length, 'records (from', all.length, 'total)');
       return Response.json({ profile: records[0] ?? null });
     }
 
@@ -78,7 +79,7 @@ Deno.serve(async (req) => {
         Object.entries(data).filter(([k]) => ALLOWED_PROFILE_FIELDS.includes(k))
       );
 
-      const records = await svc.entities.UserProfile.filter({ user_email: user.email });
+      const records = await svc.entities.UserProfile.filter({ "data.user_email": user.email });
       const existing = records[0] ?? null;
 
       let profile;
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Avatar URL must use HTTPS' }, { status: 400 });
       }
 
-      const records = await svc.entities.UserProfile.filter({ user_email: user.email });
+      const records = await svc.entities.UserProfile.filter({ "data.user_email": user.email });
       const existing = records[0] ?? null;
 
       let profile;

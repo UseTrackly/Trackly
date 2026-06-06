@@ -4,22 +4,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const ROUTE_TABS = {
   '/calculator': [
-    { value: 'calculator', label: 'Flip', emoji: '🔄' },
-    { value: 'casino', label: 'Casino', emoji: '🎰' },
-    { value: 'sports', label: 'Bets', emoji: '🏈' },
-    { value: 'ai', label: 'AI', emoji: '✨' },
+    { value: 'calculator', label: 'Flip' },
+    { value: 'casino', label: 'Casino' },
+    { value: 'sports', label: 'Sports' },
+    { value: 'ai', label: 'AI Assist' },
   ],
   '/inventory': [
-    { value: 'inventory', label: 'Items', emoji: '📦' },
-    { value: 'history', label: 'History', emoji: '📈' },
-    { value: 'expenses', label: 'Expenses', emoji: '🧾' },
-    { value: 'ai', label: 'AI', emoji: '✨' },
+    { value: 'inventory', label: 'Stock' },
+    { value: 'history', label: 'Sales' },
+    { value: 'expenses', label: 'Overhead' },
+    { value: 'ai', label: 'AI Assist' },
   ],
   '/community': [
-    { value: 'community', label: 'Feed', emoji: '🔥' },
-    { value: 'featured', label: 'Featured', emoji: '⭐' },
-    { value: 'alerts', label: 'Alerts', emoji: '🔔' },
-    { value: 'manage', label: 'Manage', emoji: '⚙️' },
+    { value: 'community', label: 'Feed' },
+    { value: 'featured', label: 'Market' },
+    { value: 'alerts', label: 'Alerts' },
+    { value: 'manage', label: 'My Posts' },
   ],
 };
 
@@ -51,7 +51,7 @@ export default function PageTabBar({ activeTab, onTabChange }) {
               key={tab.value}
               ref={isActive ? activeRef : null}
               onClick={() => onTabChange(tab.value)}
-              className="relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-all duration-200 focus-visible:outline-none"
+              className="relative flex-1 flex items-center justify-center py-3 transition-all duration-200 focus-visible:outline-none"
               style={{ minWidth: 0 }}
             >
               {/* Active pill background */}
@@ -67,20 +67,12 @@ export default function PageTabBar({ activeTab, onTabChange }) {
                 />
               )}
 
-              {/* Emoji */}
-              <span
-                className="relative z-10 text-base leading-none transition-transform duration-200"
-                style={{ transform: isActive ? 'scale(1.15)' : 'scale(1)' }}
-              >
-                {tab.emoji}
-              </span>
-
               {/* Label */}
               <span
-                className="relative z-10 text-[10px] font-semibold tracking-wide transition-colors duration-200"
+                className="relative z-10 text-[11px] font-semibold transition-colors duration-200"
                 style={{
                   color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.45)',
-                  letterSpacing: '0.04em',
+                  letterSpacing: '0.03em',
                 }}
               >
                 {tab.label}

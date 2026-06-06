@@ -151,13 +151,30 @@ export default function CommunityPage() {
         <h1 className="text-lg font-bold tracking-tight">Community</h1>
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20 rounded-none border-x-0">
-          <TabsTrigger value="community">Trackly</TabsTrigger>
-          <TabsTrigger value="featured">Featured</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="manage">Manage</TabsTrigger>
-        </TabsList>
+      {/* Sticky tab bar */}
+      <div className="sticky top-0 z-20 bg-card border-b border-border grid grid-cols-4">
+        {[
+          { value: 'community', label: 'Trackly' },
+          { value: 'featured', label: 'Featured' },
+          { value: 'alerts', label: 'Alerts' },
+          { value: 'manage', label: 'Manage' },
+        ].map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveTab(tab.value)}
+            className={`py-2.5 text-xs font-medium transition-colors border-b-2 ${
+              activeTab === tab.value
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="hidden" />
 
         <TabsContent value="community" className="space-y-3 px-3 pb-20">
           <div className="pb-1">

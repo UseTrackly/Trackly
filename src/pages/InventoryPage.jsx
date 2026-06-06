@@ -287,22 +287,30 @@ export default function InventoryPage() {
         </p>
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20 rounded-none border-x-0">
-          <TabsTrigger value="inventory">Items</TabsTrigger>
-          <TabsTrigger value="history">
-            <History className="w-3.5 h-3.5 mr-1" />
-            History
-          </TabsTrigger>
-          <TabsTrigger value="expenses">
-            <Receipt className="w-3.5 h-3.5 mr-1" />
-            Expenses
-          </TabsTrigger>
-          <TabsTrigger value="ai">
-            <MessageSquare className="w-3.5 h-3.5 mr-1" />
-            AI
-          </TabsTrigger>
-        </TabsList>
+      {/* Sticky tab bar */}
+      <div className="sticky top-0 z-20 bg-card border-b border-border grid grid-cols-4">
+        {[
+          { value: 'inventory', label: 'Items' },
+          { value: 'history', label: 'History' },
+          { value: 'expenses', label: 'Expenses' },
+          { value: 'ai', label: 'AI' },
+        ].map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveTab(tab.value)}
+            className={`py-2.5 text-xs font-medium transition-colors border-b-2 ${
+              activeTab === tab.value
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="hidden" />
 
         <TabsContent value="inventory" className="space-y-4 px-3 pb-20">
           <Button

@@ -100,16 +100,32 @@ export default function CalculatorPage() {
         <h1 className="text-lg font-bold tracking-tight">Calculator</h1>
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20 rounded-none border-x-0">
-          <TabsTrigger value="calculator" className="text-xs">Flip</TabsTrigger>
-          <TabsTrigger value="casino" className="text-xs">🎰 Casino</TabsTrigger>
-          <TabsTrigger value="sports" className="text-xs">🏈 Bets</TabsTrigger>
-          <TabsTrigger value="ai" className="text-xs">
-            <MessageSquare className="w-3.5 h-3.5 mr-1" />
-            AI
-          </TabsTrigger>
-        </TabsList>
+      {/* Sticky tab bar — sits directly in the scroll container with no wrapper */}
+      <div className="sticky top-0 z-20 bg-card border-b border-border grid grid-cols-4">
+        {[
+          { value: 'calculator', label: 'Flip' },
+          { value: 'casino', label: '🎰 Casino' },
+          { value: 'sports', label: '🏈 Bets' },
+          { value: 'ai', label: 'AI' },
+        ].map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveTab(tab.value)}
+            className={`py-2.5 text-xs font-medium transition-colors border-b-2 ${
+              activeTab === tab.value
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground'
+            }`}
+          >
+            {tab.value === 'ai' ? (
+              <span className="flex items-center justify-center gap-1"><MessageSquare className="w-3.5 h-3.5" />AI</span>
+            ) : tab.label}
+          </button>
+        ))}
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="hidden" />
 
         <TabsContent value="calculator" className="space-y-5 px-3 pb-20">
           <div className="flex items-center justify-end">

@@ -64,10 +64,15 @@ function AppLayoutInner() {
       className="bg-background text-sm"
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        height: '100%',
+        width: '100%',
       }}
     >
       {/* Skip to content */}
@@ -98,18 +103,21 @@ function AppLayoutInner() {
       {/* Page tab bar — sits between header and content, never scrolls */}
       {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
 
-      {/* Scrollable content — flex-1, sandwiched between header/tabbar and nav */}
+      {/* Scrollable content — flex-1, ONLY this scrolls */}
       <main
         id="main-content"
-        className="flex-1 overflow-y-auto relative z-10 max-w-2xl w-full mx-auto"
+        className="relative z-10"
         style={{
-          paddingTop: isFullscreen ? '0px' : undefined,
-          paddingBottom: isFullscreen ? '0px' : undefined,
+          flex: '1 1 0',
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'none',
           touchAction: 'pan-y',
         }}
       >
+        <div className="max-w-2xl w-full mx-auto">
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;
@@ -137,6 +145,7 @@ function AppLayoutInner() {
             </motion.div>
           </AnimatePresence>
         )}
+        </div>
       </main>
 
       {/* Bottom nav — part of flex column, does NOT scroll */}

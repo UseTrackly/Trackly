@@ -39,7 +39,7 @@ export default function MobileHeader({ asFlexItem = false }) {
   return (
     <>
       <div
-        className={`${asFlexItem ? 'relative' : 'fixed top-0 left-0 right-0'} z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border shrink-0`}
+        className="relative z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border shrink-0"
         style={{
           paddingTop: 'max(env(safe-area-inset-top, 0px), 10px)',
           paddingBottom: '0.625rem',

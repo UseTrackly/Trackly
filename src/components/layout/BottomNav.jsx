@@ -21,7 +21,7 @@ export default function BottomNav({ asFlexItem = false }) {
     <nav
       role="navigation"
       aria-label="Main navigation"
-      className={`${asFlexItem ? 'relative' : 'fixed bottom-0 left-0 right-0'} z-50 border-t border-white/[0.06] shrink-0`}
+      className="relative z-50 border-t border-white/[0.06] shrink-0"
       style={{ overflow: 'hidden' }}
     >
       {/* Animated gradient background */}

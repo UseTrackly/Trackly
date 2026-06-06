@@ -266,7 +266,6 @@ export default function InventoryPage() {
 
   return (
     <div
-      className="px-3 py-4 space-y-4 pb-20"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -280,6 +279,7 @@ export default function InventoryPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
+        className="px-3 pt-4 pb-3"
       >
         <h1 className="text-lg font-bold tracking-tight">Inventory</h1>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -288,7 +288,7 @@ export default function InventoryPage() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20 rounded-none border-x-0">
           <TabsTrigger value="inventory">Items</TabsTrigger>
           <TabsTrigger value="history">
             <History className="w-3.5 h-3.5 mr-1" />
@@ -304,7 +304,7 @@ export default function InventoryPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inventory" className="space-y-4">
+        <TabsContent value="inventory" className="space-y-4 px-3 pb-20">
           <Button
             onClick={() => setShowAdd(true)}
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
@@ -408,7 +408,7 @@ export default function InventoryPage() {
         </TabsContent>
 
         {/* ── History Tab ─────────────────────────────── */}
-        <TabsContent value="history" className="space-y-4">
+        <TabsContent value="history" className="space-y-4 px-3 pb-20">
           {flips.length === 0 ? (
             <EmptyState icon={History} title="No flips yet" description="Save a flip from the calculator and it'll show up here." />
           ) : (
@@ -504,7 +504,7 @@ export default function InventoryPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="expenses" className="space-y-4">
+        <TabsContent value="expenses" className="space-y-4 px-3 pb-20">
           <Button
             onClick={() => setShowAddExpense(true)}
             className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
@@ -544,7 +544,7 @@ export default function InventoryPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="ai">
+        <TabsContent value="ai" className="px-3 pb-20">
           <InventoryAIAssistant />
         </TabsContent>
       </Tabs>

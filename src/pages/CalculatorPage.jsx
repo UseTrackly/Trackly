@@ -90,18 +90,18 @@ export default function CalculatorPage() {
   const isProfitable = calculation?.netProfit > 0;
 
   return (
-    <div className="px-3 py-4 space-y-3 pb-6">
+    <div>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="pl-32"
+        className="px-3 pt-4 pb-3"
       >
         <h1 className="text-lg font-bold tracking-tight">Calculator</h1>
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20 rounded-none border-x-0">
           <TabsTrigger value="calculator" className="text-xs">Flip</TabsTrigger>
           <TabsTrigger value="casino" className="text-xs">🎰 Casino</TabsTrigger>
           <TabsTrigger value="sports" className="text-xs">🏈 Bets</TabsTrigger>
@@ -111,7 +111,7 @@ export default function CalculatorPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="calculator" className="space-y-5">
+        <TabsContent value="calculator" className="space-y-5 px-3 pb-20">
           <div className="flex items-center justify-end">
             <button
               onClick={handleReset}
@@ -318,15 +318,15 @@ export default function CalculatorPage() {
 
         </TabsContent>
 
-        <TabsContent value="casino">
+        <TabsContent value="casino" className="px-3 pb-20">
           <CasinoTracker user={user} />
         </TabsContent>
 
-        <TabsContent value="sports">
+        <TabsContent value="sports" className="px-3 pb-20">
           <SportsBetTracker user={user} />
         </TabsContent>
 
-        <TabsContent value="ai">
+        <TabsContent value="ai" className="px-3 pb-20">
           <AIAssistant onOpenCalculator={handleOpenCalculator} />
         </TabsContent>
       </Tabs>

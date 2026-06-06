@@ -141,25 +141,25 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="px-3 py-4 space-y-4 pb-6">
+    <div>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="pl-32"
+        className="px-3 pt-4 pb-3"
       >
         <h1 className="text-lg font-bold tracking-tight">Community</h1>
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border sticky top-0 z-20 rounded-none border-x-0">
           <TabsTrigger value="community">Trackly</TabsTrigger>
           <TabsTrigger value="featured">Featured</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="manage">Manage</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="community" className="space-y-3">
+        <TabsContent value="community" className="space-y-3 px-3 pb-20">
           <div className="pb-1">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Community Showcase</p>
             <h2 className="text-lg font-bold tracking-tight">
@@ -346,15 +346,15 @@ export default function CommunityPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="featured">
+        <TabsContent value="featured" className="px-3 pb-20">
           <FeaturedListings />
         </TabsContent>
 
-        <TabsContent value="alerts">
+        <TabsContent value="alerts" className="px-3 pb-20">
           <MarketAlerts />
         </TabsContent>
 
-        <TabsContent value="manage">
+        <TabsContent value="manage" className="px-3 pb-20">
           <ManagePosts />
         </TabsContent>
       </Tabs>

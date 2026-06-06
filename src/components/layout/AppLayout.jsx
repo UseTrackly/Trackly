@@ -5,6 +5,8 @@ import BottomNav from './BottomNav';
 const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
 import MobileHeader from './MobileHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
+import { PageTabProvider, usePageTab } from '@/lib/PageTabContext';
+import PageTabBar from './PageTabBar';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const CalculatorPage = lazy(() => import('@/pages/CalculatorPage'));
@@ -34,6 +36,12 @@ const TabSpinner = () => (
 function AppLayoutInner() {
   const location = useLocation();
   const { tabKeys } = useTabReset();
+  const [calcTab, setCalcTab] = usePageTab('/calculator');
+  const [invTab, setInvTab] = usePageTab('/inventory');
+  const [commTab, setCommTab] = usePageTab('/community');
+
+  const activeTab = { '/calculator': calcTab, '/inventory': invTab, '/community': commTab }[location.pathname] ?? '';
+  const setActiveTab = { '/calculator': setCalcTab, '/inventory': setInvTab, '/community': setCommTab }[location.pathname] ?? (() => {});
   const isChildPage = !TAB_PATHS.includes(location.pathname);
   const isFullscreen = FULLSCREEN_PATHS.includes(location.pathname);
 
@@ -87,7 +95,10 @@ function AppLayoutInner() {
       {/* Header — part of flex column, does NOT scroll */}
       {!isFullscreen && <MobileHeader asFlexItem />}
 
-      {/* Scrollable content — flex-1, sandwiched between header and nav */}
+      {/* Page tab bar — sits between header and content, never scrolls */}
+      {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
+
+      {/* Scrollable content — flex-1, sandwiched between header/tabbar and nav */}
       <main
         id="main-content"
         className="flex-1 overflow-y-auto relative z-10 max-w-2xl w-full mx-auto"
@@ -97,7 +108,6 @@ function AppLayoutInner() {
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'none',
           touchAction: 'pan-y',
-          isolation: 'isolate',
         }}
       >
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
@@ -138,7 +148,9 @@ function AppLayoutInner() {
 export default function AppLayout() {
   return (
     <TabResetProvider>
-      <AppLayoutInner />
+      <PageTabProvider>
+        <AppLayoutInner />
+      </PageTabProvider>
     </TabResetProvider>
   );
 }

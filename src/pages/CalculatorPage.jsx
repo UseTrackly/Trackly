@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { usePageTab } from '@/lib/PageTabContext';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +18,7 @@ import { calculateFlip, PLATFORMS } from '@/lib/platformFees';
 import { canSaveFlip, countTodayFlips, FREE_LIMITS } from '@/lib/proGate';
 
 export default function CalculatorPage() {
-  const [activeTab, setActiveTab] = useState('calculator');
+  const [activeTab, setActiveTab] = usePageTab('/calculator');
 
   const handleOpenCalculator = (flipData) => {
     setBuyPrice(flipData.buy_price || 0);
@@ -99,30 +100,6 @@ export default function CalculatorPage() {
       >
         <h1 className="text-lg font-bold tracking-tight">Calculator</h1>
       </motion.div>
-
-      {/* Sticky tab bar — sits directly in the scroll container with no wrapper */}
-      <div className="sticky top-0 z-20 bg-card border-b border-border grid grid-cols-4">
-        {[
-          { value: 'calculator', label: 'Flip' },
-          { value: 'casino', label: '🎰 Casino' },
-          { value: 'sports', label: '🏈 Bets' },
-          { value: 'ai', label: 'AI' },
-        ].map(tab => (
-          <button
-            key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
-            className={`py-2.5 text-xs font-medium transition-colors border-b-2 ${
-              activeTab === tab.value
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground'
-            }`}
-          >
-            {tab.value === 'ai' ? (
-              <span className="flex items-center justify-center gap-1"><MessageSquare className="w-3.5 h-3.5" />AI</span>
-            ) : tab.label}
-          </button>
-        ))}
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />

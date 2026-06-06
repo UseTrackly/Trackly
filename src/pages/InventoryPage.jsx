@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { usePageTab } from '@/lib/PageTabContext';
 import { base44 } from '@/api/base44Client';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,7 +37,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function InventoryPage() {
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setActiveTab] = usePageTab('/inventory');
   const [showAdd, setShowAdd] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -286,28 +287,6 @@ export default function InventoryPage() {
           {items.length} item{items.length !== 1 ? 's' : ''} · {formatCurrency(totalValue, user?.currency)} total value
         </p>
       </motion.div>
-
-      {/* Sticky tab bar */}
-      <div className="sticky top-0 z-20 bg-card border-b border-border grid grid-cols-4">
-        {[
-          { value: 'inventory', label: 'Items' },
-          { value: 'history', label: 'History' },
-          { value: 'expenses', label: 'Expenses' },
-          { value: 'ai', label: 'AI' },
-        ].map(tab => (
-          <button
-            key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
-            className={`py-2.5 text-xs font-medium transition-colors border-b-2 ${
-              activeTab === tab.value
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />

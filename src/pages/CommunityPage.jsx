@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { usePageTab } from '@/lib/PageTabContext';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,7 +25,7 @@ const CATEGORIES = [
 ];
 
 export default function CommunityPage() {
-  const [activeTab, setActiveTab] = useState('community');
+  const [activeTab, setActiveTab] = usePageTab('/community');
   const [showPost, setShowPost] = useState(false);
   const [selectedFlip, setSelectedFlip] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -150,28 +151,6 @@ export default function CommunityPage() {
       >
         <h1 className="text-lg font-bold tracking-tight">Community</h1>
       </motion.div>
-
-      {/* Sticky tab bar */}
-      <div className="sticky top-0 z-20 bg-card border-b border-border grid grid-cols-4">
-        {[
-          { value: 'community', label: 'Trackly' },
-          { value: 'featured', label: 'Featured' },
-          { value: 'alerts', label: 'Alerts' },
-          { value: 'manage', label: 'Manage' },
-        ].map(tab => (
-          <button
-            key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
-            className={`py-2.5 text-xs font-medium transition-colors border-b-2 ${
-              activeTab === tab.value
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />

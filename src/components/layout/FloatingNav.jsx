@@ -65,12 +65,11 @@ export default function FloatingNav() {
             style={{
               position: 'fixed',
               bottom: `calc(84px + env(safe-area-inset-bottom, 0px))`,
-              left: '50%',
-              transform: 'translateX(-50%)',
+              right: 20,
               zIndex: 999,
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
+              alignItems: 'flex-end',
               gap: 10,
             }}
           >
@@ -143,8 +142,7 @@ export default function FloatingNav() {
         style={{
           position: 'fixed',
           bottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          right: 20,
           zIndex: 1000,
         }}
       >

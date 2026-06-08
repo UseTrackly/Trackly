@@ -6,13 +6,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, MessageCircle, Image, Loader2, X, UserCircle } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Image, Loader2, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import ProfileLink from '@/components/shared/ProfileLink';
 import EmptyState from '@/components/shared/EmptyState';
-import ConversationProfilePanel from '@/components/community/ConversationProfilePanel';
+
 
 function ThreadItem({ thread, onClick, navigate }) {
   const hasUnread = thread.messages.some(m => !m.is_read && m.recipient_email === thread.currentUserEmail);
@@ -21,7 +21,8 @@ function ThreadItem({ thread, onClick, navigate }) {
   
   const handleProfileClick = (e) => {
     e.stopPropagation();
-    navigate(`/profile/${encodeURIComponent(thread.otherName)}`);
+    const routeParam = thread.otherUsername || thread.otherEmail;
+    navigate(`/profile/${encodeURIComponent(routeParam)}`);
   };
   
   return (
@@ -42,7 +43,7 @@ function ThreadItem({ thread, onClick, navigate }) {
               <img src={thread.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-base font-bold text-muted-foreground">
-                {thread.otherName[0]?.toUpperCase()}
+                {thread.otherName?.[0]?.toUpperCase() || 'U'}
               </div>
             )}
           </div>
@@ -64,10 +65,10 @@ function ThreadItem({ thread, onClick, navigate }) {
   );
 }
 
-function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
+function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navigate }) {
   const [text, setText] = useState('');
   const [uploadingImg, setUploadingImg] = useState(false);
-  const [showProfilePanel, setShowProfilePanel] = useState(false);
+
   const queryClient = useQueryClient();
   const bottomRef = useRef(null);
   const isBlocked = blockedUsers?.includes(thread.otherEmail);
@@ -105,7 +106,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
 
   const sendMutation = useMutation({
     mutationFn: (payload) => {
-      const senderDisplayName = currentUser?.email ? currentUser.full_name || currentUser.email.split('@')[0] : 'User';
+      const senderDisplayName = currentUser?.full_name || 'User';
       return base44.entities.Message.create({
         community_flip_id: thread.flipId,
         sender_email: currentUser.email,
@@ -132,14 +133,18 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
         <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 -ml-2">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <ProfileLink userEmail={thread.otherEmail} username={thread.otherUsername || thread.otherName} userName={thread.otherName} showAvatar={true} className="flex-1 min-w-0">
-          <div className="min-w-0 flex-1">
+        <button
+          onClick={() => navigate(`/profile/${encodeURIComponent(thread.otherUsername || thread.otherEmail)}`)}
+          className="flex-1 min-w-0 text-left"
+          type="button"
+        >
+          <div className="min-w-0">
             <p className="font-semibold text-base truncate text-foreground">{thread.otherName}</p>
+            {thread.otherUsername && (
+              <p className="text-[10px] text-muted-foreground truncate">@{thread.otherUsername}</p>
+            )}
           </div>
-        </ProfileLink>
-        <Button variant="ghost" size="icon" onClick={() => setShowProfilePanel(true)} className="h-9 w-9">
-          <UserCircle className="w-5 h-5 text-muted-foreground" />
-        </Button>
+        </button>
       </div>
 
       {isBlocked && (
@@ -223,12 +228,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
         </div>
       )}
 
-      <ConversationProfilePanel
-        open={showProfilePanel}
-        onClose={() => setShowProfilePanel(false)}
-        otherEmail={thread.otherEmail}
-        currentUser={currentUser}
-      />
+
     </div>
   );
 }
@@ -242,25 +242,36 @@ export default function MessageInbox({ open, onClose }) {
   const { data: myProfileRaw = [] } = useQuery({ queryKey: ['myProfile'], queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1), enabled: !!user });
   const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
   const { data: messages = [] } = useQuery({ queryKey: ['myMessages'], queryFn: () => base44.entities.Message.list('-created_date', 200), enabled: open, refetchInterval: 10000 });
-
   const { data: flips = [] } = useQuery({ queryKey: ['communityFlips'], queryFn: () => base44.entities.CommunityFlip.list('-created_date', 200), enabled: open });
+  
+  // Fetch all user profiles for consistent identity display
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ['allProfilesForMessages'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
+    enabled: open,
+    initialData: [],
+  });
 
   const threads = useMemo(() => {
     if (!user) return [];
     const map = new Map();
     messages.forEach(m => {
       const otherEmail = m.sender_email === user.email ? m.recipient_email : m.sender_email;
-      const otherName = m.sender_email === user.email ? m.recipient_name : m.sender_name;
       if (!map.has(otherEmail)) {
         const flip = flips.find(f => f.id === m.community_flip_id);
+        const profile = allProfiles.find(p => p.user_email === otherEmail);
+        const displayName = profile?.display_name || profile?.username || (m.sender_email === user.email ? m.recipient_name : m.sender_name) || 'User';
+        const username = profile?.username;
+        const avatarUrl = profile?.avatar_url;
         map.set(otherEmail, { 
           otherEmail, 
-          otherName: otherName || 'User',
+          otherName: displayName,
+          otherUsername: username,
           flipId: m.community_flip_id, 
           flipName: flip?.item_name || 'Flip', 
           messages: [], 
           currentUserEmail: user.email, 
-          avatarUrl: null 
+          avatarUrl
         });
       }
       map.get(otherEmail).messages.push(m);
@@ -272,20 +283,7 @@ export default function MessageInbox({ open, onClose }) {
       if (!aUnread && bUnread) return 1;
       return b.messages[0]?.created_date.localeCompare(a.messages[0]?.created_date);
     });
-  }, [messages, flips, user]);
-
-  useEffect(() => {
-    threads.forEach(t => {
-      base44.entities.UserProfile.filter({ user_email: t.otherEmail }, '-created_date', 1).then(p => { 
-        if (p?.[0]) {
-          t.avatarUrl = p[0].avatar_url;
-          if (p[0].display_name || p[0].username) {
-            t.otherName = p[0].display_name || p[0].username;
-          }
-        }
-      });
-    });
-  }, [threads.length]);
+  }, [messages, flips, user, allProfiles]);
 
   const confirmBlock = async () => {
     try {
@@ -343,7 +341,7 @@ export default function MessageInbox({ open, onClose }) {
                 exit={{ opacity: 0, x: 20 }} 
                 className="flex-1 flex flex-col"
               >
-                <Conversation thread={selectedThread} currentUser={user} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} />
+                <Conversation thread={selectedThread} currentUser={user} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} navigate={navigate} />
               </motion.div>
             )}
           </AnimatePresence>

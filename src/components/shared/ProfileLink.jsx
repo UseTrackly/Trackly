@@ -48,7 +48,7 @@ export default function ProfileLink({
     );
   }
 
-  // Default: render avatar + name
+  // Default: render avatar + name (never show email)
   return (
     <button 
       onClick={handleClick}
@@ -61,7 +61,7 @@ export default function ProfileLink({
             <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-              {(userName || userEmail || '?')[0]?.toUpperCase()}
+              {(userName || '?')[0]?.toUpperCase()}
             </div>
           )}
         </div>

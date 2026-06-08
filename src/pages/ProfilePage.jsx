@@ -320,7 +320,7 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Song Card */}
-        <div className="relative group mt-3">
+        <div className="relative group mt-3 pr-10">
           <ProfileSongCard
             songName={profile?.song_name}
             songArtist={profile?.song_artist}

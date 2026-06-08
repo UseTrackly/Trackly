@@ -202,16 +202,25 @@ Deno.serve(async (req) => {
     // ── FOLLOW / UNFOLLOW ────────────────────────────────────────────────────
     if (action === 'follow' || action === 'unfollow') {
       const { target_email } = body;
+      console.log('[profileManager] Follow action received:', { action, user_email: user.email, target_email, body });
       if (!target_email || target_email === user.email) {
         return Response.json({ error: 'Invalid target_email' }, { status: 400 });
       }
 
       const all = await svc.entities.UserProfile.list('-created_date', 1000);
+      console.log('[profileManager] Loaded profiles:', all.length);
 
       // Current user's profile
       let myProfile = all.find(r => r.user_email === user.email) ?? null;
       // Target profile
       let targetProfile = all.find(r => r.user_email === target_email) ?? null;
+
+      console.log('[profileManager] Profile lookup:', { 
+        myProfileFound: !!myProfile, 
+        targetProfileFound: !!targetProfile,
+        myProfileId: myProfile?.id,
+        targetProfileId: targetProfile?.id
+      });
 
       if (!targetProfile) {
         return Response.json({ error: 'Target profile not found' }, { status: 404 });
@@ -219,6 +228,12 @@ Deno.serve(async (req) => {
 
       const myFollowing = Array.isArray(myProfile?.following) ? [...myProfile.following] : [];
       const targetFollowers = Array.isArray(targetProfile?.followers) ? [...targetProfile.followers] : [];
+
+      console.log('[profileManager] Before action:', {
+        myFollowing,
+        targetFollowers,
+        action
+      });
 
       if (action === 'follow') {
         if (!myFollowing.includes(target_email)) myFollowing.push(target_email);
@@ -230,17 +245,25 @@ Deno.serve(async (req) => {
         if (tIdx > -1) targetFollowers.splice(tIdx, 1);
       }
 
+      console.log('[profileManager] After action:', {
+        myFollowing,
+        targetFollowers
+      });
+
       // Update my profile
       if (myProfile) {
-        await svc.entities.UserProfile.update(myProfile.id, { following: myFollowing });
+        const updatedMy = await svc.entities.UserProfile.update(myProfile.id, { following: myFollowing });
+        console.log('[profileManager] Updated my profile:', { id: myProfile.id, following: myFollowing });
       } else {
         myProfile = await svc.entities.UserProfile.create({ user_email: user.email, following: myFollowing });
+        console.log('[profileManager] Created my profile:', { user_email: user.email, following: myFollowing });
       }
 
       // Update target profile
       const updatedTarget = await svc.entities.UserProfile.update(targetProfile.id, { followers: targetFollowers });
+      console.log('[profileManager] Updated target profile:', { id: targetProfile.id, followers: targetFollowers });
 
-      console.log(`[profileManager] ${action}: ${user.email} -> ${target_email}`);
+      console.log(`[profileManager] ${action} completed: ${user.email} -> ${target_email}`);
       return Response.json({ target_profile: updatedTarget });
     }
 

@@ -96,23 +96,41 @@ export default function ViewProfilePage() {
 
   // Check if current user is following
   const isFollowing = currentUser && otherProfile?.followers?.includes(currentUser.email);
+  console.log('[ViewProfilePage] Follow state:', {
+    currentUserEmail: currentUser?.email,
+    targetUserEmail: otherProfile?.user_email,
+    targetFollowers: otherProfile?.followers,
+    isFollowing
+  });
 
   // Follow/Unfollow mutation
   const followMutation = useMutation({
     mutationFn: async () => {
       const token = await nativeStorage.get();
+      console.log('[ViewProfilePage] Follow mutation:', {
+        currentUserEmail: currentUser?.email,
+        currentUserFullname: currentUser?.full_name,
+        targetUserEmail: otherProfile?.user_email,
+        targetUsername: otherProfile?.username,
+        action: isFollowing ? 'unfollow' : 'follow'
+      });
       const res = await base44.functions.invoke('profileManager', {
         action: isFollowing ? 'unfollow' : 'follow',
-        targetEmail: otherProfile?.user_email,
+        target_email: otherProfile?.user_email,
         token,
       });
+      console.log('[ViewProfilePage] Follow mutation response:', res.data);
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;
     },
     onSuccess: (updatedProfile) => {
+      console.log('[ViewProfilePage] Follow success, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['otherProfile', decodedParam] });
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
       toast.success(isFollowing ? 'Unfollowed' : 'Following!');
+    },
+    onError: (error) => {
+      console.error('[ViewProfilePage] Follow mutation error:', error);
     },
   });
 

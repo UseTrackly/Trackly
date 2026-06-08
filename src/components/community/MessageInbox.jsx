@@ -23,7 +23,7 @@ function ThreadItem({ thread, onClick, navigate }) {
     e.stopPropagation();
     // Priority: username > email
     const routeParam = thread.otherUsername || thread.otherEmail;
-    console.log('[ThreadItem] Profile click:', {
+    console.log('[ThreadItem Avatar] Profile click:', {
       selectedUserEmail: thread.otherEmail,
       selectedUsername: thread.otherUsername,
       selectedName: thread.otherName,
@@ -31,7 +31,7 @@ function ThreadItem({ thread, onClick, navigate }) {
       finalRoute: `/profile/${encodeURIComponent(routeParam)}`
     });
     if (routeParam) {
-      // Close the sheet first if open
+      // Navigate to profile (sheet will close automatically on route change)
       navigate(`/profile/${encodeURIComponent(routeParam)}`);
     }
   };
@@ -164,7 +164,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
           <div className="min-w-0">
             <p className="font-semibold text-base truncate text-foreground">{thread.otherName}</p>
             {thread.otherUsername && (
-              <p className="text-[10px] text-muted-foreground truncate">@{thread.otherUsername}</p>
+              <p className="text-[10px] text-muted-foreground">@{thread.otherUsername}</p>
             )}
           </div>
         </button>

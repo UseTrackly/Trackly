@@ -5,12 +5,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, MessageCircle, Image, Loader2, Ban, X, User } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Image, Loader2, Ban, X, User, UserCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import ProfileLink from '@/components/shared/ProfileLink';
 import EmptyState from '@/components/shared/EmptyState';
+import ConversationProfilePanel from '@/components/community/ConversationProfilePanel';
 
 function ThreadItem({ thread, onClick, onProfileClick }) {
   const hasUnread = thread.messages.some(m => !m.is_read && m.recipient_email === thread.currentUserEmail);
@@ -55,6 +56,7 @@ function ThreadItem({ thread, onClick, onProfileClick }) {
 function Conversation({ thread, currentUser, senderName, onBack, onBlock, blockedUsers, onViewProfile }) {
   const [text, setText] = useState('');
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [showProfilePanel, setShowProfilePanel] = useState(false);
   const queryClient = useQueryClient();
   const bottomRef = useRef(null);
   const isBlocked = blockedUsers?.includes(thread.otherEmail);
@@ -117,7 +119,7 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
               <p className="text-[10px] text-muted-foreground truncate">Re: {thread.flipName}</p>
             </div>
           </ProfileLink>
-          <Button variant="ghost" size="sm" onClick={onViewProfile} className="h-8 px-2 text-xs gap-1"><User className="w-3.5 h-3.5" /></Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowProfilePanel(true)} className="h-8 px-2 text-xs gap-1"><UserCircle className="w-3.5 h-3.5" /> Profile</Button>
           <Button variant="ghost" size="icon" onClick={() => onBlock(thread.otherEmail, thread.otherName)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Ban className="w-4 h-4" /></Button>
         </div>
       </div>
@@ -165,6 +167,13 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
           <input id="msg-img-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
         </div>
       )}
+
+      <ConversationProfilePanel
+        open={showProfilePanel}
+        onClose={() => setShowProfilePanel(false)}
+        otherEmail={thread.otherEmail}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

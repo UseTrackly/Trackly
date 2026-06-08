@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Menu, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
@@ -76,23 +76,9 @@ export default function UnifiedHeader() {
                 />
               </div>
 
-              {/* Right: notifications + messages + hamburger */}
+              {/* Right: notifications + hamburger */}
               <div className="flex items-center gap-0.5">
                 <NotificationBell />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setInboxOpen(true)}
-                  className="relative"
-                  aria-label="Open messages"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                  {unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center">
-                      {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
-                    </span>
-                  )}
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

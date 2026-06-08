@@ -8,7 +8,7 @@ import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
-  Package, TrendingUp, Search, X,
+  Package, TrendingUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { Crown } from 'lucide-react';
 import ProfileSongCard from '@/components/profile/ProfileSongCard';
 import FollowStats from '@/components/profile/FollowStats';
+import SongSearchPicker from '@/components/profile/SongSearchPicker';
 
 const CATEGORIES = [
   { value: 'cards', label: 'Cards', emoji: '🎴' },
@@ -46,8 +47,6 @@ export default function ProfilePage() {
   const [songPreviewUrl, setSongPreviewUrl] = useState('');
   const [songArtwork, setSongArtwork] = useState('');
   const [songArtist, setSongArtist] = useState('');
-  const [findingPreview, setFindingPreview] = useState(false);
-  const [songResults, setSongResults] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const queryClient = useQueryClient();
@@ -434,98 +433,24 @@ export default function ProfilePage() {
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</label>
               <Input value={locationVal} onChange={(e) => setLocationVal(e.target.value)} placeholder="e.g. New York, NY" className="bg-background" />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Profile Song</label>
-              <div className="flex gap-2">
-                <Input
-                  value={songName}
-                  onChange={(e) => { setSongName(e.target.value); setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); setSongResults([]); }}
-                  placeholder="e.g. Money Longer – Lil Uzi Vert"
-                  className="bg-background flex-1"
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter' && songName.trim()) {
-                      e.preventDefault();
-                      setFindingPreview(true);
-                      setSongResults([]);
-                      setSongPreviewUrl(''); setSongArtwork(''); setSongArtist('');
-                      try {
-                        const res = await base44.functions.invoke('findSongPreview', { query: songName });
-                        if (res.data?.results?.length) setSongResults(res.data.results);
-                        else toast.error('No results found');
-                      } catch { toast.error('Could not search'); }
-                      finally { setFindingPreview(false); }
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={findingPreview || !songName.trim()}
-                  onClick={async () => {
-                    if (!songName.trim()) return;
-                    setFindingPreview(true);
-                    setSongResults([]);
-                    setSongPreviewUrl(''); setSongArtwork(''); setSongArtist('');
-                    try {
-                      const res = await base44.functions.invoke('findSongPreview', { query: songName });
-                      if (res.data?.results?.length) setSongResults(res.data.results);
-                      else toast.error('No results found');
-                    } catch { toast.error('Could not search'); }
-                    finally { setFindingPreview(false); }
-                  }}
-                  className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50"
-                >
-                  {findingPreview ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Search className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
-              {/* Selected song confirmation */}
-              {songPreviewUrl && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                  {songArtwork && <img src={songArtwork} alt="" className="w-8 h-8 rounded object-cover shrink-0" />}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-primary truncate">✓ Preview ready</p>
-                    {songArtist && <p className="text-[10px] text-muted-foreground truncate">{songArtist}</p>}
-                  </div>
-                  <button onClick={() => { setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); setSongResults([]); }} className="shrink-0">
-                    <X className="w-3.5 h-3.5 text-muted-foreground" />
-                  </button>
-                </div>
-              )}
-
-              {/* Search results picker */}
-              {!songPreviewUrl && songResults.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Pick the right song:</p>
-                  {songResults.map((r, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        setSongPreviewUrl(r.preview_url);
-                        setSongArtwork(r.artwork_url || '');
-                        setSongArtist(r.artist_name || '');
-                        setSongName(`${r.track_name} – ${r.artist_name}`);
-                        setSongResults([]);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-secondary border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-left"
-                    >
-                      {r.artwork_url && <img src={r.artwork_url} alt="" className="w-9 h-9 rounded-md object-cover shrink-0" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate">{r.track_name}</p>
-                        <p className="text-[10px] text-muted-foreground truncate">{r.artist_name}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {!songPreviewUrl && songResults.length === 0 && (
-                <p className="text-[10px] text-muted-foreground">Type a song name and press Search or Enter — pick from results</p>
-              )}
-            </div>
+            <SongSearchPicker
+              songName={songName}
+              songArtist={songArtist}
+              songArtwork={songArtwork}
+              songPreviewUrl={songPreviewUrl}
+              onSelect={(data) => {
+                setSongName(data.song_name);
+                setSongArtist(data.song_artist);
+                setSongArtwork(data.song_artwork_url);
+                setSongPreviewUrl(data.song_preview_url);
+              }}
+              onClear={() => {
+                setSongName('');
+                setSongArtist('');
+                setSongArtwork('');
+                setSongPreviewUrl('');
+              }}
+            />
           </div>
           <DialogFooter>
             <Button

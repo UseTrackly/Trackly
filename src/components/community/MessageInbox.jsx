@@ -22,6 +22,11 @@ function ThreadItem({ thread, onClick, navigate }) {
   const handleProfileClick = (e) => {
     e.stopPropagation();
     const routeParam = thread.otherUsername || thread.otherEmail;
+    console.log('[ThreadItem Avatar] Navigating to profile:', { 
+      otherUsername: thread.otherUsername, 
+      otherEmail: thread.otherEmail, 
+      routeParam 
+    });
     if (routeParam) {
       navigate(`/profile/${encodeURIComponent(routeParam)}`);
     }
@@ -39,7 +44,6 @@ function ThreadItem({ thread, onClick, navigate }) {
           onClick={handleProfileClick}
           className="cursor-pointer shrink-0 hover:opacity-80"
           type="button"
-          disabled={!thread.otherUsername && !thread.otherEmail}
         >
           <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary border-2 border-border">
             {thread.avatarUrl ? (
@@ -137,8 +141,18 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <button
-          onClick={() => navigate(`/profile/${encodeURIComponent(thread.otherUsername || thread.otherEmail)}`)}
-          className="flex-1 min-w-0 text-left"
+          onClick={() => {
+            const routeParam = thread.otherUsername || thread.otherEmail;
+            console.log('[Conversation Header] Navigating to profile:', { 
+              otherUsername: thread.otherUsername, 
+              otherEmail: thread.otherEmail, 
+              routeParam 
+            });
+            if (routeParam) {
+              navigate(`/profile/${encodeURIComponent(routeParam)}`);
+            }
+          }}
+          className="flex-1 min-w-0 text-left cursor-pointer hover:opacity-80"
           type="button"
         >
           <div className="min-w-0">
@@ -270,7 +284,8 @@ export default function MessageInbox({ open, onClose }) {
           otherEmail, 
           otherUsername: username, 
           otherName: displayName,
-          isCurrentUser: otherEmail === user.email 
+          profileFound: !!profile,
+          allProfilesCount: allProfiles.length
         });
         map.set(otherEmail, { 
           otherEmail, 

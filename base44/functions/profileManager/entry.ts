@@ -93,6 +93,44 @@ Deno.serve(async (req) => {
       return Response.json({ profile: safeProfile, profit_hidden: isPrivate && !isOwner });
     }
 
+    // ── GET PROFILE BY USERNAME OR EMAIL ─────────────────────────────────────
+    if (action === 'getByParam') {
+      const { viewer_email, lookup_param } = body;
+      if (!viewer_email || !lookup_param) {
+        return Response.json({ error: 'viewer_email and lookup_param required' }, { status: 400 });
+      }
+
+      const all = await svc.entities.UserProfile.list('-created_date', 500);
+      // First try to find by username (case-insensitive)
+      let targetProfile = all.find(r => r.username && r.username.toLowerCase() === lookup_param.toLowerCase());
+      
+      // If not found by username, try by email
+      if (!targetProfile) {
+        targetProfile = all.find(r => r.user_email === lookup_param);
+      }
+      
+      if (!targetProfile) {
+        return Response.json({ error: 'Profile not found' }, { status: 404 });
+      }
+
+      // Enforce profit visibility server-side
+      const isOwner = viewer_email === targetProfile.user_email;
+      const isPrivate = targetProfile.profit_visibility === 'private';
+      
+      // Return profile with profit hidden if private and not owner
+      const safeProfile = isOwner || !isPrivate 
+        ? targetProfile 
+        : { ...targetProfile, profit_hidden: true };
+
+      console.log('[profileManager] getByParam:', { 
+        lookup_param, 
+        found_email: targetProfile.user_email, 
+        found_username: targetProfile.username 
+      });
+
+      return Response.json({ profile: safeProfile, profit_hidden: isPrivate && !isOwner });
+    }
+
     // ── SAVE ────────────────────────────────────────────────────────────────
     if (action === 'save') {
       const { data } = body;

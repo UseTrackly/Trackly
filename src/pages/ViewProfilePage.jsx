@@ -28,23 +28,23 @@ export default function ViewProfilePage() {
   
   console.log('[ViewProfilePage] Route param received:', { profileParam, decodedParam, currentUserEmail: currentUser?.email });
   
-  // Lookup profile by username or email
+  // Lookup profile by username or email - profileManager will handle both
   const { data: otherProfile, isLoading: loadingProfile } = useQuery({
     queryKey: ['otherProfile', decodedParam],
     queryFn: async () => {
       if (!decodedParam) return null;
-      console.log('[ViewProfilePage] Fetching profile for:', decodedParam);
+      console.log('[ViewProfilePage] Looking up profile for:', decodedParam);
       const token = await nativeStorage.get();
       const res = await base44.functions.invoke('profileManager', { 
-        action: 'getForViewer', 
+        action: 'getByParam', 
         viewer_email: currentUser?.email,
-        target_email: decodedParam,
+        lookup_param: decodedParam,
         token 
       });
-      console.log('[ViewProfilePage] Profile loaded:', { 
+      console.log('[ViewProfilePage] Profile lookup result:', { 
         requestedParam: decodedParam, 
-        loadedProfileEmail: res.data?.profile?.user_email,
-        loadedProfileUsername: res.data?.profile?.username 
+        foundProfileEmail: res.data?.profile?.user_email,
+        foundProfileUsername: res.data?.profile?.username 
       });
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;

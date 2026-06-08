@@ -182,10 +182,10 @@ export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, on
     <div className="space-y-4 pb-24">
       <Tabs value={feedTab} onValueChange={setFeedTab}>
         <TabsList className="w-full grid grid-cols-4 bg-card/60 backdrop-blur-xl border border-border/50">
-          <TabsTrigger value="for-you" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">For You</TabsTrigger>
+          <TabsTrigger value="discover" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Discover</TabsTrigger>
           <TabsTrigger value="following" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Following</TabsTrigger>
           <TabsTrigger value="market" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Market</TabsTrigger>
-          <TabsTrigger value="my-posts" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">My Posts</TabsTrigger>
+          <TabsTrigger value="alerts" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Alerts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="for-you" className="space-y-4">

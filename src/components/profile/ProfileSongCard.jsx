@@ -8,7 +8,7 @@ function EqualizerBars() {
       {[1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="w-[3px] rounded-full bg-violet-400"
+          className="w-[3px] rounded-full bg-primary"
           style={{
             animation: `eq-bar-${i} ${0.5 + i * 0.12}s ease-in-out infinite alternate`,
             height: '60%',
@@ -72,12 +72,12 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         className="relative flex items-center gap-3 px-3 py-3 rounded-2xl overflow-hidden transition-all"
         style={{
           background: playing
-            ? 'linear-gradient(135deg, rgba(109,40,217,0.28) 0%, rgba(99,102,241,0.22) 100%)'
-            : 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+            ? 'linear-gradient(135deg, hsl(var(--primary) / 0.28) 0%, hsl(var(--accent) / 0.22) 100%)'
+            : 'linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--accent) / 0.08) 100%)',
           border: playing
-            ? '1px solid rgba(139,92,246,0.45)'
-            : '1px solid rgba(139,92,246,0.18)',
-          boxShadow: playing ? '0 0 18px rgba(139,92,246,0.2)' : 'none',
+            ? '1px solid hsl(var(--primary) / 0.45)'
+            : '1px solid hsl(var(--primary) / 0.18)',
+          boxShadow: playing ? `0 0 18px hsl(var(--primary) / 0.2)` : 'none',
           transition: 'all 0.3s ease',
         }}
       >
@@ -86,8 +86,8 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
           {artworkUrl ? (
             <img src={artworkUrl} alt="artwork" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-violet-900/40 flex items-center justify-center">
-              <Music2 className="w-5 h-5 text-violet-400" />
+            <div className="w-full h-full bg-primary/20 flex items-center justify-center">
+              <Music2 className="w-5 h-5 text-primary" />
             </div>
           )}
         </div>
@@ -112,14 +112,14 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90"
             style={{
               background: playing
-                ? 'linear-gradient(135deg, #7c3aed, #6366f1)'
-                : 'rgba(139,92,246,0.2)',
-              border: '1px solid rgba(139,92,246,0.35)',
+                ? 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))'
+                : 'hsl(var(--primary) / 0.2)',
+              border: '1px solid hsl(var(--primary) / 0.35)',
             }}
           >
             {playing
               ? <Pause className="w-4 h-4 text-white" />
-              : <Play className="w-4 h-4 text-violet-300 ml-0.5" />}
+              : <Play className="w-4 h-4 text-primary" />}
           </button>
         )}
 

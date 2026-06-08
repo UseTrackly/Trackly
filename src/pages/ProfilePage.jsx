@@ -8,7 +8,7 @@ import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
-  Package, TrendingUp,
+  Package, TrendingUp, Users, ShoppingBag,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -320,7 +320,7 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Song Card */}
-        <div className="flex justify-center">
+        <div className="flex justify-center mt-4">
           <ProfileSongCard
             songName={profile?.song_name}
             songArtist={profile?.song_artist}
@@ -330,34 +330,57 @@ export default function ProfilePage() {
           />
         </div>
 
-        {/* Followers / Following */}
-        <FollowStats
-          profile={profile}
-          currentUserEmail={user?.email}
-          isOwnProfile={true}
-        />
-
-        {/* Stats row */}
-        <div className="flex gap-5 mt-3">
-          <div className="text-center">
-            <p className="text-base font-bold">{flips.length}</p>
-            <p className="text-[11px] text-muted-foreground">Flips</p>
-          </div>
-          <div className="text-center">
-            <p className="text-base font-bold">{inventory.length}</p>
-            <p className="text-[11px] text-muted-foreground">In Stock</p>
-          </div>
-          <div className="text-center">
-            <p className={`text-base font-bold ${totalProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
-              {formatCurrency(totalProfit, user?.currency)}
-            </p>
-            <p className="text-[11px] text-muted-foreground">Net Profit</p>
+        {/* Collectors Section */}
+        <div className="mt-6">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Collectors</p>
+          <div className="flex items-center justify-center gap-6">
+            <FollowStats
+              profile={profile}
+              currentUserEmail={user?.email}
+              isOwnProfile={true}
+              compact
+              onOpenPreview={(type) => {
+                toast.info(`${type === 'followers' ? 'Followers' : 'Following'} list coming soon`);
+              }}
+            />
           </div>
         </div>
 
-        {/* Favorite Categories */}
+        {/* Track Record Section */}
+        <div className="mt-6">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Track Record</p>
+          <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Net Profit</p>
+            <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {formatCurrency(totalProfit, user?.currency)}
+            </p>
+          </div>
+        </div>
+
+        {/* Collection Section */}
+        <div className="mt-6">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Collection</p>
+          <div className="flex gap-4">
+            <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Package className="w-4 h-4 text-muted-foreground" />
+                <p className="text-2xl font-bold">{flips.length}</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Flips</p>
+            </div>
+            <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+                <p className="text-2xl font-bold">{inventory.length}</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">In Stock</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Specialties */}
         {selectedCats.length > 0 && (
-          <div className="mt-4">
+          <div className="mt-6">
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Specialties</p>
             <div className="flex flex-wrap gap-2">
               {selectedCats.map(cat => {

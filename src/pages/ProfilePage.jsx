@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
-  MapPin, Edit3, Camera, User, Image as ImageIcon,
+  MapPin, Edit3, Camera, User, Image as ImageIcon, Calendar,
   Package, TrendingUp, Users, ShoppingBag, X, Lock, Crown,
 } from 'lucide-react';
 import ProfileLink from '@/components/shared/ProfileLink';
@@ -330,7 +330,12 @@ export default function ProfilePage() {
               <span className="text-xs text-muted-foreground">{profile.location}</span>
             </div>
           )}
-          
+          {user?.created_date && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <Calendar className="w-3 h-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Joined {new Date(user.created_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+            </div>
+          )}
         </div>
 
         {/* Bio */}

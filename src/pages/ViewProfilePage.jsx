@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
-  MapPin, MessageCircle, UserPlus, UserCheck, Package, TrendingUp, Lock, Crown, User, X,
+  MapPin, MessageCircle, UserPlus, UserCheck, Package, TrendingUp, Lock, Crown, User, X, Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProfileSongCard from '@/components/profile/ProfileSongCard';
@@ -223,6 +223,12 @@ export default function ViewProfilePage() {
             <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground">
               <MapPin className="w-3.5 h-3.5" />
               <span className="text-xs">{locationVal}</span>
+            </div>
+          )}
+          {otherProfile?.created_date && (
+            <div className="flex items-center gap-1.5 mt-0.5 text-muted-foreground">
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="text-xs">Joined {new Date(otherProfile.created_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
             </div>
           )}
         </div>

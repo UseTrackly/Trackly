@@ -26,32 +26,44 @@ export default function ViewProfilePage() {
 
   const decodedParam = profileParam ? decodeURIComponent(profileParam) : null;
   
+  console.log('[ViewProfilePage] Route param received:', { profileParam, decodedParam, currentUserEmail: currentUser?.email });
+  
   // Lookup profile by username or email
   const { data: otherProfile, isLoading: loadingProfile } = useQuery({
     queryKey: ['otherProfile', decodedParam],
     queryFn: async () => {
       if (!decodedParam) return null;
+      console.log('[ViewProfilePage] Fetching profile for:', decodedParam);
       const token = await nativeStorage.get();
       const res = await base44.functions.invoke('profileManager', { 
-        action: 'get', 
-        targetEmail: decodedParam,
+        action: 'getForViewer', 
+        viewer_email: currentUser?.email,
+        target_email: decodedParam,
         token 
+      });
+      console.log('[ViewProfilePage] Profile loaded:', { 
+        requestedParam: decodedParam, 
+        loadedProfileEmail: res.data?.profile?.user_email,
+        loadedProfileUsername: res.data?.profile?.username 
       });
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;
     },
-    enabled: !!decodedParam,
+    enabled: !!decodedParam && !!currentUser,
   });
 
-  // Check if viewing own profile
-  const isOwnProfile = otherProfile?.user_email === currentUser?.email;
+  // Check if viewing own profile - compare the route param to current user's email
+  const isOwnProfile = decodedParam === currentUser?.email || decodedParam === currentUser?.full_name;
+  
+  console.log('[ViewProfilePage] isOwnProfile check:', { decodedParam, currentUserEmail: currentUser?.email, result: isOwnProfile });
 
   // Redirect to own profile page if viewing own profile
   useEffect(() => {
-    if (isOwnProfile) {
+    if (isOwnProfile && otherProfile) {
+      console.log('[ViewProfilePage] Redirecting to /profile (own profile)');
       navigate('/profile', { replace: true });
     }
-  }, [isOwnProfile, navigate]);
+  }, [isOwnProfile, otherProfile, navigate]);
 
   const [showFollowers, setShowFollowers] = useState(null);
 
@@ -109,7 +121,24 @@ export default function ViewProfilePage() {
     navigate('/community', { state: { openMessages: true, prefillRecipient: otherProfile?.user_email } });
   };
 
-  if (!decodedParam || !otherProfile || isOwnProfile) {
+  if (!decodedParam) {
+    console.log('[ViewProfilePage] No route param, returning null');
+    return null;
+  }
+  
+  if (loadingProfile) {
+    return null;
+  }
+  
+  // Don't render if profile not found (but don't redirect - let the "not found" state handle it)
+  if (!otherProfile) {
+    console.log('[ViewProfilePage] Profile not found for:', decodedParam);
+    return null;
+  }
+  
+  // Don't render if it's own profile (should have redirected already)
+  if (isOwnProfile) {
+    console.log('[ViewProfilePage] Is own profile, skipping render');
     return null;
   }
 

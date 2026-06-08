@@ -266,6 +266,12 @@ export default function MessageInbox({ open, onClose }) {
         const displayName = profile?.display_name || profile?.username || (m.sender_email === user.email ? m.recipient_name : m.sender_name) || 'User';
         const username = profile?.username;
         const avatarUrl = profile?.avatar_url;
+        console.log('[MessageInbox] Thread created:', { 
+          otherEmail, 
+          otherUsername: username, 
+          otherName: displayName,
+          isCurrentUser: otherEmail === user.email 
+        });
         map.set(otherEmail, { 
           otherEmail, 
           otherName: displayName,

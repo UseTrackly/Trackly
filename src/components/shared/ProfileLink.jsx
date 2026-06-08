@@ -30,8 +30,13 @@ export default function ProfileLink({
     e.stopPropagation();
     // Use username for URL if available, otherwise fall back to email
     const routeParam = username || userEmail;
+    console.log('[ProfileLink] Navigation clicked:', { userEmail, username, userName, routeParam });
     if (routeParam) {
+      const encodedRoute = encodeURIComponent(routeParam);
+      console.log('[ProfileLink] Navigating to:', `/profile/${encodedRoute}`);
       navigate(`/profile/${encodeURIComponent(routeParam)}`);
+    } else {
+      console.warn('[ProfileLink] No routeParam available!');
     }
   };
 

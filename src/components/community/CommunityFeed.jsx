@@ -14,6 +14,14 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const buyPrice = flip.price * 0.6;
   const margin = ((flip.price - buyPrice) / buyPrice * 100).toFixed(0);
   
+  console.log('[FlipCard] Rendering:', { 
+    flipId: flip.id, 
+    itemName: flip.item_name, 
+    posted_by: flip.posted_by, 
+    posted_by_name: flip.posted_by_name,
+    displayName: profiles?.find(p => p.user_email === flip.posted_by)?.display_name || 'User'
+  });
+  
   // Get profile data for consistent display name
   const posterProfile = profiles?.find(p => p.user_email === flip.posted_by);
   const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name;

@@ -59,10 +59,10 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     return (
       <div className="mt-3 w-full">
         <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card border border-border"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card/60 backdrop-blur-xl border border-border/50"
         >
-          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-            <Lock className="w-4 h-4 text-muted-foreground" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1">
             <p className="text-xs font-medium text-foreground">Profile Song</p>
@@ -72,7 +72,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         
         <button
           onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
-          className="w-full mt-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+          className="w-full mt-2 py-2.5 rounded-lg bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-medium hover:bg-primary/80 transition-colors"
         >
           Upgrade to Pro
         </button>
@@ -88,7 +88,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
   return (
     <div className="mt-3 w-full">
       <div
-        className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card border border-border transition-all"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-card/60 backdrop-blur-xl border border-border/50 transition-all"
         style={{
           boxShadow: playing ? '0 2px 8px hsl(var(--primary) / 0.1)' : 'none',
         }}

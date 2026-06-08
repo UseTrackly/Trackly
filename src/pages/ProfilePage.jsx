@@ -380,7 +380,7 @@ export default function ProfilePage() {
               isUpdating={updateProfileMutation.isPending}
             />
           </div>
-          <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
+          <div className="bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-xl border border-primary/20 rounded-2xl p-5 text-center">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Net Profit</p>
             {profitHidden ? (
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
@@ -399,14 +399,14 @@ export default function ProfilePage() {
         <div className="mt-6">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Collection</p>
           <div className="flex gap-4">
-            <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
+            <div className="flex-1 bg-card/60 backdrop-blur-xl border border-border rounded-xl p-4 text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Package className="w-4 h-4 text-muted-foreground" />
                 <p className="text-2xl font-bold">{flips.length}</p>
               </div>
               <p className="text-[11px] text-muted-foreground">Flips</p>
             </div>
-            <div className="flex-1 bg-card border border-border rounded-xl p-4 text-center">
+            <div className="flex-1 bg-card/60 backdrop-blur-xl border border-border rounded-xl p-4 text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <ShoppingBag className="w-4 h-4 text-muted-foreground" />
                 <p className="text-2xl font-bold">{inventory.length}</p>
@@ -424,7 +424,7 @@ export default function ProfilePage() {
               {selectedCats.map(cat => {
                 const c = CATEGORIES.find(x => x.value === cat);
                 return c ? (
-                  <span key={cat} className="px-2.5 py-1 rounded-full bg-secondary text-xs font-medium text-foreground border border-border">
+                  <span key={cat} className="px-2.5 py-1 rounded-full bg-card/50 backdrop-blur-sm text-xs font-medium text-foreground border border-border/50">
                     {c.emoji} {c.label}
                   </span>
                 ) : null;

@@ -135,57 +135,7 @@ export default function FloatingNav() {
         }
       </AnimatePresence>
 
-      {/* FAB button */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: `calc(20px + env(safe-area-inset-bottom, 0px))`,
-          right: 20,
-          zIndex: 1000
-        }}>
-        
-        <motion.button
-          onClick={() => setOpen((v) => !v)}
-          whileTap={{ scale: 0.92 }}
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            background: open ?
-            'hsl(var(--foreground) / 0.12)' :
-            'hsl(var(--primary))',
-            border: open ?
-            '1px solid hsl(var(--border))' :
-            '1px solid hsl(var(--primary) / 0.5)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: open ?
-            'none' :
-            '0 4px 24px hsl(var(--primary) / 0.45)'
-          }}
-          aria-label={open ? 'Close navigation' : 'Open navigation'} className="hidden">
-          
-          <AnimatePresence mode="wait" initial={false}>
-            {open ?
-            <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                <X size={22} style={{ color: 'hsl(var(--foreground))' }} />
-              </motion.span> :
 
-            <motion.span key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                {currentItem ?
-              <currentItem.icon size={22} style={{ color: '#fff' }} /> :
-
-              <Menu size={22} style={{ color: '#fff' }} />
-              }
-              </motion.span>
-            }
-          </AnimatePresence>
-        </motion.button>
-      </div>
     </>);
 
 }

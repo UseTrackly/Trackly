@@ -96,7 +96,7 @@ export default function CalculatorPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-3 pt-4 pb-3"
+        className="px-3 pt-3 pb-3"
       >
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold tracking-tight">Calculator</h1>

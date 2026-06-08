@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Menu } from 'lucide-react';
+import { ArrowLeft, Menu, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
@@ -15,7 +15,7 @@ const PAGE_TITLES = {
   '/privacy': 'Privacy Policy',
 };
 
-export default function MobileHeader() {
+export default function UnifiedHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const [inboxOpen, setInboxOpen] = useState(false);
@@ -43,19 +43,19 @@ export default function MobileHeader() {
 
   return (
     <>
-      <div className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0">
-        <div
-          className="flex items-center justify-between px-3"
-          style={{
-            paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)',
-            paddingBottom: '12px',
-          }}
-        >
+      <header
+        className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0"
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)',
+        }}
+      >
+        <div className="flex items-center justify-between px-4 py-3">
           {isChildPage ? (
             <>
               <button
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px]"
+                type="button"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back
@@ -76,9 +76,23 @@ export default function MobileHeader() {
                 />
               </div>
 
-              {/* Right: notifications + hamburger */}
-              <div className="flex items-center gap-1">
+              {/* Right: notifications + messages + hamburger */}
+              <div className="flex items-center gap-0.5">
                 <NotificationBell />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setInboxOpen(true)}
+                  className="relative"
+                  aria-label="Open messages"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  {unreadMsgCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-primary-foreground flex items-center justify-center">
+                      {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
+                    </span>
+                  )}
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -91,7 +105,7 @@ export default function MobileHeader() {
             </>
           )}
         </div>
-      </div>
+      </header>
 
       <MessageInbox open={inboxOpen} onClose={() => setInboxOpen(false)} />
 

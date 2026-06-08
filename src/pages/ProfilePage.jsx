@@ -216,7 +216,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="pb-24">
+    <div className="pt-3 pb-24">
       {/* Banner */}
       <div
         className="relative w-full"

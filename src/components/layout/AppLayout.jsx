@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
-import MobileHeader from './MobileHeader';
+import UnifiedHeader from './UnifiedHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
 import { PageTabProvider, usePageTab } from '@/lib/PageTabContext';
 import PageTabBar from './PageTabBar';
@@ -99,7 +99,7 @@ function AppLayoutInner() {
       <Suspense fallback={null}><GlowOrbs /></Suspense>
 
       {/* Header — part of flex column, does NOT scroll */}
-      {!isFullscreen && <MobileHeader asFlexItem />}
+      {!isFullscreen && <UnifiedHeader />}
 
       {/* Page tab bar — sits between header and content, never scrolls */}
       {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
@@ -118,7 +118,7 @@ function AppLayoutInner() {
           touchAction: 'pan-y',
         }}
       >
-        <div className="max-w-2xl w-full mx-auto" style={{ paddingBottom: '24px' }}>
+        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '8px', paddingBottom: 'max(env(safe-area-inset-bottom, 24px), 24px)' }}>
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;

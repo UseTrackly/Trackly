@@ -43,7 +43,7 @@ export default function PageTabBar({ activeTab, onTabChange }) {
       }}
     >
       {/* Tab row */}
-      <div className="flex items-stretch relative px-2">
+      <div className="flex items-stretch relative px-2" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
         {tabs.map((tab, i) => {
           const isActive = activeTab === tab.value;
           return (

@@ -280,7 +280,7 @@ export default function InventoryPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-3 pt-4 pb-3"
+        className="px-3 pt-3 pb-3"
       >
         <h1 className="text-lg font-bold tracking-tight">Inventory</h1>
         <p className="text-xs text-muted-foreground mt-0.5">

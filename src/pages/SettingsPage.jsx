@@ -130,7 +130,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="px-3 py-4 space-y-5 pb-24">
+    <div className="px-3 pt-3 space-y-5 pb-24">
       <motion.h1
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}

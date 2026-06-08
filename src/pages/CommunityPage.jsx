@@ -12,7 +12,7 @@ import CommunityFeed from '@/components/community/CommunityFeed';
 
 
 export default function CommunityPage() {
-  const [activeTab, setActiveTab] = usePageTab('/community');
+  const [activeTab, setActiveTab] = usePageTab('/community', 'discover');
   const [showPost, setShowPost] = useState(false);
   const [selectedFlip, setSelectedFlip] = useState(null);
   const queryClient = useQueryClient();
@@ -102,7 +102,7 @@ export default function CommunityPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-3 pt-4 pb-2"
+        className="px-3 pt-3 pb-2"
       >
         <h1 className="text-lg font-bold tracking-tight">Community</h1>
         {communityFlips.length > 0 && (

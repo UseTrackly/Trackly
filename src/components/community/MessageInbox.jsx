@@ -125,7 +125,10 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0 bg-background/80 backdrop-blur-sm">
+      <div 
+        className="flex items-center gap-3 px-4 border-b border-border shrink-0 bg-background/80 backdrop-blur-sm"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)', paddingBottom: '12px' }}
+      >
         <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 -ml-2">
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -187,7 +190,10 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
 
       {/* Input */}
       {!isBlocked && (
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-border bg-background shrink-0">
+        <div 
+          className="flex items-center gap-2 px-4 border-t border-border bg-background shrink-0"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)', paddingTop: '12px' }}
+        >
           <Button 
             type="button" 
             variant="ghost" 
@@ -295,7 +301,7 @@ export default function MessageInbox({ open, onClose }) {
   return (
     <>
       <Sheet open={open} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-full max-w-md p-0 bg-background border-l border-border flex flex-col">
+        <SheetContent side="right" className="w-full max-w-md p-0 bg-background border-l border-border flex flex-col" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
           <SheetHeader className="px-4 border-b border-border shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)', paddingBottom: '12px' }}>
             <div className="flex items-center justify-between">
               <SheetTitle className="text-2xl font-bold text-foreground">Messages</SheetTitle>

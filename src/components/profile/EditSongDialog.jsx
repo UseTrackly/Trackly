@@ -164,7 +164,7 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
 
           {!selectedName && results.length === 0 && !loading && (
             <p className="text-[10px] text-muted-foreground">
-              Search by song, artist, or both. Try "Love Blur Slayr".
+              Search by song, artist, or both. Try "Love Blur SLAYR".
             </p>
           )}
         </div>

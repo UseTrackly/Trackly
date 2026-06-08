@@ -259,7 +259,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
   );
 }
 
-export default function MessageInbox({ open, onClose }) {
+export default function MessageInbox({ open, onClose, preselectRecipientEmail }) {
   const [selectedThread, setSelectedThread] = useState(null);
   const [blockDialog, setBlockDialog] = useState(null);
   const navigate = useNavigate();
@@ -319,6 +319,31 @@ export default function MessageInbox({ open, onClose }) {
       return b.messages[0]?.created_date.localeCompare(a.messages[0]?.created_date);
     });
   }, [messages, flips, user, allProfiles]);
+
+  // Auto-select conversation when preselectRecipientEmail is provided
+  useEffect(() => {
+    if (preselectRecipientEmail && open && user && threads.length >= 0 && !selectedThread) {
+      const recipientEmail = preselectRecipientEmail;
+      // Find existing thread with this user
+      const existingThread = threads.find(t => t.otherEmail === recipientEmail);
+      if (existingThread) {
+        setSelectedThread(existingThread);
+      } else {
+        // No existing thread - create a placeholder thread for new conversation
+        const recipientProfile = allProfiles.find(p => p.user_email === recipientEmail);
+        const newThread = {
+          otherEmail: recipientEmail,
+          otherName: recipientProfile?.display_name || recipientProfile?.username || 'User',
+          otherUsername: recipientProfile?.username,
+          flipId: null,
+          messages: [],
+          currentUserEmail: user.email,
+          avatarUrl: recipientProfile?.avatar_url
+        };
+        setSelectedThread(newThread);
+      }
+    }
+  }, [preselectRecipientEmail, open, user, threads.length, allProfiles]);
 
   const confirmBlock = async () => {
     try {

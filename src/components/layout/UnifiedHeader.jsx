@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,41 @@ const PAGE_TITLES = {
   '/privacy': 'Privacy Policy',
 };
 
+// Context for opening messages with a specific recipient
+export const MessageContext = createContext(null);
+
+export function MessageProvider({ children }) {
+  const [messageState, setMessageState] = useState({ open: false, recipientEmail: null });
+  
+  const openMessagesWithUser = (recipientEmail) => {
+    setMessageState({ open: true, recipientEmail });
+  };
+  
+  const closeMessages = () => {
+    setMessageState({ open: false, recipientEmail: null });
+  };
+  
+  return (
+    <MessageContext.Provider value={{ messageState, openMessagesWithUser, closeMessages }}>
+      {children}
+    </MessageContext.Provider>
+  );
+}
+
+export function useMessageContext() {
+  const context = useContext(MessageContext);
+  if (!context) {
+    throw new Error('useMessageContext must be used within MessageProvider');
+  }
+  return context;
+}
+
 export default function UnifiedHeader() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [inboxOpen, setInboxOpen] = useState(false);
+  const { messageState, openMessagesWithUser, closeMessages } = useMessageContext();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [inboxPrefillUser, setInboxPrefillUser] = useState(null);
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
   const { data: profile } = useUserProfile(user);
@@ -32,6 +62,17 @@ export default function UnifiedHeader() {
     refetchInterval: 10000,
   });
   const unreadMsgCount = messagesRaw.filter(m => !m.is_read && m.recipient_email === user?.email).length;
+  
+  // Handle navigation state from profile pages
+  useEffect(() => {
+    if (location.state?.openMessages && location.state?.prefillRecipient) {
+      console.log('[UnifiedHeader] Opening messages with prefill:', location.state.prefillRecipient);
+      setInboxPrefillUser(location.state.prefillRecipient);
+      openMessagesWithUser(location.state.prefillRecipient);
+      // Clear the state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   if (
     location.pathname === '/onboarding' ||
@@ -93,12 +134,16 @@ export default function UnifiedHeader() {
         </div>
       </header>
 
-      <MessageInbox open={inboxOpen} onClose={() => setInboxOpen(false)} />
+      <MessageInbox 
+        open={messageState.open} 
+        onClose={closeMessages} 
+        preselectRecipientEmail={messageState.recipientEmail} 
+      />
 
       <SideDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onOpenMessages={() => setInboxOpen(true)}
+        onOpenMessages={() => openMessagesWithUser(null)}
         user={user}
         profile={profile}
         unreadMsgCount={unreadMsgCount}

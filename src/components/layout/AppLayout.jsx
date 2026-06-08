@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
-import UnifiedHeader from './UnifiedHeader';
+import UnifiedHeader, { MessageProvider } from './UnifiedHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
 import { PageTabProvider, usePageTab } from '@/lib/PageTabContext';
 import PageTabBar from './PageTabBar';
@@ -158,7 +158,9 @@ export default function AppLayout() {
   return (
     <TabResetProvider>
       <PageTabProvider>
-        <AppLayoutInner />
+        <MessageProvider>
+          <AppLayoutInner />
+        </MessageProvider>
       </PageTabProvider>
     </TabResetProvider>
   );

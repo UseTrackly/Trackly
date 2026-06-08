@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import FollowStats from '@/components/profile/FollowStats';
 import ProfitVisibilityToggle from '@/components/profile/ProfitVisibilityToggle';
 import { toast } from 'sonner';
 import ProfileLink from '@/components/shared/ProfileLink';
+import { MessageContext } from '@/components/layout/UnifiedHeader';
 
 export default function ViewProfilePage() {
   const { userProfile: profileParam } = useParams();
@@ -134,9 +135,12 @@ export default function ViewProfilePage() {
     },
   });
 
-  // Message button
+  // Message button - open Messages sheet with this user
+  const messageContext = useContext(MessageContext);
   const handleMessage = () => {
-    navigate('/community', { state: { openMessages: true, prefillRecipient: otherProfile?.user_email } });
+    if (messageContext?.openMessagesWithUser) {
+      messageContext.openMessagesWithUser(otherProfile?.user_email);
+    }
   };
 
   if (!decodedParam) {

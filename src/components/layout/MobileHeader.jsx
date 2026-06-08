@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, History, Home, Calculator, Package, Users } from 'lucide-react';
+import { ArrowLeft, MessageCircle, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
@@ -10,13 +10,6 @@ import { useUserProfile } from '@/lib/useUserProfile';
 import { useTabReset } from '@/lib/TabResetContext';
 
 const CHILD_ROUTES = ['/terms', '/privacy'];
-
-const NAV_ITEMS = [
-  { path: '/',           icon: Home,       label: 'Home' },
-  { path: '/calculator', icon: Calculator, label: 'Calc' },
-  { path: '/inventory',  icon: Package,    label: 'Inventory' },
-  { path: '/community',  icon: Users,      label: 'Community' },
-];
 
 export default function MobileHeader({ asFlexItem = false }) {
   const navigate = useNavigate();
@@ -132,43 +125,7 @@ export default function MobileHeader({ asFlexItem = false }) {
           )}
         </div>
 
-        {/* Bottom nav tab bar — only on main pages */}
-        {!isChildPage && (
-          <div className="flex items-center border-t border-border/50">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => handleNav(item.path)}
-                  className="flex-1 flex flex-col items-center justify-center gap-1 py-2 relative"
-                  aria-label={item.label}
-                >
-                  {isActive && (
-                    <span
-                      className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-8 rounded-full bg-primary"
-                      style={{ boxShadow: '0 0 6px hsl(var(--primary) / 0.6)' }}
-                    />
-                  )}
-                  <Icon
-                    size={20}
-                    style={{
-                      color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.5)',
-                      strokeWidth: isActive ? 2.2 : 1.6,
-                    }}
-                  />
-                  <span
-                    className="text-[10px] font-medium tracking-wide"
-                    style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.5)' }}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+
       </div>
 
       <MessageInbox open={inboxOpen} onClose={() => setInboxOpen(false)} />

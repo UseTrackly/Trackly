@@ -47,6 +47,7 @@ export default function ProfilePage() {
   const [songArtwork, setSongArtwork] = useState('');
   const [songArtist, setSongArtist] = useState('');
   const [findingPreview, setFindingPreview] = useState(false);
+  const [songResults, setSongResults] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const queryClient = useQueryClient();
@@ -438,25 +439,20 @@ export default function ProfilePage() {
               <div className="flex gap-2">
                 <Input
                   value={songName}
-                  onChange={(e) => { setSongName(e.target.value); setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); }}
+                  onChange={(e) => { setSongName(e.target.value); setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); setSongResults([]); }}
                   placeholder="e.g. Money Longer – Lil Uzi Vert"
                   className="bg-background flex-1"
                   onKeyDown={async (e) => {
                     if (e.key === 'Enter' && songName.trim()) {
                       e.preventDefault();
                       setFindingPreview(true);
+                      setSongResults([]);
+                      setSongPreviewUrl(''); setSongArtwork(''); setSongArtist('');
                       try {
                         const res = await base44.functions.invoke('findSongPreview', { query: songName });
-                        if (res.data?.preview_url) {
-                          setSongPreviewUrl(res.data.preview_url);
-                          setSongArtwork(res.data.artwork_url || '');
-                          setSongArtist(res.data.artist_name || '');
-                          if (res.data.track_name) setSongName(`${res.data.track_name} – ${res.data.artist_name}`);
-                          toast.success('Preview found!');
-                        } else {
-                          toast.error('No preview found for this song');
-                        }
-                      } catch { toast.error('Could not find preview'); }
+                        if (res.data?.results?.length) setSongResults(res.data.results);
+                        else toast.error('No results found');
+                      } catch { toast.error('Could not search'); }
                       finally { setFindingPreview(false); }
                     }
                   }}
@@ -467,18 +463,13 @@ export default function ProfilePage() {
                   onClick={async () => {
                     if (!songName.trim()) return;
                     setFindingPreview(true);
+                    setSongResults([]);
+                    setSongPreviewUrl(''); setSongArtwork(''); setSongArtist('');
                     try {
                       const res = await base44.functions.invoke('findSongPreview', { query: songName });
-                      if (res.data?.preview_url) {
-                        setSongPreviewUrl(res.data.preview_url);
-                        setSongArtwork(res.data.artwork_url || '');
-                        setSongArtist(res.data.artist_name || '');
-                        if (res.data.track_name) setSongName(`${res.data.track_name} – ${res.data.artist_name}`);
-                        toast.success('Preview found!');
-                      } else {
-                        toast.error('No preview found for this song');
-                      }
-                    } catch { toast.error('Could not find preview'); }
+                      if (res.data?.results?.length) setSongResults(res.data.results);
+                      else toast.error('No results found');
+                    } catch { toast.error('Could not search'); }
                     finally { setFindingPreview(false); }
                   }}
                   className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50"
@@ -490,19 +481,49 @@ export default function ProfilePage() {
                   )}
                 </button>
               </div>
-              {songPreviewUrl ? (
+              {/* Selected song confirmation */}
+              {songPreviewUrl && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
                   {songArtwork && <img src={songArtwork} alt="" className="w-8 h-8 rounded object-cover shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-primary truncate">✓ Preview ready</p>
                     {songArtist && <p className="text-[10px] text-muted-foreground truncate">{songArtist}</p>}
                   </div>
-                  <button onClick={() => { setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); }} className="shrink-0">
+                  <button onClick={() => { setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); setSongResults([]); }} className="shrink-0">
                     <X className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                 </div>
-              ) : (
-                <p className="text-[10px] text-muted-foreground">Type a song name and press Search or Enter to find a 30-sec preview</p>
+              )}
+
+              {/* Search results picker */}
+              {!songPreviewUrl && songResults.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Pick the right song:</p>
+                  {songResults.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        setSongPreviewUrl(r.preview_url);
+                        setSongArtwork(r.artwork_url || '');
+                        setSongArtist(r.artist_name || '');
+                        setSongName(`${r.track_name} – ${r.artist_name}`);
+                        setSongResults([]);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-secondary border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors text-left"
+                    >
+                      {r.artwork_url && <img src={r.artwork_url} alt="" className="w-9 h-9 rounded-md object-cover shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate">{r.track_name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{r.artist_name}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!songPreviewUrl && songResults.length === 0 && (
+                <p className="text-[10px] text-muted-foreground">Type a song name and press Search or Enter — pick from results</p>
               )}
             </div>
           </div>

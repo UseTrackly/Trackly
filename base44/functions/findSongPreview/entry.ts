@@ -26,14 +26,18 @@ Deno.serve(async (req) => {
   const json = await res.json();
   const results = json.results || [];
 
-  // Find first result with a preview URL
-  const match = results.find(r => r.previewUrl);
-  if (!match) return Response.json({ preview_url: null, message: 'No preview found for this song' });
+  // Return up to 5 results with previews
+  const matches = results
+    .filter(r => r.previewUrl)
+    .slice(0, 5)
+    .map(r => ({
+      preview_url: r.previewUrl,
+      track_name: r.trackName,
+      artist_name: r.artistName,
+      artwork_url: r.artworkUrl100,
+    }));
 
-  return Response.json({
-    preview_url: match.previewUrl,
-    track_name: match.trackName,
-    artist_name: match.artistName,
-    artwork_url: match.artworkUrl100,
-  });
+  if (matches.length === 0) return Response.json({ results: [], message: 'No previews found for this song' });
+
+  return Response.json({ results: matches });
 });

@@ -7,39 +7,36 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { toast } from 'sonner';
 
 export default function EditSongDialog({ open, onOpenChange, profile, onSave, isSaving }) {
-  const [songQuery, setSongQuery] = useState('');
-  const [artistQuery, setArtistQuery] = useState('');
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Selected values
   const [selectedName, setSelectedName] = useState('');
   const [selectedArtist, setSelectedArtist] = useState('');
   const [selectedArtwork, setSelectedArtwork] = useState('');
   const [selectedPreviewUrl, setSelectedPreviewUrl] = useState('');
 
-  // Pre-fill with existing profile song when dialog opens
   useEffect(() => {
     if (open) {
       setSelectedName(profile?.song_name || '');
       setSelectedArtist(profile?.song_artist || '');
       setSelectedArtwork(profile?.song_artwork_url || '');
       setSelectedPreviewUrl(profile?.song_preview_url || '');
-      setSongQuery(profile?.song_name ? profile.song_name.split(' – ')[0] || profile.song_name : '');
-      setArtistQuery(profile?.song_artist || '');
+      // Pre-fill search box with existing song for easy re-search
+      const existing = profile?.song_name ? profile.song_name.split(' – ')[0] : '';
+      setQuery(existing);
       setResults([]);
     }
   }, [open]);
 
   const doSearch = async () => {
-    const combined = [songQuery.trim(), artistQuery.trim()].filter(Boolean).join(' ');
-    if (!combined) return;
+    if (!query.trim()) return;
     setLoading(true);
     setResults([]);
     try {
-      const res = await base44.functions.invoke('findSongPreview', { query: combined, songQuery: songQuery.trim(), artistQuery: artistQuery.trim() });
+      const res = await base44.functions.invoke('findSongPreview', { query: query.trim() });
       const found = res.data?.results || [];
-      if (found.length === 0) toast.error('No results — try different search terms');
+      if (found.length === 0) toast.error('No results — try a different search');
       else setResults(found);
     } catch {
       toast.error('Search failed');
@@ -54,8 +51,7 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
     setSelectedArtwork(r.artwork_url || '');
     setSelectedPreviewUrl(r.preview_url || '');
     setResults([]);
-    setSongQuery(r.track_name);
-    setArtistQuery(r.artist_name);
+    setQuery(`${r.track_name} ${r.artist_name}`);
   };
 
   const handleClear = () => {
@@ -63,8 +59,7 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
     setSelectedArtist('');
     setSelectedArtwork('');
     setSelectedPreviewUrl('');
-    setSongQuery('');
-    setArtistQuery('');
+    setQuery('');
     setResults([]);
   };
 
@@ -88,46 +83,32 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
         </DialogHeader>
 
         <div className="space-y-4 py-1">
-          {/* Song name field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Song Name</label>
+          {/* Single search box */}
+          <div className="flex gap-2">
             <Input
-              value={songQuery}
-              onChange={(e) => { setSongQuery(e.target.value); setResults([]); }}
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setResults([]); }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } }}
-              placeholder="e.g. Love Blur"
-              className="bg-background"
+              placeholder="e.g. Love Blur, Drake, One Dance Drake…"
+              className="bg-background flex-1"
+              autoFocus
             />
-          </div>
-
-          {/* Artist field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Artist</label>
-            <div className="flex gap-2">
-              <Input
-                value={artistQuery}
-                onChange={(e) => { setArtistQuery(e.target.value); setResults([]); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } }}
-                placeholder="e.g. Slayr"
-                className="bg-background flex-1"
-              />
-              <button
-                type="button"
-                disabled={loading || (!songQuery.trim() && !artistQuery.trim())}
-                onClick={doSearch}
-                className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50 transition-opacity"
-              >
-                {loading ? (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Search className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={loading || !query.trim()}
+              onClick={doSearch}
+              className="h-11 w-11 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50 transition-opacity"
+            >
+              {loading ? (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Search className="w-4 h-4" />
+              )}
+            </button>
           </div>
 
           {/* Selected song confirmation */}
-          {selectedPreviewUrl && (
+          {selectedName && (
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-primary/10 border border-primary/20">
               {selectedArtwork ? (
                 <img src={selectedArtwork} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
@@ -139,7 +120,8 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold truncate">{selectedName}</p>
                 <p className="text-[10px] text-primary font-medium flex items-center gap-1 mt-0.5">
-                  <Check className="w-2.5 h-2.5" /> Preview ready
+                  <Check className="w-2.5 h-2.5" />
+                  {selectedPreviewUrl ? 'Preview ready' : 'No preview available'}
                 </p>
               </div>
               <button type="button" onClick={handleClear} className="shrink-0 p-1">
@@ -150,9 +132,9 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
 
           {/* Results list */}
           {results.length > 0 && (
-            <div className="space-y-1 max-h-56 overflow-y-auto rounded-xl border border-border bg-background p-1.5">
+            <div className="space-y-1 max-h-60 overflow-y-auto rounded-xl border border-border bg-background p-1.5">
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider px-1.5 pb-0.5">
-                Select the right song:
+                Select a song
               </p>
               {results.map((r, i) => (
                 <button
@@ -180,9 +162,9 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
             </div>
           )}
 
-          {!selectedPreviewUrl && results.length === 0 && !loading && (
+          {!selectedName && results.length === 0 && !loading && (
             <p className="text-[10px] text-muted-foreground">
-              Enter a song name and/or artist, then press Search or Enter
+              Search by song, artist, or both — e.g. "CRG Central Cee"
             </p>
           )}
         </div>
@@ -193,7 +175,7 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !selectedName}
             className="flex-1 bg-primary hover:bg-primary/90"
           >
             {isSaving ? 'Saving...' : 'Save Song'}

@@ -8,7 +8,7 @@ import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
-  Package, TrendingUp, Users, ShoppingBag, X, Lock,
+  Package, TrendingUp, Users, ShoppingBag, X, Lock, Crown,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Crown } from 'lucide-react';
 import ProfileSongCard from '@/components/profile/ProfileSongCard';
+import { canUseProfileSong } from '@/lib/proGate';
 import FollowStats from '@/components/profile/FollowStats';
 import SongSearchPicker from '@/components/profile/SongSearchPicker';
 import EditSongDialog from '@/components/profile/EditSongDialog';
@@ -186,6 +186,7 @@ export default function ProfilePage() {
   const avatarUrl = profile?.avatar_url || user?.profile_picture;
   const bannerUrl = profile?.banner_url;
   const selectedCats = Array.isArray(user?.selected_categories) ? user.selected_categories : [];
+  const isPro = user?.is_pro || false;
 
   if (!isAuthenticated) {
     return (
@@ -336,14 +337,22 @@ export default function ProfilePage() {
           <p className="mt-3 text-sm text-foreground/80 leading-relaxed">{profile.bio}</p>
         )}
 
-        {/* Profile Song Card */}
+        {/* Profile Song Card (Pro Feature) */}
         <div className="flex justify-center mt-4">
           <ProfileSongCard
             songName={profile?.song_name}
             songArtist={profile?.song_artist}
             previewUrl={profile?.song_preview_url}
             artworkUrl={profile?.song_artwork_url}
-            onEdit={() => setShowEditSong(true)}
+            isPro={isPro}
+            onEdit={() => {
+              if (!isPro) {
+                navigate('/upgrade');
+                toast.info('Profile Song is a Pro feature');
+              } else {
+                setShowEditSong(true);
+              }
+            }}
           />
         </div>
 

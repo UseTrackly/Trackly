@@ -51,3 +51,10 @@ export function canAddInventory(user, myItems = []) {
 export function canExport(user) {
   return !!user?.is_pro;
 }
+
+/**
+ * Returns true if the user can use Profile Song feature.
+ */
+export function canUseProfileSong(user) {
+  return !!user?.is_pro;
+}

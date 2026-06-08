@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music2, Play, Pause, Pencil } from 'lucide-react';
+import { Music2, Play, Pause, Pencil, Crown, Lock } from 'lucide-react';
 
 // Equalizer bars animation (CSS-driven)
 function EqualizerBars() {
@@ -25,7 +25,7 @@ function EqualizerBars() {
   );
 }
 
-export default function ProfileSongCard({ songName, songArtist, previewUrl, artworkUrl, onEdit }) {
+export default function ProfileSongCard({ songName, songArtist, previewUrl, artworkUrl, isPro = false, onEdit }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
 
@@ -54,16 +54,57 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     }
   };
 
-  if (!songName && !previewUrl) {
+  // Free user without song - show locked state
+  if (!songName && !isPro) {
     return (
-      <button
-        onClick={onEdit}
-        className="flex items-center gap-2 px-4 py-2 rounded-full border border-dashed border-border text-muted-foreground text-xs hover:border-primary/50 hover:text-primary transition-colors mx-auto mt-3"
-      >
-        <Music2 className="w-3 h-3" />
-        Add a profile song
-      </button>
+      <div className="mt-3 w-full">
+        <div
+          className="relative flex items-center gap-3 px-4 py-3.5 rounded-2xl overflow-hidden backdrop-blur-xl border border-border/50"
+          style={{
+            background: 'linear-gradient(135deg, hsl(var(--card) / 0.6) 0%, hsl(var(--card) / 0.4) 100%)',
+            boxShadow: '0 4px 16px hsl(var(--primary) / 0.05)',
+          }}
+        >
+          {/* Subtle shine overlay */}
+          <div 
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--primary) / 0.02) 0%, transparent 50%, hsl(var(--accent) / 0.01) 100%)',
+            }}
+          />
+          
+          {/* Locked icon */}
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+            <Lock className="w-5 h-5 text-primary" />
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 min-w-0 ml-3">
+            <p className="text-sm font-semibold leading-tight text-foreground">Profile Song</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pro Feature</p>
+          </div>
+
+          {/* Pro badge */}
+          <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-primary/15 border border-primary/30">
+            <Crown className="w-3 h-3 text-primary" />
+            <span className="text-[10px] font-bold text-primary">PRO</span>
+          </div>
+        </div>
+        
+        {/* Upgrade prompt */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+          className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-primary/90 to-accent/90 text-primary-foreground text-sm font-semibold border border-primary/30 shadow-lg hover:shadow-primary/20 transition-all active:scale-[0.98]"
+        >
+          Unlock Profile Song — Upgrade to Pro
+        </button>
+      </div>
     );
+  }
+
+  // Free user with existing song (grandfathered) - show limited state
+  if (!isPro && songName) {
+    // Continue to render but with limited functionality
   }
 
   return (
@@ -72,12 +113,14 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         className="relative flex items-center gap-3 px-4 py-3.5 rounded-2xl overflow-hidden transition-all backdrop-blur-xl"
         style={{
           background: playing
-            ? 'linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--accent) / 0.10) 100%)'
-            : 'linear-gradient(135deg, hsl(var(--card) / 0.8) 0%, hsl(var(--card) / 0.6) 100%)',
-          border: '1px solid hsl(var(--primary) / 0.25)',
+            ? `linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--accent) / 0.12) 100%)`
+            : 'linear-gradient(135deg, hsl(var(--card) / 0.85) 0%, hsl(var(--card) / 0.7) 100%)',
+          border: isPro ? '1px solid hsl(var(--primary) / 0.3)' : '1px solid hsl(var(--primary) / 0.2)',
           boxShadow: playing 
-            ? `0 8px 32px hsl(var(--primary) / 0.15), inset 0 1px 0 hsl(var(--primary) / 0.1)`
-            : '0 4px 16px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(var(--primary) / 0.05)',
+            ? `0 8px 32px hsl(var(--primary) / 0.2), inset 0 1px 0 hsl(var(--primary) / 0.15)`
+            : isPro
+              ? `0 6px 24px hsl(var(--primary) / 0.12), inset 0 1px 0 hsl(var(--primary) / 0.08)`
+              : '0 4px 16px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(var(--primary) / 0.05)',
           transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
@@ -85,16 +128,24 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.03) 0%, transparent 50%, hsl(var(--accent) / 0.02) 100%)',
+            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.04) 0%, transparent 50%, hsl(var(--accent) / 0.03) 100%)',
           }}
         />
         
+        {/* Pro badge for Pro users */}
+        {isPro && (
+          <div className="absolute -top-1.5 -right-1 flex items-center gap-1 px-2 py-1 rounded-full bg-primary/90 text-primary-foreground border border-primary/50 shadow-lg" style={{ zIndex: 10 }}>
+            <Crown className="w-2.5 h-2.5" />
+            <span className="text-[8px] font-bold">PRO</span>
+          </div>
+        )}
+        
         {/* Artwork */}
-        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative shadow-lg" style={{ border: '1px solid hsl(var(--primary) / 0.2)' }}>
+        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative shadow-lg" style={{ border: '1px solid hsl(var(--primary) / 0.25)' }}>
           {artworkUrl ? (
             <img src={artworkUrl} alt="artwork" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-primary/15 flex items-center justify-center">
+            <div className="w-full h-full bg-primary/20 flex items-center justify-center">
               <Music2 className="w-5 h-5 text-primary" />
             </div>
           )}
@@ -121,11 +172,11 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
             style={{
               background: playing
                 ? 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))'
-                : 'linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--accent) / 0.10))',
-              border: `1px solid ${playing ? 'transparent' : 'hsl(var(--primary) / 0.3)'}`,
+                : 'linear-gradient(135deg, hsl(var(--primary) / 0.18), hsl(var(--accent) / 0.12))',
+              border: `1px solid ${playing ? 'transparent' : 'hsl(var(--primary) / 0.35)'}`,
               boxShadow: playing 
-                ? `0 4px 16px hsl(var(--primary) / 0.3), inset 0 1px 0 hsl(white / 0.2)`
-                : '0 2px 8px hsl(var(--primary) / 0.15)',
+                ? `0 4px 20px hsl(var(--primary) / 0.35), inset 0 1px 0 hsl(white / 0.25)`
+                : '0 2px 10px hsl(var(--primary) / 0.2)',
             }}
           >
             {playing

@@ -1,31 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music2, Play, Pause, ExternalLink } from 'lucide-react';
+import { Music2, Play, Pause } from 'lucide-react';
 
-function getYouTubeEmbedId(url) {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-  return match ? match[1] : null;
-}
-
-function isDirectAudio(url) {
-  return /\.(mp3|m4a|ogg|wav|aac)(\?|$)/i.test(url);
-}
-
-function isSpotify(url) {
-  return url.includes('spotify.com');
-}
-
-function isAppleMusic(url) {
-  return url.includes('music.apple.com');
-}
-
-export default function ProfileSongCard({ songName, previewUrl, compact = false }) {
+export default function ProfileSongCard({ songName, songArtist, previewUrl, artworkUrl }) {
   const [playing, setPlaying] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const audioRef = useRef(null);
-
-  const ytId = previewUrl ? getYouTubeEmbedId(previewUrl) : null;
-  const isDirect = previewUrl ? isDirectAudio(previewUrl) : false;
-  const isExternal = previewUrl && !isDirect && !ytId;
 
   useEffect(() => {
     return () => {
@@ -35,6 +13,16 @@ export default function ProfileSongCard({ songName, previewUrl, compact = false 
       }
     };
   }, []);
+
+  // Stop when previewUrl changes (e.g. profile reload)
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlaying(false);
+    }
+  }, [previewUrl]);
+
+  if (!songName && !previewUrl) return null;
 
   const togglePlay = () => {
     if (!audioRef.current) return;
@@ -47,20 +35,29 @@ export default function ProfileSongCard({ songName, previewUrl, compact = false 
     }
   };
 
-  if (!songName && !previewUrl) return null;
+  const hasPlayable = !!previewUrl;
 
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-secondary/60 border border-border mt-3">
-      {/* Icon / waveform */}
+      {/* Artwork or music icon */}
       <div className="relative shrink-0">
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${playing ? 'bg-primary' : 'bg-primary/15'} transition-colors`}>
-          <Music2 className={`w-4 h-4 ${playing ? 'text-primary-foreground' : 'text-primary'}`} />
-        </div>
-        {playing && (
-          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
-          </span>
+        {artworkUrl ? (
+          <div className="w-10 h-10 rounded-lg overflow-hidden relative">
+            <img src={artworkUrl} alt="album art" className="w-full h-full object-cover" />
+            {playing && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <div className="flex gap-0.5 items-end h-4">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="w-1 bg-white rounded-full animate-bounce" style={{ height: `${8 + i * 3}px`, animationDelay: `${i * 0.1}s` }} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${playing ? 'bg-primary' : 'bg-primary/15'} transition-colors`}>
+            <Music2 className={`w-4 h-4 ${playing ? 'text-primary-foreground' : 'text-primary'}`} />
+          </div>
         )}
       </div>
 
@@ -69,22 +66,20 @@ export default function ProfileSongCard({ songName, previewUrl, compact = false 
         <p className="text-xs font-semibold truncate leading-tight">
           {songName || 'Profile Song'}
         </p>
-        {previewUrl && isExternal && (
-          <p className="text-[10px] text-muted-foreground truncate">
-            {isSpotify(previewUrl) ? 'Spotify' : isAppleMusic(previewUrl) ? 'Apple Music' : 'Preview Link'}
-          </p>
+        {songArtist && (
+          <p className="text-[10px] text-muted-foreground truncate">{songArtist}</p>
         )}
-        {isDirect && (
-          <p className="text-[10px] text-muted-foreground">Audio Preview</p>
+        {!songArtist && hasPlayable && (
+          <p className="text-[10px] text-muted-foreground">30s preview</p>
         )}
       </div>
 
-      {/* Controls */}
-      {isDirect && (
+      {/* Play/Pause button */}
+      {hasPlayable && (
         <>
           <button
             onClick={togglePlay}
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
           >
             {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
           </button>
@@ -92,21 +87,9 @@ export default function ProfileSongCard({ songName, previewUrl, compact = false 
             ref={audioRef}
             src={previewUrl}
             onEnded={() => setPlaying(false)}
-            onCanPlay={() => setLoaded(true)}
             preload="none"
           />
         </>
-      )}
-
-      {isExternal && previewUrl && (
-        <a
-          href={previewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-secondary border border-border hover:bg-primary/10 transition-colors"
-        >
-          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-        </a>
       )}
     </div>
   );

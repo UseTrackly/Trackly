@@ -8,7 +8,7 @@ import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
-  Package, TrendingUp,
+  Package, TrendingUp, Search, X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,9 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [songName, setSongName] = useState('');
   const [songPreviewUrl, setSongPreviewUrl] = useState('');
+  const [songArtwork, setSongArtwork] = useState('');
+  const [songArtist, setSongArtist] = useState('');
+  const [findingPreview, setFindingPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const queryClient = useQueryClient();
@@ -144,6 +147,8 @@ export default function ProfilePage() {
     setDisplayName(profile?.display_name || '');
     setSongName(profile?.song_name || '');
     setSongPreviewUrl(profile?.song_preview_url || '');
+    setSongArtwork(profile?.song_artwork_url || '');
+    setSongArtist(profile?.song_artist || '');
     setShowEditProfile(true);
   };
 
@@ -155,6 +160,8 @@ export default function ProfilePage() {
       display_name: displayName,
       song_name: songName,
       song_preview_url: songPreviewUrl,
+      song_artwork_url: songArtwork,
+      song_artist: songArtist,
     });
   };
 
@@ -312,7 +319,12 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Song Card */}
-        <ProfileSongCard songName={profile?.song_name} previewUrl={profile?.song_preview_url} />
+        <ProfileSongCard
+          songName={profile?.song_name}
+          songArtist={profile?.song_artist}
+          previewUrl={profile?.song_preview_url}
+          artworkUrl={profile?.song_artwork_url}
+        />
 
         {/* Followers / Following */}
         <FollowStats
@@ -423,9 +435,75 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Profile Song</label>
-              <Input value={songName} onChange={(e) => setSongName(e.target.value)} placeholder="e.g. Money Longer – Lil Uzi Vert" className="bg-background" />
-              <Input value={songPreviewUrl} onChange={(e) => setSongPreviewUrl(e.target.value)} placeholder="Preview URL (mp3, Spotify, YouTube, etc.)" className="bg-background" />
-              <p className="text-[10px] text-muted-foreground">Paste a direct .mp3 link for a play button, or any music URL to show as a link</p>
+              <div className="flex gap-2">
+                <Input
+                  value={songName}
+                  onChange={(e) => { setSongName(e.target.value); setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); }}
+                  placeholder="e.g. Money Longer – Lil Uzi Vert"
+                  className="bg-background flex-1"
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' && songName.trim()) {
+                      e.preventDefault();
+                      setFindingPreview(true);
+                      try {
+                        const res = await base44.functions.invoke('findSongPreview', { query: songName });
+                        if (res.data?.preview_url) {
+                          setSongPreviewUrl(res.data.preview_url);
+                          setSongArtwork(res.data.artwork_url || '');
+                          setSongArtist(res.data.artist_name || '');
+                          if (res.data.track_name) setSongName(`${res.data.track_name} – ${res.data.artist_name}`);
+                          toast.success('Preview found!');
+                        } else {
+                          toast.error('No preview found for this song');
+                        }
+                      } catch { toast.error('Could not find preview'); }
+                      finally { setFindingPreview(false); }
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={findingPreview || !songName.trim()}
+                  onClick={async () => {
+                    if (!songName.trim()) return;
+                    setFindingPreview(true);
+                    try {
+                      const res = await base44.functions.invoke('findSongPreview', { query: songName });
+                      if (res.data?.preview_url) {
+                        setSongPreviewUrl(res.data.preview_url);
+                        setSongArtwork(res.data.artwork_url || '');
+                        setSongArtist(res.data.artist_name || '');
+                        if (res.data.track_name) setSongName(`${res.data.track_name} – ${res.data.artist_name}`);
+                        toast.success('Preview found!');
+                      } else {
+                        toast.error('No preview found for this song');
+                      }
+                    } catch { toast.error('Could not find preview'); }
+                    finally { setFindingPreview(false); }
+                  }}
+                  className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 disabled:opacity-50"
+                >
+                  {findingPreview ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Search className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+              {songPreviewUrl ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
+                  {songArtwork && <img src={songArtwork} alt="" className="w-8 h-8 rounded object-cover shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-primary truncate">✓ Preview ready</p>
+                    {songArtist && <p className="text-[10px] text-muted-foreground truncate">{songArtist}</p>}
+                  </div>
+                  <button onClick={() => { setSongPreviewUrl(''); setSongArtwork(''); setSongArtist(''); }} className="shrink-0">
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground">Type a song name and press Search or Enter to find a 30-sec preview</p>
+              )}
             </div>
           </div>
           <DialogFooter>

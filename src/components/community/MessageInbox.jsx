@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -13,10 +14,16 @@ import ProfileLink from '@/components/shared/ProfileLink';
 import EmptyState from '@/components/shared/EmptyState';
 import ConversationProfilePanel from '@/components/community/ConversationProfilePanel';
 
-function ThreadItem({ thread, onClick, onProfileClick }) {
+function ThreadItem({ thread, onClick, navigate }) {
   const hasUnread = thread.messages.some(m => !m.is_read && m.recipient_email === thread.currentUserEmail);
   const latest = thread.messages[0];
   const timestamp = latest ? format(parseISO(latest.created_date.endsWith('Z') ? latest.created_date : latest.created_date + 'Z'), 'MMM d') : '';
+  
+  const handleProfileClick = (e) => {
+    e.stopPropagation();
+    // Navigate internally to Trackly profile
+    navigate(`/profile/${encodeURIComponent(thread.otherName)}`);
+  };
   
   return (
     <button
@@ -26,7 +33,11 @@ function ThreadItem({ thread, onClick, onProfileClick }) {
       }`}
     >
       <div className="flex items-start gap-3">
-        <div onClick={(e) => { e.stopPropagation(); onProfileClick?.(); }} className="cursor-pointer shrink-0 hover:opacity-80">
+        <button
+          onClick={handleProfileClick}
+          className="cursor-pointer shrink-0 hover:opacity-80 p-0 bg-transparent border-none"
+          type="button"
+        >
           <div className="w-12 h-12 rounded-full overflow-hidden bg-secondary border-2 border-border/50">
             {thread.avatarUrl ? (
               <img src={thread.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -36,12 +47,16 @@ function ThreadItem({ thread, onClick, onProfileClick }) {
               </div>
             )}
           </div>
-        </div>
+        </button>
         <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex items-center justify-between gap-2 mb-0.5">
-            <ProfileLink userEmail={thread.otherEmail} username={thread.otherUsername || thread.otherName} userName={thread.otherName} showAvatar={false} onClick={(e) => { e.stopPropagation(); onProfileClick?.(); }} className="flex-1 min-w-0">
-              <span className="font-semibold text-sm truncate block hover:text-primary">{thread.otherName}</span>
-            </ProfileLink>
+            <button
+              onClick={handleProfileClick}
+              className="flex-1 min-w-0 text-left bg-transparent border-none p-0 cursor-pointer hover:text-primary"
+              type="button"
+            >
+              <span className="font-semibold text-sm truncate block">{thread.otherName}</span>
+            </button>
             <span className="text-[10px] text-muted-foreground shrink-0">{timestamp}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate mb-1">{latest?.content || (latest?.image_url ? '📷 Photo' : '')}</p>
@@ -185,6 +200,7 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
 export default function MessageInbox({ open, onClose }) {
   const [selectedThread, setSelectedThread] = useState(null);
   const [blockDialog, setBlockDialog] = useState(null);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
   const { data: myProfileRaw = [] } = useQuery({ queryKey: ['myProfile'], queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1), enabled: !!user });
@@ -230,7 +246,7 @@ export default function MessageInbox({ open, onClose }) {
   }, [threads.length]);
 
   const handleViewProfile = () => { 
-    if (selectedThread) window.open(`/profile/${encodeURIComponent(selectedThread.otherName)}`, '_blank'); 
+    if (selectedThread) navigate(`/profile/${encodeURIComponent(selectedThread.otherName)}`); 
   };
 
   const confirmBlock = async () => {
@@ -262,14 +278,14 @@ export default function MessageInbox({ open, onClose }) {
                 ) : (
                   <div className="space-y-1">
                     {threads.map(thread => (
-                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} onProfileClick={() => window.open(`/profile/${encodeURIComponent(thread.otherName)}`, '_blank')} />
+                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} navigate={navigate} />
                     ))}
                   </div>
                 )}
               </motion.div>
             ) : (
               <motion.div key="conversation" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex-1 flex flex-col p-4">
-                <Conversation thread={selectedThread} currentUser={user} senderName={myProfileRaw?.[0]?.username || user?.full_name || user?.email.split('@')[0]} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} onViewProfile={handleViewProfile} />
+                <Conversation thread={selectedThread} currentUser={user} senderName={myProfileRaw?.[0]?.username || user?.full_name || user?.email.split('@')[0]} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} onViewProfile={handleViewProfile} navigate={navigate} />
               </motion.div>
             )}
           </AnimatePresence>

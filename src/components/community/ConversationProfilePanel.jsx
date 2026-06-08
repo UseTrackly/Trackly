@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44, nativeStorage } from '@/api/base44Client';
 import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet';
@@ -12,6 +13,7 @@ import {
 import { toast } from 'sonner';
 
 export default function ConversationProfilePanel({ open, onClose, otherEmail, currentUser }) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [playing, setPlaying] = React.useState(false);
   const audioRef = React.useRef(null);
@@ -274,7 +276,7 @@ export default function ConversationProfilePanel({ open, onClose, otherEmail, cu
               variant="outline"
               className="w-full gap-2"
               onClick={() => {
-                window.open(`/profile/${encodeURIComponent(otherProfile?.username || otherEmail)}`, '_blank');
+                navigate(`/profile/${encodeURIComponent(otherProfile?.username || otherEmail)}`);
                 onClose();
               }}
             >

@@ -389,10 +389,10 @@ export default function ViewProfilePage() {
               </div>
               <div className="p-4 max-h-80 overflow-y-auto">
                 {showFollowers === 'followers' ? (
-                  otherProfile?.followers?.length > 0 ? (
+                  otherProfile?.followers && otherProfile.followers.length > 0 ? (
                     <div className="space-y-2">
                       {otherProfile.followers.map((email, i) => {
-                        const followerProfile = allProfiles.find(p => p.user_email === email);
+                        const followerProfile = allProfiles?.find(p => p.user_email === email);
                         const displayName = followerProfile?.display_name || followerProfile?.username || email.split('@')[0];
                         return (
                           <ProfileLink
@@ -403,7 +403,11 @@ export default function ViewProfilePage() {
                             className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
                           >
                             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                              <User className="w-4 h-4 text-muted-foreground" />
+                              {followerProfile?.avatar_url ? (
+                                <img src={followerProfile.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
+                              ) : (
+                                <User className="w-4 h-4 text-muted-foreground" />
+                              )}
                             </div>
                             <span className="text-sm font-medium truncate">{displayName}</span>
                           </ProfileLink>
@@ -413,10 +417,10 @@ export default function ViewProfilePage() {
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-8">No followers yet</p>
                   )
-                ) : otherProfile?.following?.length > 0 ? (
+                ) : otherProfile?.following && otherProfile.following.length > 0 ? (
                   <div className="space-y-2">
                     {otherProfile.following.map((email, i) => {
-                      const followingProfile = allProfiles.find(p => p.user_email === email);
+                      const followingProfile = allProfiles?.find(p => p.user_email === email);
                       const displayName = followingProfile?.display_name || followingProfile?.username || email.split('@')[0];
                       return (
                         <ProfileLink
@@ -427,7 +431,11 @@ export default function ViewProfilePage() {
                           className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
                         >
                           <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                            <User className="w-4 h-4 text-muted-foreground" />
+                            {followingProfile?.avatar_url ? (
+                              <img src={followingProfile.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                              <User className="w-4 h-4 text-muted-foreground" />
+                            )}
                           </div>
                           <span className="text-sm font-medium truncate">{displayName}</span>
                         </ProfileLink>

@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, MessageCircle, Image, Loader2, Ban, X, User, UserCircle } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Image, Loader2, X, UserCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -21,54 +21,50 @@ function ThreadItem({ thread, onClick, navigate }) {
   
   const handleProfileClick = (e) => {
     e.stopPropagation();
-    // Navigate internally to Trackly profile
     navigate(`/profile/${encodeURIComponent(thread.otherName)}`);
   };
   
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left p-3 rounded-xl mb-1.5 transition-all border ${
-        hasUnread ? 'bg-primary/5 border-primary/20' : 'bg-card/60 backdrop-blur-xl border-border/50 hover:bg-card/80'
+      className={`w-full text-left px-4 py-3 transition-colors ${
+        hasUnread ? 'bg-primary/5' : 'hover:bg-secondary/50'
       }`}
     >
       <div className="flex items-start gap-3">
         <button
           onClick={handleProfileClick}
-          className="cursor-pointer shrink-0 hover:opacity-80 p-0 bg-transparent border-none"
+          className="cursor-pointer shrink-0 hover:opacity-80"
           type="button"
         >
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-secondary border-2 border-border/50">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary border-2 border-border">
             {thread.avatarUrl ? (
               <img src={thread.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm font-bold text-muted-foreground">
+              <div className="w-full h-full flex items-center justify-center text-base font-bold text-muted-foreground">
                 {thread.otherName[0]?.toUpperCase()}
               </div>
             )}
           </div>
         </button>
-        <div className="flex-1 min-w-0 pt-0.5">
-          <div className="flex items-center justify-between gap-2 mb-0.5">
-            <button
-              onClick={handleProfileClick}
-              className="flex-1 min-w-0 text-left bg-transparent border-none p-0 cursor-pointer hover:text-primary"
-              type="button"
-            >
-              <span className="font-semibold text-sm truncate block">{thread.otherName}</span>
-            </button>
-            <span className="text-[10px] text-muted-foreground shrink-0">{timestamp}</span>
+        <div className="flex-1 min-w-0 pt-1">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="font-semibold text-base truncate block text-foreground">{thread.otherName}</span>
+            <span className={`text-xs shrink-0 ${hasUnread ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+              {timestamp}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground truncate mb-1">{latest?.content || (latest?.image_url ? '📷 Photo' : '')}</p>
-          <p className="text-[9px] text-muted-foreground/70">Re: {thread.flipName}</p>
+          <p className={`text-sm truncate ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+            {latest?.content || (latest?.image_url ? '📷 Photo' : '')}
+          </p>
         </div>
-        {hasUnread && <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 ml-1 mt-1" />}
+        {hasUnread && <div className="w-3 h-3 rounded-full bg-primary shrink-0 ml-2 mt-1.5" />}
       </div>
     </button>
   );
 }
 
-function Conversation({ thread, currentUser, senderName, onBack, onBlock, blockedUsers, onViewProfile }) {
+function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers }) {
   const [text, setText] = useState('');
   const [uploadingImg, setUploadingImg] = useState(false);
   const [showProfilePanel, setShowProfilePanel] = useState(false);
@@ -109,7 +105,6 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
 
   const sendMutation = useMutation({
     mutationFn: (payload) => {
-      // Use username from profile if available - fetch from query cache or use fallback
       const senderDisplayName = currentUser?.email ? currentUser.full_name || currentUser.email.split('@')[0] : 'User';
       return base44.entities.Message.create({
         community_flip_id: thread.flipId,
@@ -128,43 +123,59 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
   });
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8"><ArrowLeft className="w-4 h-4" /></Button>
-          <ProfileLink userEmail={thread.otherEmail} username={thread.otherUsername || thread.otherName} userName={thread.otherName} showAvatar={true} className="flex-1 min-w-0">
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-sm truncate">{thread.otherName}</p>
-              <p className="text-[10px] text-muted-foreground truncate">Re: {thread.flipName}</p>
-            </div>
-          </ProfileLink>
-          <Button variant="ghost" size="sm" onClick={() => setShowProfilePanel(true)} className="h-8 px-2 text-xs gap-1"><UserCircle className="w-3.5 h-3.5" /> Profile</Button>
-          <Button variant="ghost" size="icon" onClick={() => onBlock(thread.otherEmail, thread.otherName)} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Ban className="w-4 h-4" /></Button>
-        </div>
+    <div className="flex flex-col h-full bg-background">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0 bg-background/80 backdrop-blur-sm">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 -ml-2">
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <ProfileLink userEmail={thread.otherEmail} username={thread.otherUsername || thread.otherName} userName={thread.otherName} showAvatar={true} className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-base truncate text-foreground">{thread.otherName}</p>
+          </div>
+        </ProfileLink>
+        <Button variant="ghost" size="icon" onClick={() => setShowProfilePanel(true)} className="h-9 w-9">
+          <UserCircle className="w-5 h-5 text-muted-foreground" />
+        </Button>
       </div>
 
-      {isBlocked && <div className="my-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs text-center">You have blocked this user.</div>}
+      {isBlocked && (
+        <div className="mx-4 mt-3 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+          You have blocked this user.
+        </div>
+      )}
 
-      <ScrollArea className="flex-1 my-3">
-        <div className="space-y-2 pr-2">
+      {/* Messages */}
+      <ScrollArea className="flex-1">
+        <div className="px-4 py-4 space-y-3">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-3"><MessageCircle className="w-6 h-6 text-muted-foreground" /></div>
-              <p className="text-sm font-medium text-foreground mb-1">No messages yet</p>
-              <p className="text-xs text-muted-foreground">Start the conversation!</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <MessageCircle className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-base font-semibold text-foreground mb-1">No messages yet</p>
+              <p className="text-sm text-muted-foreground">Start the conversation!</p>
             </div>
           ) : (
             messages.map(msg => {
               const isMe = msg.sender_email === currentUser.email;
               return (
-                <motion.div key={msg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-xl px-3 py-2.5 ${isMe ? 'bg-primary text-primary-foreground' : 'bg-card/80 backdrop-blur-xl border border-border/50'}`}>
+                <motion.div 
+                  key={msg.id} 
+                  initial={{ opacity: 0, y: 10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                    isMe 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-secondary text-foreground'
+                  }`}>
                     {msg.image_url ? (
-                      <img src={msg.image_url} alt="" className="rounded-lg max-w-full max-h-48 object-cover cursor-pointer" onClick={() => window.open(msg.image_url, '_blank')} />
+                      <img src={msg.image_url} alt="" className="rounded-xl max-w-full max-h-64 object-cover" onClick={() => window.open(msg.image_url, '_blank')} />
                     ) : (
-                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                      <p className="text-base leading-relaxed">{msg.content}</p>
                     )}
-                    <p className={`text-[10px] mt-1 ${isMe ? 'opacity-70' : 'text-muted-foreground'}`}>{format(parseISO(msg.created_date.endsWith('Z') ? msg.created_date : msg.created_date + 'Z'), 'h:mm a')}</p>
                   </div>
                 </motion.div>
               );
@@ -174,13 +185,32 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
         </div>
       </ScrollArea>
 
+      {/* Input */}
       {!isBlocked && (
-        <div className="flex gap-2 shrink-0 pt-2 border-t border-border">
-          <Button type="button" variant="outline" size="icon" className="h-10 w-10" disabled={uploadingImg} onClick={() => document.getElementById('msg-img-upload').click()}>
-            {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4 text-muted-foreground" />}
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-border bg-background shrink-0">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="icon" 
+            className="h-10 w-10 shrink-0" 
+            disabled={uploadingImg} 
+            onClick={() => document.getElementById('msg-img-upload').click()}
+          >
+            {uploadingImg ? <Loader2 className="w-5 h-5 animate-spin" /> : <Image className="w-5 h-5 text-muted-foreground" />}
           </Button>
-          <Input value={text} onChange={e => setText(e.target.value)} onKeyPress={e => e.key === 'Enter' && !e.shiftKey && text.trim() && sendMutation.mutate({ content: text })} placeholder="Type a message..." className="flex-1 bg-background/50" />
-          <Button type="button" onClick={() => text.trim() && sendMutation.mutate({ content: text })} disabled={!text.trim() || sendMutation.isPending} className="h-10 px-4">
+          <Input 
+            value={text} 
+            onChange={e => setText(e.target.value)} 
+            onKeyPress={e => e.key === 'Enter' && !e.shiftKey && text.trim() && sendMutation.mutate({ content: text })} 
+            placeholder="Message..." 
+            className="flex-1 h-10 rounded-full bg-secondary border-0 focus-visible:ring-1 focus-visible:ring-primary" 
+          />
+          <Button 
+            type="button" 
+            onClick={() => text.trim() && sendMutation.mutate({ content: text })} 
+            disabled={!text.trim() || sendMutation.isPending} 
+            className="h-10 w-10 rounded-full shrink-0 bg-primary hover:bg-primary/90"
+          >
             {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
           <input id="msg-img-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -217,7 +247,6 @@ export default function MessageInbox({ open, onClose }) {
       const otherName = m.sender_email === user.email ? m.recipient_name : m.sender_name;
       if (!map.has(otherEmail)) {
         const flip = flips.find(f => f.id === m.community_flip_id);
-        // Use the name from the message (already stored with username/display_name)
         map.set(otherEmail, { 
           otherEmail, 
           otherName: otherName || 'User',
@@ -244,7 +273,6 @@ export default function MessageInbox({ open, onClose }) {
       base44.entities.UserProfile.filter({ user_email: t.otherEmail }, '-created_date', 1).then(p => { 
         if (p?.[0]) {
           t.avatarUrl = p[0].avatar_url;
-          // Update display name from profile if available
           if (p[0].display_name || p[0].username) {
             t.otherName = p[0].display_name || p[0].username;
           }
@@ -252,10 +280,6 @@ export default function MessageInbox({ open, onClose }) {
       });
     });
   }, [threads.length]);
-
-  const handleViewProfile = () => { 
-    if (selectedThread) navigate(`/profile/${encodeURIComponent(selectedThread.otherName)}`); 
-  };
 
   const confirmBlock = async () => {
     try {
@@ -272,19 +296,33 @@ export default function MessageInbox({ open, onClose }) {
     <>
       <Sheet open={open} onOpenChange={onClose}>
         <SheetContent side="right" className="w-full max-w-md p-0 bg-background border-l border-border flex flex-col">
-          <SheetHeader className="px-4 pb-3 border-b border-border" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}>
+          <SheetHeader className="px-4 border-b border-border shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)', paddingBottom: '12px' }}>
             <div className="flex items-center justify-between">
-              <SheetTitle className="text-base font-semibold">Messages</SheetTitle>
-              <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+              <SheetTitle className="text-2xl font-bold text-foreground">Messages</SheetTitle>
+              <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </SheetHeader>
           <AnimatePresence mode="wait">
             {!selectedThread ? (
-              <motion.div key="list" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1 overflow-y-auto p-4">
+              <motion.div 
+                key="list" 
+                initial={{ opacity: 0, x: -20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: -20 }} 
+                className="flex-1 overflow-y-auto"
+              >
                 {threads.length === 0 ? (
-                  <EmptyState icon={MessageCircle} title="No messages yet" description="Start a conversation on a community flip!" />
+                  <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                    <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
+                      <MessageCircle className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-base font-semibold text-foreground mb-1">No messages yet</p>
+                    <p className="text-sm text-muted-foreground">Start a conversation on a community flip!</p>
+                  </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="py-2">
                     {threads.map(thread => (
                       <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} navigate={navigate} />
                     ))}
@@ -292,8 +330,14 @@ export default function MessageInbox({ open, onClose }) {
                 )}
               </motion.div>
             ) : (
-              <motion.div key="conversation" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex-1 flex flex-col p-4">
-                <Conversation thread={selectedThread} currentUser={user} senderName={myProfileRaw?.[0]?.username || user?.full_name || user?.email.split('@')[0]} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} onViewProfile={handleViewProfile} navigate={navigate} />
+              <motion.div 
+                key="conversation" 
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: 20 }} 
+                className="flex-1 flex flex-col"
+              >
+                <Conversation thread={selectedThread} currentUser={user} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} />
               </motion.div>
             )}
           </AnimatePresence>

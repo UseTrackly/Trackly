@@ -184,7 +184,8 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
   return (
     <div className="space-y-4 pb-24">
       {feedTab === 'discover' && (
-          trendingCollectors.length > 0 && (
+        <>
+          {trendingCollectors.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
@@ -229,10 +230,12 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={i < 3} />
               ))}
             </div>
-          )
+          )}
+        </>
       )}
 
       {feedTab === 'following' && (
+        <>
           {followingEmails.length === 0 ? (
             <EmptyState icon={Users} title="Not following anyone yet" description="Follow collectors to see their flips here." />
           ) : filteredFlips.length === 0 ? (
@@ -243,10 +246,12 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
               ))}
             </div>
-          )
+          )}
+        </>
       )}
 
       {feedTab === 'market' && (
+        <>
           {filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No market activity" description="Check back later for market updates." />
           ) : (
@@ -255,11 +260,13 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
               ))}
             </div>
-          )
+          )}
+        </>
       )}
 
       {feedTab === 'alerts' && (
-          filteredFlips.length === 0 ? (
+        <>
+          {filteredFlips.length === 0 ? (
             <EmptyState
               icon={MessageCircle}
               title="No alerts yet"
@@ -271,7 +278,8 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
               ))}
             </div>
-          )
+          )}
+        </>
       )}
     </div>
   );

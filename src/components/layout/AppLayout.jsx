@@ -117,7 +117,7 @@ function AppLayoutInner() {
           touchAction: 'pan-y',
         }}
       >
-        <div className="max-w-2xl w-full mx-auto" style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="max-w-2xl w-full mx-auto" style={{ paddingBottom: '24px' }}>
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;

@@ -190,11 +190,7 @@ export default function MessageInbox({ open, onClose }) {
   const { data: myProfileRaw = [] } = useQuery({ queryKey: ['myProfile'], queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1), enabled: !!user });
   const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
   const { data: messages = [] } = useQuery({ queryKey: ['myMessages'], queryFn: () => base44.entities.Message.list('-created_date', 200), enabled: open, refetchInterval: 10000 });
-  const { data: allProfiles = [] } = useQuery({
-    queryKey: ['allProfiles'],
-    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
-    initialData: [],
-  });
+
   const { data: flips = [] } = useQuery({ queryKey: ['communityFlips'], queryFn: () => base44.entities.CommunityFlip.list('-created_date', 200), enabled: open });
 
   const threads = useMemo(() => {
@@ -205,19 +201,15 @@ export default function MessageInbox({ open, onClose }) {
       const otherName = m.sender_email === user.email ? m.recipient_name : m.sender_name;
       if (!map.has(otherEmail)) {
         const flip = flips.find(f => f.id === m.community_flip_id);
-        // Lookup username from profile
-        const otherUserProfile = allProfiles?.find(p => p.user_email === otherEmail);
-        const displayName = otherUserProfile?.display_name || otherUserProfile?.username || otherName || otherEmail.split('@')[0];
-        const username = otherUserProfile?.username;
+        // Use the name from the message (already stored with username)
         map.set(otherEmail, { 
           otherEmail, 
-          otherName: displayName,
-          otherUsername: username,
+          otherName: otherName || otherEmail.split('@')[0],
           flipId: m.community_flip_id, 
           flipName: flip?.item_name || 'Flip', 
           messages: [], 
           currentUserEmail: user.email, 
-          avatarUrl: otherUserProfile?.avatar_url || null 
+          avatarUrl: null 
         });
       }
       map.get(otherEmail).messages.push(m);
@@ -229,7 +221,7 @@ export default function MessageInbox({ open, onClose }) {
       if (!aUnread && bUnread) return 1;
       return b.messages[0]?.created_date.localeCompare(a.messages[0]?.created_date);
     });
-  }, [messages, flips, user, allProfiles]);
+  }, [messages, flips, user]);
 
   useEffect(() => {
     threads.forEach(t => {
@@ -237,12 +229,8 @@ export default function MessageInbox({ open, onClose }) {
     });
   }, [threads.length]);
 
-  const handleViewProfile = () => {
-    if (!selectedThread) return;
-    // Lookup username for the other user
-    const otherUserProfile = allProfiles?.find(p => p.user_email === selectedThread.otherEmail);
-    const routeParam = otherUserProfile?.username || selectedThread.otherName;
-    window.open(`/profile/${encodeURIComponent(routeParam)}`, '_blank');
+  const handleViewProfile = () => { 
+    if (selectedThread) window.open(`/profile/${encodeURIComponent(selectedThread.otherName)}`, '_blank'); 
   };
 
   const confirmBlock = async () => {
@@ -274,11 +262,7 @@ export default function MessageInbox({ open, onClose }) {
                 ) : (
                   <div className="space-y-1">
                     {threads.map(thread => (
-                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} onProfileClick={() => {
-                        const otherUserProfile = allProfiles?.find(p => p.user_email === thread.otherEmail);
-                        const routeParam = otherUserProfile?.username || thread.otherName;
-                        window.open(`/profile/${encodeURIComponent(routeParam)}`, '_blank');
-                      }} />
+                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} onProfileClick={() => window.open(`/profile/${encodeURIComponent(thread.otherName)}`, '_blank')} />
                     ))}
                   </div>
                 )}

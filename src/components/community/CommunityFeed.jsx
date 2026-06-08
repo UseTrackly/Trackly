@@ -178,7 +178,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
         const profile = profiles.find(p => p.user_email === email);
         return { 
           email, 
-          name: profile?.display_name || profile?.username, 
+          name: profile?.display_name || profile?.username || 'User', 
           username: profile?.username,
           avatar: profile?.avatar_url, 
           score 
@@ -207,7 +207,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
                 {trendingCollectors.map((collector) => (
                   <div key={collector.email} className="shrink-0 w-20 text-center">
-                    <ProfileLink userEmail={collector.email} username={collector.username || collector.name} userName={collector.name}>
+                    <ProfileLink userEmail={collector.email} username={collector.username} userName={collector.name}>
                       <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary border-2 border-border mx-auto mb-1">
                         {collector.avatar ? (
                           <img src={collector.avatar} alt="" className="w-full h-full object-cover" />

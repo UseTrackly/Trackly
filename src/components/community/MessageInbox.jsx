@@ -22,7 +22,9 @@ function ThreadItem({ thread, onClick, navigate }) {
   const handleProfileClick = (e) => {
     e.stopPropagation();
     const routeParam = thread.otherUsername || thread.otherEmail;
-    navigate(`/profile/${encodeURIComponent(routeParam)}`);
+    if (routeParam) {
+      navigate(`/profile/${encodeURIComponent(routeParam)}`);
+    }
   };
   
   return (
@@ -37,6 +39,7 @@ function ThreadItem({ thread, onClick, navigate }) {
           onClick={handleProfileClick}
           className="cursor-pointer shrink-0 hover:opacity-80"
           type="button"
+          disabled={!thread.otherUsername && !thread.otherEmail}
         >
           <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary border-2 border-border">
             {thread.avatarUrl ? (

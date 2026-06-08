@@ -22,6 +22,7 @@ import { Crown } from 'lucide-react';
 import ProfileSongCard from '@/components/profile/ProfileSongCard';
 import FollowStats from '@/components/profile/FollowStats';
 import SongSearchPicker from '@/components/profile/SongSearchPicker';
+import EditSongDialog from '@/components/profile/EditSongDialog';
 
 const CATEGORIES = [
   { value: 'cards', label: 'Cards', emoji: '🎴' },
@@ -39,14 +40,12 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { isAuthenticated, navigateToLogin } = useAuth();
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showEditSong, setShowEditSong] = useState(false);
   const [bio, setBio] = useState('');
   const [locationVal, setLocationVal] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [songName, setSongName] = useState('');
-  const [songPreviewUrl, setSongPreviewUrl] = useState('');
-  const [songArtwork, setSongArtwork] = useState('');
-  const [songArtist, setSongArtist] = useState('');
+
   const [uploading, setUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const queryClient = useQueryClient();
@@ -145,10 +144,6 @@ export default function ProfilePage() {
     setLocationVal(profile?.location || '');
     setUsername(profile?.username || '');
     setDisplayName(profile?.display_name || '');
-    setSongName(profile?.song_name || '');
-    setSongPreviewUrl(profile?.song_preview_url || '');
-    setSongArtwork(profile?.song_artwork_url || '');
-    setSongArtist(profile?.song_artist || '');
     setShowEditProfile(true);
   };
 
@@ -158,10 +153,16 @@ export default function ProfilePage() {
       location: locationVal,
       username,
       display_name: displayName,
-      song_name: songName,
-      song_preview_url: songPreviewUrl,
-      song_artwork_url: songArtwork,
-      song_artist: songArtist,
+    });
+  };
+
+  const handleSaveSong = (songData) => {
+    updateProfileMutation.mutate(songData, {
+      onSuccess: (savedProfile) => {
+        if (savedProfile) queryClient.setQueryData(['userProfile', user?.email], savedProfile);
+        setShowEditSong(false);
+        toast.success('Song updated');
+      },
     });
   };
 
@@ -319,12 +320,20 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Song Card */}
-        <ProfileSongCard
-          songName={profile?.song_name}
-          songArtist={profile?.song_artist}
-          previewUrl={profile?.song_preview_url}
-          artworkUrl={profile?.song_artwork_url}
-        />
+        <div className="relative group mt-3">
+          <ProfileSongCard
+            songName={profile?.song_name}
+            songArtist={profile?.song_artist}
+            previewUrl={profile?.song_preview_url}
+            artworkUrl={profile?.song_artwork_url}
+          />
+          <button
+            onClick={() => setShowEditSong(true)}
+            className="absolute top-2 right-2 p-1.5 rounded-lg bg-secondary/80 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <Edit3 className="w-3 h-3" />
+          </button>
+        </div>
 
         {/* Followers / Following */}
         <FollowStats
@@ -410,6 +419,15 @@ export default function ProfilePage() {
         )}
       </div>
 
+      {/* Edit Song Dialog */}
+      <EditSongDialog
+        open={showEditSong}
+        onOpenChange={setShowEditSong}
+        profile={profile}
+        onSave={handleSaveSong}
+        isSaving={updateProfileMutation.isPending}
+      />
+
       {/* Edit Profile Dialog */}
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
         <DialogContent className="max-w-sm mx-auto bg-card border-border">
@@ -433,24 +451,7 @@ export default function ProfilePage() {
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</label>
               <Input value={locationVal} onChange={(e) => setLocationVal(e.target.value)} placeholder="e.g. New York, NY" className="bg-background" />
             </div>
-            <SongSearchPicker
-              songName={songName}
-              songArtist={songArtist}
-              songArtwork={songArtwork}
-              songPreviewUrl={songPreviewUrl}
-              onSelect={(data) => {
-                setSongName(data.song_name);
-                setSongArtist(data.song_artist);
-                setSongArtwork(data.song_artwork_url);
-                setSongPreviewUrl(data.song_preview_url);
-              }}
-              onClear={() => {
-                setSongName('');
-                setSongArtist('');
-                setSongArtwork('');
-                setSongPreviewUrl('');
-              }}
-            />
+
           </div>
           <DialogFooter>
             <Button

@@ -114,7 +114,7 @@ export default function SideDrawer({ open, onClose, onOpenMessages, user, profil
                       <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <span style={{ fontSize: 16, fontWeight: 700, color: 'hsl(var(--foreground))' }}>
-                        {user?.full_name?.[0]?.toUpperCase() || '?'}
+                        {(profile?.display_name || user?.full_name || '?')[0]?.toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -122,9 +122,11 @@ export default function SideDrawer({ open, onClose, onOpenMessages, user, profil
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))', lineHeight: 1.2 }}>
                       {profile?.display_name || user?.full_name || 'Guest'}
                     </div>
-                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
-                      {user?.email || ''}
-                    </div>
+                    {profile?.username && (
+                      <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
+                        @{profile.username}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button

@@ -16,7 +16,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   
   // Get profile data for consistent display name
   const posterProfile = profiles?.find(p => p.user_email === flip.posted_by);
-  const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name || flip.posted_by.split('@')[0];
+  const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name;
   const username = posterProfile?.username;
 
   return (
@@ -178,7 +178,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
         const profile = profiles.find(p => p.user_email === email);
         return { 
           email, 
-          name: profile?.display_name || profile?.username || email.split('@')[0], 
+          name: profile?.display_name || profile?.username, 
           username: profile?.username,
           avatar: profile?.avatar_url, 
           score 

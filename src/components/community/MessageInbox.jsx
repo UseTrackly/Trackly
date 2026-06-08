@@ -217,10 +217,10 @@ export default function MessageInbox({ open, onClose }) {
       const otherName = m.sender_email === user.email ? m.recipient_name : m.sender_name;
       if (!map.has(otherEmail)) {
         const flip = flips.find(f => f.id === m.community_flip_id);
-        // Use the name from the message (already stored with username)
+        // Use the name from the message (already stored with username/display_name)
         map.set(otherEmail, { 
           otherEmail, 
-          otherName: otherName || otherEmail.split('@')[0],
+          otherName: otherName || 'User',
           flipId: m.community_flip_id, 
           flipName: flip?.item_name || 'Flip', 
           messages: [], 
@@ -241,7 +241,15 @@ export default function MessageInbox({ open, onClose }) {
 
   useEffect(() => {
     threads.forEach(t => {
-      base44.entities.UserProfile.filter({ user_email: t.otherEmail }, '-created_date', 1).then(p => { if (p?.[0]?.avatar_url) t.avatarUrl = p[0].avatar_url; });
+      base44.entities.UserProfile.filter({ user_email: t.otherEmail }, '-created_date', 1).then(p => { 
+        if (p?.[0]) {
+          t.avatarUrl = p[0].avatar_url;
+          // Update display name from profile if available
+          if (p[0].display_name || p[0].username) {
+            t.otherName = p[0].display_name || p[0].username;
+          }
+        }
+      });
     });
   }, [threads.length]);
 
@@ -264,7 +272,7 @@ export default function MessageInbox({ open, onClose }) {
     <>
       <Sheet open={open} onOpenChange={onClose}>
         <SheetContent side="right" className="w-full max-w-md p-0 bg-background border-l border-border flex flex-col">
-          <SheetHeader className="px-4 pt-4 pb-3 border-b border-border">
+          <SheetHeader className="px-4 pb-3 border-b border-border" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}>
             <div className="flex items-center justify-between">
               <SheetTitle className="text-base font-semibold">Messages</SheetTitle>
               <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>

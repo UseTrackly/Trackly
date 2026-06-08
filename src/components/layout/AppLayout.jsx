@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import BottomNav from './BottomNav';
+import FloatingNav from './FloatingNav';
 const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
 import MobileHeader from './MobileHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
@@ -117,7 +117,7 @@ function AppLayoutInner() {
           touchAction: 'pan-y',
         }}
       >
-        <div className="max-w-2xl w-full mx-auto">
+        <div className="max-w-2xl w-full mx-auto" style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))' }}>
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;
@@ -148,8 +148,8 @@ function AppLayoutInner() {
         </div>
       </main>
 
-      {/* Bottom nav — part of flex column, does NOT scroll */}
-      {!isFullscreen && <BottomNav asFlexItem />}
+      {/* Floating nav */}
+      {!isFullscreen && <FloatingNav />}
     </div>
   );
 }

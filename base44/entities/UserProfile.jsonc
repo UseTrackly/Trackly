@@ -32,7 +32,25 @@
     },
     "song_name": {
       "type": "string",
-      "description": "Optional profile song name displayed on profile"
+      "description": "Song title and artist shown on profile (e.g. Money Longer \u2013 Lil Uzi Vert)"
+    },
+    "song_preview_url": {
+      "type": "string",
+      "description": "Direct audio preview URL (mp3/m4a) or YouTube/Spotify/Apple Music link for profile song"
+    },
+    "followers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of user emails who follow this profile"
+    },
+    "following": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of user emails this profile follows"
     },
     "blocked_users": {
       "type": "array",

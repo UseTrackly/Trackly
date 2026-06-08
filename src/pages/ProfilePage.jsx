@@ -8,7 +8,7 @@ import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
-  Music2, Package, TrendingUp, Users, Star,
+  Package, TrendingUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Crown } from 'lucide-react';
+import ProfileSongCard from '@/components/profile/ProfileSongCard';
+import FollowStats from '@/components/profile/FollowStats';
 
 const CATEGORIES = [
   { value: 'cards', label: 'Cards', emoji: '🎴' },
@@ -41,6 +43,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [songName, setSongName] = useState('');
+  const [songPreviewUrl, setSongPreviewUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const queryClient = useQueryClient();
@@ -140,6 +143,7 @@ export default function ProfilePage() {
     setUsername(profile?.username || '');
     setDisplayName(profile?.display_name || '');
     setSongName(profile?.song_name || '');
+    setSongPreviewUrl(profile?.song_preview_url || '');
     setShowEditProfile(true);
   };
 
@@ -150,6 +154,7 @@ export default function ProfilePage() {
       username,
       display_name: displayName,
       song_name: songName,
+      song_preview_url: songPreviewUrl,
     });
   };
 
@@ -298,12 +303,7 @@ export default function ProfilePage() {
               <span className="text-xs text-muted-foreground">{profile.location}</span>
             </div>
           )}
-          {profile?.song_name && (
-            <div className="flex items-center gap-1.5 mt-1">
-              <Music2 className="w-3 h-3 text-primary" />
-              <span className="text-xs text-muted-foreground italic">{profile.song_name}</span>
-            </div>
-          )}
+          
         </div>
 
         {/* Bio */}
@@ -311,8 +311,18 @@ export default function ProfilePage() {
           <p className="mt-3 text-sm text-foreground/80 leading-relaxed">{profile.bio}</p>
         )}
 
-        {/* Followers / Following / Flips row */}
-        <div className="flex gap-5 mt-4">
+        {/* Profile Song Card */}
+        <ProfileSongCard songName={profile?.song_name} previewUrl={profile?.song_preview_url} />
+
+        {/* Followers / Following */}
+        <FollowStats
+          profile={profile}
+          currentUserEmail={user?.email}
+          isOwnProfile={true}
+        />
+
+        {/* Stats row */}
+        <div className="flex gap-5 mt-3">
           <div className="text-center">
             <p className="text-base font-bold">{flips.length}</p>
             <p className="text-[11px] text-muted-foreground">Flips</p>
@@ -414,7 +424,8 @@ export default function ProfilePage() {
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Profile Song</label>
               <Input value={songName} onChange={(e) => setSongName(e.target.value)} placeholder="e.g. Money Longer – Lil Uzi Vert" className="bg-background" />
-              <p className="text-[10px] text-muted-foreground">Displayed on your profile for others to see</p>
+              <Input value={songPreviewUrl} onChange={(e) => setSongPreviewUrl(e.target.value)} placeholder="Preview URL (mp3, Spotify, YouTube, etc.)" className="bg-background" />
+              <p className="text-[10px] text-muted-foreground">Paste a direct .mp3 link for a play button, or any music URL to show as a link</p>
             </div>
           </div>
           <DialogFooter>

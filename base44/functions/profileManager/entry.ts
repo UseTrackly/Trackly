@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'data object required' }, { status: 400 });
       }
 
-      const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users'];
+      const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users', 'banner_url', 'song_name', 'song_preview_url'];
       const cleanData = Object.fromEntries(
         Object.entries(data).filter(([k]) => ALLOWED_PROFILE_FIELDS.includes(k))
       );
@@ -133,6 +133,51 @@ Deno.serve(async (req) => {
 
       console.log('[profileManager] setAvatar result:', JSON.stringify(profile));
       return Response.json({ profile });
+    }
+
+    // ── FOLLOW / UNFOLLOW ────────────────────────────────────────────────────
+    if (action === 'follow' || action === 'unfollow') {
+      const { target_email } = body;
+      if (!target_email || target_email === user.email) {
+        return Response.json({ error: 'Invalid target_email' }, { status: 400 });
+      }
+
+      const all = await svc.entities.UserProfile.list('-created_date', 1000);
+
+      // Current user's profile
+      let myProfile = all.find(r => r.user_email === user.email) ?? null;
+      // Target profile
+      let targetProfile = all.find(r => r.user_email === target_email) ?? null;
+
+      if (!targetProfile) {
+        return Response.json({ error: 'Target profile not found' }, { status: 404 });
+      }
+
+      const myFollowing = Array.isArray(myProfile?.following) ? [...myProfile.following] : [];
+      const targetFollowers = Array.isArray(targetProfile?.followers) ? [...targetProfile.followers] : [];
+
+      if (action === 'follow') {
+        if (!myFollowing.includes(target_email)) myFollowing.push(target_email);
+        if (!targetFollowers.includes(user.email)) targetFollowers.push(user.email);
+      } else {
+        const myIdx = myFollowing.indexOf(target_email);
+        if (myIdx > -1) myFollowing.splice(myIdx, 1);
+        const tIdx = targetFollowers.indexOf(user.email);
+        if (tIdx > -1) targetFollowers.splice(tIdx, 1);
+      }
+
+      // Update my profile
+      if (myProfile) {
+        await svc.entities.UserProfile.update(myProfile.id, { following: myFollowing });
+      } else {
+        myProfile = await svc.entities.UserProfile.create({ user_email: user.email, following: myFollowing });
+      }
+
+      // Update target profile
+      const updatedTarget = await svc.entities.UserProfile.update(targetProfile.id, { followers: targetFollowers });
+
+      console.log(`[profileManager] ${action}: ${user.email} -> ${target_email}`);
+      return Response.json({ target_profile: updatedTarget });
     }
 
     return Response.json({ error: 'Unknown action: ' + action }, { status: 400 });

@@ -21,13 +21,17 @@ function ThreadItem({ thread, onClick, navigate }) {
   
   const handleProfileClick = (e) => {
     e.stopPropagation();
+    // Priority: username > email
     const routeParam = thread.otherUsername || thread.otherEmail;
-    console.log('[ThreadItem Avatar] Navigating to profile:', { 
-      otherUsername: thread.otherUsername, 
-      otherEmail: thread.otherEmail, 
-      routeParam 
+    console.log('[ThreadItem] Profile click:', {
+      selectedUserEmail: thread.otherEmail,
+      selectedUsername: thread.otherUsername,
+      selectedName: thread.otherName,
+      routeParam,
+      finalRoute: `/profile/${encodeURIComponent(routeParam)}`
     });
     if (routeParam) {
+      // Close the sheet first if open
       navigate(`/profile/${encodeURIComponent(routeParam)}`);
     }
   };
@@ -143,10 +147,12 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
         <button
           onClick={() => {
             const routeParam = thread.otherUsername || thread.otherEmail;
-            console.log('[Conversation Header] Navigating to profile:', { 
-              otherUsername: thread.otherUsername, 
-              otherEmail: thread.otherEmail, 
-              routeParam 
+            console.log('[Conversation Header] Profile click:', {
+              selectedUserEmail: thread.otherEmail,
+              selectedUsername: thread.otherUsername,
+              selectedName: thread.otherName,
+              routeParam,
+              finalRoute: `/profile/${encodeURIComponent(routeParam)}`
             });
             if (routeParam) {
               navigate(`/profile/${encodeURIComponent(routeParam)}`);
@@ -285,7 +291,9 @@ export default function MessageInbox({ open, onClose }) {
           otherUsername: username, 
           otherName: displayName,
           profileFound: !!profile,
-          allProfilesCount: allProfiles.length
+          profileData: profile,
+          allProfilesCount: allProfiles.length,
+          willUseForRoute: username || otherEmail
         });
         map.set(otherEmail, { 
           otherEmail, 

@@ -22,7 +22,7 @@ export default function BottomNav({ asFlexItem = false }) {
       role="navigation"
       aria-label="Main navigation"
       className="relative z-50 border-t border-white/[0.06] shrink-0"
-      style={{ overflow: 'hidden' }}
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* Animated gradient background */}
       <div

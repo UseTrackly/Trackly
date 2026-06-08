@@ -9,6 +9,7 @@ import { ArrowLeft, Send, MessageCircle, Image, Loader2, Ban, X } from 'lucide-r
 import { format, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import ProfileLink from '@/components/shared/ProfileLink';
 
 // Thread list item
 function ThreadItem({ thread, onClick }) {
@@ -20,7 +21,14 @@ function ThreadItem({ thread, onClick }) {
       className={`w-full text-left p-3 rounded-lg mb-1.5 transition-colors ${hasUnread ? 'bg-primary/10' : 'bg-card hover:bg-secondary/50'} border border-border`}
     >
       <div className="flex items-center justify-between mb-0.5">
-        <span className="font-semibold text-sm truncate">{thread.otherName}</span>
+        <ProfileLink
+          userEmail={thread.otherEmail}
+          userName={thread.otherName}
+          showAvatar={true}
+          className="flex items-center gap-2 flex-1 min-w-0"
+        >
+          <span className="font-semibold text-sm truncate flex-1">{thread.otherName}</span>
+        </ProfileLink>
         {hasUnread && <div className="w-2 h-2 rounded-full bg-primary shrink-0 ml-2" />}
       </div>
       <p className="text-xs text-muted-foreground truncate">{latest?.content || (latest?.image_url ? '📷 Image' : '')}</p>
@@ -104,14 +112,21 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
-            <p className="font-semibold text-sm">{thread.otherName}</p>
-            <p className="text-[10px] text-muted-foreground truncate">Re: {thread.flipName}</p>
-          </div>
+          <ProfileLink
+            userEmail={thread.otherEmail}
+            userName={thread.otherName}
+            showAvatar={false}
+            className="flex-1 min-w-0"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold text-sm truncate">{thread.otherName}</p>
+              <p className="text-[10px] text-muted-foreground truncate">Re: {thread.flipName}</p>
+            </div>
+          </ProfileLink>
         </div>
         <Button
           variant="ghost"

@@ -10,6 +10,7 @@ import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
   Package, TrendingUp, Users, ShoppingBag, X, Lock, Crown,
 } from 'lucide-react';
+import ProfileLink from '@/components/shared/ProfileLink';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -517,12 +518,17 @@ export default function ProfilePage() {
                   profile?.followers?.length > 0 ? (
                     <div className="space-y-2">
                       {profile.followers.map((email, i) => (
-                        <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50">
+                        <ProfileLink
+                          key={i}
+                          userEmail={email}
+                          userName={email.split('@')[0]}
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
+                        >
                           <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
                             <User className="w-4 h-4 text-muted-foreground" />
                           </div>
-                          <span className="text-sm font-medium truncate">{email}</span>
-                        </div>
+                          <span className="text-sm font-medium truncate">{email.split('@')[0]}</span>
+                        </ProfileLink>
                       ))}
                     </div>
                   ) : (
@@ -531,12 +537,17 @@ export default function ProfilePage() {
                 ) : profile?.following?.length > 0 ? (
                   <div className="space-y-2">
                     {profile.following.map((email, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50">
+                      <ProfileLink
+                        key={i}
+                        userEmail={email}
+                        userName={email.split('@')[0]}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
+                      >
                         <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
                           <User className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <span className="text-sm font-medium truncate">{email}</span>
-                      </div>
+                        <span className="text-sm font-medium truncate">{email.split('@')[0]}</span>
+                      </ProfileLink>
                     ))}
                   </div>
                 ) : (

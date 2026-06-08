@@ -7,6 +7,7 @@ import { Plus, Heart, MessageCircle, MapPin, TrendingUp, Crown } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EmptyState from '@/components/shared/EmptyState';
+import ProfileLink from '@/components/shared/ProfileLink';
 import PostFlipDialog from '@/components/community/PostFlipDialog';
 import FlipDetailsDialog from '@/components/community/FlipDetailsDialog';
 import FeaturedListings from '@/components/community/FeaturedListings';
@@ -264,11 +265,15 @@ export default function CommunityPage() {
                           </span>
                         )}
                       </div>
-                      <div className="absolute top-1.5 right-1.5">
-                        <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium">
+                      <ProfileLink
+                        userEmail={flip.posted_by}
+                        userName={flip.posted_by_name?.[0] || 'U'}
+                        className="absolute top-1.5 right-1.5"
+                      >
+                        <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium hover:opacity-80 transition-opacity">
                           {flip.posted_by_name?.[0] || 'U'}
                         </span>
-                      </div>
+                      </ProfileLink>
                     </div>
                   )}
 
@@ -276,14 +281,18 @@ export default function CommunityPage() {
                   <div className="p-2 space-y-1">
                     <div>
                       <div className="flex items-start justify-between mb-0.5">
-                        <div className="flex items-center gap-1">
-                          <p className="text-[8px] text-muted-foreground">
+                        <ProfileLink
+                          userEmail={flip.posted_by}
+                          userName={flip.posted_by_name}
+                          className="flex items-center gap-1"
+                        >
+                          <p className="text-[8px] text-muted-foreground hover:text-foreground transition-colors">
                             {flip.posted_by_name} · {new Date(flip.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </p>
                           {flip.is_poster_pro && (
                             <Crown className="w-2.5 h-2.5 text-primary shrink-0" />
                           )}
-                        </div>
+                        </ProfileLink>
                       </div>
                       <h3 className="font-bold text-xs leading-tight line-clamp-1">{flip.item_name}</h3>
                     </div>

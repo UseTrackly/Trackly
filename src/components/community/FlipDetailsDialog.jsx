@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, MapPin, Sparkles, Loader2, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import ProfileLink from '@/components/shared/ProfileLink';
 
 export default function FlipDetailsDialog({ flip, open, onClose }) {
   const [messageText, setMessageText] = useState('');
@@ -104,7 +105,11 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-2xl font-bold text-primary">${flip.price?.toFixed(2)}</p>
-                <p className="text-sm text-muted-foreground">Posted by {flip.posted_by_name}</p>
+                <ProfileLink
+                  userEmail={flip.posted_by}
+                  userName={flip.posted_by_name}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                />
               </div>
               <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
                 {flip.category}

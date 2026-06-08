@@ -78,6 +78,7 @@ import HistoryPage from '@/pages/HistoryPage';
 import InventoryPage from '@/pages/InventoryPage';
 import CommunityPage from '@/pages/CommunityPage';
 import ProfilePage from '@/pages/ProfilePage';
+import ViewProfilePage from '@/pages/ViewProfilePage';
 import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import AuthCallback from '@/pages/AuthCallback';
@@ -145,6 +146,7 @@ const AuthenticatedApp = () => {
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:userEmail" element={<ViewProfilePage />} />
             <Route path="/upgrade" element={<UpgradePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/terms" element={<TermsOfService />} />

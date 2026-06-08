@@ -188,21 +188,7 @@ export default function FloatingNav() {
           </AnimatePresence>
         </motion.button>
 
-        {/* Active page dot indicator */}
-        {!open && currentItem && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 2,
-              right: 2,
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: '#fff',
-              border: '2px solid hsl(var(--primary))',
-            }}
-          />
-        )}
+
       </div>
     </>
   );

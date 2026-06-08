@@ -114,6 +114,7 @@ export default function CommunityPage() {
 
       <CommunityFeed
         user={user}
+        flips={communityFlips}
         blockedUsers={blockedUsers}
         activeTab={activeTab}
         onPostFlip={() => setShowPost(true)}

@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTabReset } from '@/lib/TabResetContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Calculator, Package, History, Users, User, X, Menu } from 'lucide-react';
+import { Home, Calculator, Package, Users, X, Menu } from 'lucide-react';
 
 const navItems = [
   { path: '/',           icon: Home,       label: 'Home' },
   { path: '/calculator', icon: Calculator, label: 'Calculator' },
   { path: '/inventory',  icon: Package,    label: 'Inventory' },
-  { path: '/history',    icon: History,    label: 'History' },
   { path: '/community',  icon: Users,      label: 'Community' },
-  { path: '/profile',    icon: User,       label: 'Profile' },
 ];
 
 const HIDDEN_PATHS = ['/onboarding', '/onboarding-categories', '/upgrade'];

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MessageCircle, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
@@ -95,6 +95,14 @@ export default function MobileHeader({ asFlexItem = false }) {
                     {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
                   </span>
                 )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/history')}
+                aria-label="History"
+              >
+                <History className="w-5 h-5" />
               </Button>
               <NotificationBell />
             </div>

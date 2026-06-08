@@ -67,6 +67,32 @@ Deno.serve(async (req) => {
       return Response.json({ profile: records[0] ?? null });
     }
 
+    // ── GET PROFILE FOR VIEWER (with profit visibility enforcement) ─────────
+    if (action === 'getForViewer') {
+      const { viewer_email, target_email } = body;
+      if (!viewer_email || !target_email) {
+        return Response.json({ error: 'viewer_email and target_email required' }, { status: 400 });
+      }
+
+      const all = await svc.entities.UserProfile.list('-created_date', 500);
+      const targetProfile = all.find(r => r.user_email === target_email);
+      
+      if (!targetProfile) {
+        return Response.json({ error: 'Profile not found' }, { status: 404 });
+      }
+
+      // Enforce profit visibility server-side
+      const isOwner = viewer_email === target_email;
+      const isPrivate = targetProfile.profit_visibility === 'private';
+      
+      // Return profile with profit hidden if private and not owner
+      const safeProfile = isOwner || !isPrivate 
+        ? targetProfile 
+        : { ...targetProfile, profit_hidden: true };
+
+      return Response.json({ profile: safeProfile, profit_hidden: isPrivate && !isOwner });
+    }
+
     // ── SAVE ────────────────────────────────────────────────────────────────
     if (action === 'save') {
       const { data } = body;

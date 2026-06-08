@@ -363,34 +363,6 @@ export default function SettingsPage() {
               )}
             </button>
 
-            {/* Followers Only */}
-            <button
-              onClick={() => {
-                updateSettingsMutation.mutate({ profit_visibility: 'followers_only' });
-                setShowProfitVisibility(false);
-              }}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                user?.profit_visibility === 'followers_only'
-                  ? 'bg-amber-500/10 border-amber-500/30'
-                  : 'bg-card border-border hover:border-primary/30'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                user?.profit_visibility === 'followers_only' ? 'bg-amber-500/20' : 'bg-secondary'
-              }`}>
-                <EyeOff className={`w-4 h-4 ${user?.profit_visibility === 'followers_only' ? 'text-amber-500' : 'text-muted-foreground'}`} />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-semibold">Followers Only</p>
-                <p className="text-xs text-muted-foreground">Only approved followers can see it</p>
-              </div>
-              {user?.profit_visibility === 'followers_only' && (
-                <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-background" />
-                </div>
-              )}
-            </button>
-
             {/* Private */}
             <button
               onClick={() => {
@@ -409,7 +381,7 @@ export default function SettingsPage() {
                 <Lock className={`w-4 h-4 text-muted-foreground`} />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-sm font-semibold">Private</p>
+                <p className="text-sm font-semibold">Private (My Eyes Only)</p>
                 <p className="text-xs text-muted-foreground">Only you can see your net profit</p>
               </div>
               {user?.profit_visibility === 'private' && (

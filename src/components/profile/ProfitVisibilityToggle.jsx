@@ -21,12 +21,6 @@ export default function ProfitVisibilityToggle({ profile, onUpdate, isUpdating }
       description: 'Anyone can see your net profit',
       color: 'text-primary',
     },
-    followers_only: {
-      icon: EyeOff,
-      label: 'Followers Only',
-      description: 'Only approved followers can see your net profit',
-      color: 'text-amber-500',
-    },
     private: {
       icon: Lock,
       label: 'Private',
@@ -89,30 +83,7 @@ export default function ProfitVisibilityToggle({ profile, onUpdate, isUpdating }
               )}
             </button>
 
-            {/* Followers Only */}
-            <button
-              onClick={() => handleUpdate('followers_only')}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                visibility === 'followers_only'
-                  ? 'bg-amber-500/10 border-amber-500/30'
-                  : 'bg-card border-border hover:border-primary/30'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                visibility === 'followers_only' ? 'bg-amber-500/20' : 'bg-secondary'
-              }`}>
-                <EyeOff className={`w-4 h-4 ${visibility === 'followers_only' ? 'text-amber-500' : 'text-muted-foreground'}`} />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-semibold">Followers Only</p>
-                <p className="text-xs text-muted-foreground">Only approved followers can see it</p>
-              </div>
-              {visibility === 'followers_only' && (
-                <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-amber-500-foreground" />
-                </div>
-              )}
-            </button>
+
 
             {/* Private */}
             <button

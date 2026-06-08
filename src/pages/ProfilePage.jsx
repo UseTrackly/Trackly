@@ -8,7 +8,7 @@ import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
-  Package, TrendingUp, Users, ShoppingBag, X,
+  Package, TrendingUp, Users, ShoppingBag, X, Lock,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -79,9 +79,11 @@ export default function ProfilePage() {
   const totalProfit = flips.reduce((s, f) => s + (f.net_profit || 0), 0);
   const recentActivity = flips.slice(0, 5);
 
-  // Determine if current user can see the profit (for own profile, always visible)
-  const canSeeProfit = true; // Own profile - always visible
+  // For own profile, always show profit. When viewing other profiles, check visibility.
+  const isOwnProfile = true; // This page is for own profile only
+  const canSeeProfit = isOwnProfile || profile?.profit_visibility === 'public';
   const displayProfit = canSeeProfit ? totalProfit : 0;
+  const profitHidden = !canSeeProfit;
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
@@ -371,9 +373,16 @@ export default function ProfilePage() {
           </div>
           <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Net Profit</p>
-            <p className={`text-3xl font-bold ${displayProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
-              {formatCurrency(displayProfit, user?.currency)}
-            </p>
+            {profitHidden ? (
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Lock className="w-6 h-6" />
+                <span className="text-2xl font-bold">Hidden</span>
+              </div>
+            ) : (
+              <p className={`text-3xl font-bold ${displayProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                {formatCurrency(displayProfit, user?.currency)}
+              </p>
+            )}
           </div>
         </div>
 

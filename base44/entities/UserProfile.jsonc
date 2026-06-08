@@ -71,7 +71,6 @@
       "type": "string",
       "enum": [
         "public",
-        "followers_only",
         "private"
       ],
       "default": "public",

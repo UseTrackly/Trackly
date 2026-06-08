@@ -1,33 +1,58 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music2, Play, Pause, ChevronRight, X } from 'lucide-react';
+import { Music2, Play, Pause, Pencil } from 'lucide-react';
+
+// Equalizer bars animation (CSS-driven)
+function EqualizerBars() {
+  return (
+    <div className="flex items-end gap-[2px] h-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="w-[3px] rounded-full bg-violet-400"
+          style={{
+            animation: `eq-bar-${i} ${0.5 + i * 0.12}s ease-in-out infinite alternate`,
+            height: '60%',
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes eq-bar-1 { from { height: 30% } to { height: 100% } }
+        @keyframes eq-bar-2 { from { height: 60% } to { height: 30% } }
+        @keyframes eq-bar-3 { from { height: 40% } to { height: 90% } }
+        @keyframes eq-bar-4 { from { height: 80% } to { height: 20% } }
+      `}</style>
+    </div>
+  );
+}
 
 export default function ProfileSongCard({ songName, songArtist, previewUrl, artworkUrl, onEdit }) {
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
 
+  const displayTitle = songName?.includes(' – ') ? songName.split(' – ')[0] : songName;
+  const displayArtist = songArtist || (songName?.includes(' – ') ? songName.split(' – ')[1] : null);
+
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; }
     };
   }, []);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
-    }
+    if (audioRef.current) { audioRef.current.pause(); setPlaying(false); }
   }, [previewUrl]);
 
-  useEffect(() => {
-    if (!sheetOpen && audioRef.current) {
+  const togglePlay = (e) => {
+    e.stopPropagation();
+    if (!audioRef.current || !previewUrl) return;
+    if (playing) {
       audioRef.current.pause();
       setPlaying(false);
+    } else {
+      audioRef.current.play();
+      setPlaying(true);
     }
-  }, [sheetOpen]);
+  };
 
   if (!songName && !previewUrl) {
     return (
@@ -41,130 +66,80 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     );
   }
 
-  const displayTitle = songName?.includes(' – ')
-    ? songName.split(' – ')[0]
-    : songName;
-  const displayArtist = songArtist || (songName?.includes(' – ') ? songName.split(' – ')[1] : null);
-
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-    if (playing) {
-      audioRef.current.pause();
-      setPlaying(false);
-    } else {
-      audioRef.current.play();
-      setPlaying(true);
-    }
-  };
-
   return (
-    <>
-      {/* Pill */}
-      <button
-        onClick={() => setSheetOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded-full mx-auto mt-3 transition-all active:scale-95"
+    <div className="mt-3 w-full">
+      <div
+        className="relative flex items-center gap-3 px-3 py-3 rounded-2xl overflow-hidden transition-all"
         style={{
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(168,85,247,0.14) 100%)',
-          border: '1px solid rgba(139,92,246,0.25)',
-          backdropFilter: 'blur(8px)',
+          background: playing
+            ? 'linear-gradient(135deg, rgba(109,40,217,0.28) 0%, rgba(99,102,241,0.22) 100%)'
+            : 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 100%)',
+          border: playing
+            ? '1px solid rgba(139,92,246,0.45)'
+            : '1px solid rgba(139,92,246,0.18)',
+          boxShadow: playing ? '0 0 18px rgba(139,92,246,0.2)' : 'none',
+          transition: 'all 0.3s ease',
         }}
       >
-        <Music2 className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-        <span className="text-xs font-medium text-foreground/90 max-w-[180px] truncate">
-          {displayTitle}
-          {displayArtist && <span className="text-muted-foreground font-normal"> · {displayArtist}</span>}
-        </span>
-        <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-      </button>
-
-      {/* Bottom sheet backdrop */}
-      {sheetOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end"
-          onClick={() => setSheetOpen(false)}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
-          {/* Sheet */}
-          <div
-            className="relative w-full max-w-md mx-auto rounded-t-2xl overflow-hidden"
-            style={{
-              background: 'linear-gradient(160deg, #1a1033 0%, #0f0a1e 60%, #0a0a0a 100%)',
-              border: '1px solid rgba(139,92,246,0.2)',
-              borderBottom: 'none',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-8 h-1 rounded-full bg-white/20" />
+        {/* Artwork */}
+        <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 relative">
+          {artworkUrl ? (
+            <img src={artworkUrl} alt="artwork" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-violet-900/40 flex items-center justify-center">
+              <Music2 className="w-5 h-5 text-violet-400" />
             </div>
-
-            {/* Close */}
-            <button
-              onClick={() => setSheetOpen(false)}
-              className="absolute top-3 right-4 p-1.5 rounded-full bg-white/10 text-white/60 hover:text-white transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-
-            <div className="px-6 pb-10 pt-4 flex flex-col items-center gap-4">
-              {/* Artwork */}
-              <div className="w-28 h-28 rounded-2xl overflow-hidden shadow-2xl"
-                style={{ boxShadow: '0 8px 32px rgba(139,92,246,0.35)' }}>
-                {artworkUrl ? (
-                  <img src={artworkUrl} alt="album art" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-violet-900/40">
-                    <Music2 className="w-10 h-10 text-violet-400" />
-                  </div>
-                )}
-              </div>
-
-              {/* Song info */}
-              <div className="text-center">
-                <p className="text-base font-bold text-white leading-tight">{displayTitle || 'Profile Song'}</p>
-                {displayArtist && <p className="text-sm text-white/50 mt-0.5">{displayArtist}</p>}
-              </div>
-
-              {/* Controls */}
-              {previewUrl ? (
-                <div className="flex flex-col items-center gap-2 w-full">
-                  <button
-                    onClick={togglePlay}
-                    className="w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-95"
-                    style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)' }}
-                  >
-                    {playing
-                      ? <Pause className="w-6 h-6 text-white" />
-                      : <Play className="w-6 h-6 text-white ml-0.5" />}
-                  </button>
-                  <p className="text-[10px] text-white/30">30s preview</p>
-                  <audio
-                    ref={audioRef}
-                    src={previewUrl}
-                    onEnded={() => setPlaying(false)}
-                    preload="none"
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-white/30">No preview available</p>
-              )}
-
-              {/* Edit link */}
-              {onEdit && (
-                <button
-                  onClick={() => { setSheetOpen(false); onEdit(); }}
-                  className="text-xs text-violet-400 underline underline-offset-2 mt-1"
-                >
-                  Change song
-                </button>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-      )}
-    </>
+
+        {/* Song info */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold leading-tight truncate text-foreground">{displayTitle}</p>
+          {displayArtist && (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{displayArtist}</p>
+          )}
+          {playing && (
+            <div className="mt-1">
+              <EqualizerBars />
+            </div>
+          )}
+        </div>
+
+        {/* Play/Pause button */}
+        {previewUrl && (
+          <button
+            onClick={togglePlay}
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90"
+            style={{
+              background: playing
+                ? 'linear-gradient(135deg, #7c3aed, #6366f1)'
+                : 'rgba(139,92,246,0.2)',
+              border: '1px solid rgba(139,92,246,0.35)',
+            }}
+          >
+            {playing
+              ? <Pause className="w-4 h-4 text-white" />
+              : <Play className="w-4 h-4 text-violet-300 ml-0.5" />}
+          </button>
+        )}
+
+        {/* Edit button */}
+        {onEdit && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Pencil className="w-3 h-3" />
+          </button>
+        )}
+
+        <audio
+          ref={audioRef}
+          src={previewUrl}
+          onEnded={() => setPlaying(false)}
+          preload="none"
+        />
+      </div>
+    </div>
   );
 }

@@ -1,66 +1,95 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Uses the iTunes Search API to find song previews.
- * Ranks results with exact title+artist match first, filters out
- * karaoke/covers/remixes/sped-up/slowed versions unless explicitly searched.
+ * iTunes Search API song finder with:
+ * - Multi-strategy search (combined, song-only, artist-only)
+ * - Fuzzy/partial matching via relevance scoring
+ * - Junk filtering (karaoke, covers, remixes, etc.)
+ * - Typo tolerance via character overlap scoring
  */
 
 const JUNK_KEYWORDS = [
   'karaoke', 'tribute', 'cover', 'instrumental', 'remix', 'sped up', 'speed up',
   'slowed', 'reverb', 'nightcore', 'unofficial', 'made popular', 'in the style of',
-  'originally performed', 'as made', 'acoustic version',
+  'originally performed', 'as made',
 ];
 
 function normalize(str) {
-  return (str || '').toLowerCase().trim();
+  return (str || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
 }
 
 function isJunk(track, query) {
   const qNorm = normalize(query);
-  // Only filter junk if the user didn't explicitly search for those terms
-  const userWantsJunk = JUNK_KEYWORDS.some(k => qNorm.includes(k));
-  if (userWantsJunk) return false;
-
-  const combined = normalize(`${track.trackName} ${track.artistName} ${track.collectionName || ''}`);
+  if (JUNK_KEYWORDS.some(k => qNorm.includes(k))) return false; // user searched for this explicitly
+  const combined = normalize(`${track.trackName} ${track.collectionName || ''}`);
   return JUNK_KEYWORDS.some(k => combined.includes(k));
 }
 
-function scoreTrack(track, songQuery, artistQuery) {
+// Character n-gram overlap — gives partial/typo credit (0..1)
+function ngramSimilarity(a, b, n = 2) {
+  const na = normalize(a);
+  const nb = normalize(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+
+  const makeGrams = (s) => {
+    const grams = new Set();
+    for (let i = 0; i <= s.length - n; i++) grams.add(s.slice(i, i + n));
+    return grams;
+  };
+
+  const ga = makeGrams(na);
+  const gb = makeGrams(nb);
+  let overlap = 0;
+  for (const g of ga) if (gb.has(g)) overlap++;
+  return (2 * overlap) / (ga.size + gb.size);
+}
+
+function scoreTrack(track, songQ, artistQ, fullQ) {
   const tName = normalize(track.trackName);
   const tArtist = normalize(track.artistName);
-  const qSong = normalize(songQuery);
-  const qArtist = normalize(artistQuery);
+  const qs = normalize(songQ);
+  const qa = normalize(artistQ);
+  const qf = normalize(fullQ);
 
   let score = 0;
 
-  // 1. Exact title + artist match (highest priority)
-  if (qSong && qArtist && tName === qSong && tArtist === qArtist) score += 1000;
+  // --- Exact / contains matches (high weight) ---
+  if (qs && qa && tName === qs && tArtist === qa) score += 2000;
+  if (qs && qa && tName === qs && tArtist.includes(qa)) score += 1600;
+  if (qs && qa && tName.includes(qs) && tArtist === qa) score += 1400;
+  if (qs && tName === qs) score += 1000;
+  if (qs && tName.startsWith(qs)) score += 600;
+  if (qs && tName.includes(qs)) score += 300;
+  if (qa && tArtist === qa) score += 500;
+  if (qa && tArtist.includes(qa)) score += 250;
 
-  // 2. Exact title + artist contains match
-  if (qSong && qArtist && tName === qSong && tArtist.includes(qArtist)) score += 800;
-  if (qSong && qArtist && tName.includes(qSong) && tArtist === qArtist) score += 700;
+  // --- Fuzzy / typo tolerance via bigram similarity ---
+  if (qs) score += ngramSimilarity(tName, qs) * 400;
+  if (qa) score += ngramSimilarity(tArtist, qa) * 300;
 
-  // 3. Exact title match alone
-  if (qSong && tName === qSong) score += 500;
+  // Combined query fuzzy (when user typed everything in one field)
+  if (qf && !qs && !qa) {
+    const combined = `${tName} ${tArtist}`;
+    score += ngramSimilarity(combined, qf) * 500;
+    if (combined.includes(qf)) score += 400;
+    if (tName.includes(qf)) score += 300;
+    if (tArtist.includes(qf)) score += 200;
+  }
 
-  // 4. Title starts with query
-  if (qSong && tName.startsWith(qSong)) score += 300;
-
-  // 5. Artist exact match
-  if (qArtist && tArtist === qArtist) score += 200;
-  if (qArtist && tArtist.includes(qArtist)) score += 100;
-
-  // 6. Title contains query
-  if (qSong && tName.includes(qSong)) score += 80;
-
-  // 7. Preview availability bonus
-  if (track.previewUrl) score += 50;
-
-  // 8. Popularity via trackCount
-  score += Math.min((track.trackCount || 0) / 10, 30);
+  // --- Quality signals ---
+  if (track.previewUrl) score += 80;
+  score += Math.min((track.trackCount || 0) / 10, 40);
 
   return score;
+}
+
+async function fetchResults(term) {
+  const encoded = encodeURIComponent(term.trim());
+  const res = await fetch(`https://itunes.apple.com/search?term=${encoded}&media=music&entity=song&limit=50`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.results || [];
 }
 
 Deno.serve(async (req) => {
@@ -73,36 +102,46 @@ Deno.serve(async (req) => {
 
   const { query, songQuery: rawSong, artistQuery: rawArtist } = body;
 
-  // Support both combined query (legacy) and split song/artist fields
-  const songQ = rawSong || '';
-  const artistQ = rawArtist || '';
-  const searchTerm = query || [songQ, artistQ].filter(Boolean).join(' ');
+  const songQ = (rawSong || '').trim();
+  const artistQ = (rawArtist || '').trim();
+  const fullQ = (query || '').trim() || [songQ, artistQ].filter(Boolean).join(' ');
 
-  if (!searchTerm.trim()) {
-    return Response.json({ error: 'query is required' }, { status: 400 });
+  if (!fullQ) return Response.json({ error: 'query is required' }, { status: 400 });
+
+  // Multi-strategy: run up to 3 searches in parallel for better recall
+  const searches = [fullQ];
+  if (songQ && artistQ) {
+    searches.push(songQ);   // song only
+    searches.push(artistQ); // artist only
   }
 
-  const encoded = encodeURIComponent(searchTerm.trim());
-  const url = `https://itunes.apple.com/search?term=${encoded}&media=music&entity=song&limit=50`;
+  const allBatches = await Promise.all(searches.map(fetchResults));
 
-  const res = await fetch(url);
-  if (!res.ok) return Response.json({ error: 'iTunes API error' }, { status: 502 });
+  // Deduplicate by trackId
+  const seen = new Set();
+  const pool = [];
+  for (const batch of allBatches) {
+    for (const r of batch) {
+      const key = r.trackId || `${r.trackName}|${r.artistName}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        pool.push(r);
+      }
+    }
+  }
 
-  const json = await res.json();
-  const results = json.results || [];
+  if (pool.length === 0) return Response.json({ results: [], message: 'No results found' });
 
-  if (results.length === 0) return Response.json({ results: [], message: 'No results found' });
-
-  // Filter junk unless user explicitly searched for those terms
-  const filtered = results.filter(r => !isJunk(r, searchTerm));
-  const pool = filtered.length > 0 ? filtered : results; // fallback if all filtered
+  // Filter junk (fallback to full pool if everything filtered)
+  const filtered = pool.filter(r => !isJunk(r, fullQ));
+  const candidates = filtered.length > 0 ? filtered : pool;
 
   // Score and sort
-  const scored = pool
-    .map(r => ({ r, score: scoreTrack(r, songQ || searchTerm, artistQ) }))
+  const scored = candidates
+    .map(r => ({ r, score: scoreTrack(r, songQ, artistQ, fullQ) }))
     .sort((a, b) => b.score - a.score);
 
-  const matches = scored.slice(0, 8).map(({ r }) => ({
+  const results = scored.slice(0, 8).map(({ r }) => ({
     preview_url: r.previewUrl || null,
     track_name: r.trackName,
     artist_name: r.artistName,
@@ -110,5 +149,5 @@ Deno.serve(async (req) => {
     track_count: r.trackCount || 0,
   }));
 
-  return Response.json({ results: matches });
+  return Response.json({ results });
 });

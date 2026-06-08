@@ -37,7 +37,7 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
     setLoading(true);
     setResults([]);
     try {
-      const res = await base44.functions.invoke('findSongPreview', { query: combined });
+      const res = await base44.functions.invoke('findSongPreview', { query: combined, songQuery: songQuery.trim(), artistQuery: artistQuery.trim() });
       const found = res.data?.results || [];
       if (found.length === 0) toast.error('No results — try different search terms');
       else setResults(found);

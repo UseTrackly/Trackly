@@ -320,19 +320,14 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Song Card */}
-        <div className="relative group mt-3 pr-10">
+        <div className="flex justify-center">
           <ProfileSongCard
             songName={profile?.song_name}
             songArtist={profile?.song_artist}
             previewUrl={profile?.song_preview_url}
             artworkUrl={profile?.song_artwork_url}
+            onEdit={() => setShowEditSong(true)}
           />
-          <button
-            onClick={() => setShowEditSong(true)}
-            className="absolute top-2 right-2 p-1.5 rounded-lg bg-secondary/80 border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          >
-            <Edit3 className="w-3 h-3" />
-          </button>
         </div>
 
         {/* Followers / Following */}

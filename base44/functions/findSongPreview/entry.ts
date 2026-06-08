@@ -1,10 +1,68 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Uses the iTunes Search API (free, no key) to find song previews.
- * Fetches a large result set and sorts by popularity (trackCount) so
- * well-known tracks surface first regardless of iTunes' default ordering.
+ * Uses the iTunes Search API to find song previews.
+ * Ranks results with exact title+artist match first, filters out
+ * karaoke/covers/remixes/sped-up/slowed versions unless explicitly searched.
  */
+
+const JUNK_KEYWORDS = [
+  'karaoke', 'tribute', 'cover', 'instrumental', 'remix', 'sped up', 'speed up',
+  'slowed', 'reverb', 'nightcore', 'unofficial', 'made popular', 'in the style of',
+  'originally performed', 'as made', 'acoustic version',
+];
+
+function normalize(str) {
+  return (str || '').toLowerCase().trim();
+}
+
+function isJunk(track, query) {
+  const qNorm = normalize(query);
+  // Only filter junk if the user didn't explicitly search for those terms
+  const userWantsJunk = JUNK_KEYWORDS.some(k => qNorm.includes(k));
+  if (userWantsJunk) return false;
+
+  const combined = normalize(`${track.trackName} ${track.artistName} ${track.collectionName || ''}`);
+  return JUNK_KEYWORDS.some(k => combined.includes(k));
+}
+
+function scoreTrack(track, songQuery, artistQuery) {
+  const tName = normalize(track.trackName);
+  const tArtist = normalize(track.artistName);
+  const qSong = normalize(songQuery);
+  const qArtist = normalize(artistQuery);
+
+  let score = 0;
+
+  // 1. Exact title + artist match (highest priority)
+  if (qSong && qArtist && tName === qSong && tArtist === qArtist) score += 1000;
+
+  // 2. Exact title + artist contains match
+  if (qSong && qArtist && tName === qSong && tArtist.includes(qArtist)) score += 800;
+  if (qSong && qArtist && tName.includes(qSong) && tArtist === qArtist) score += 700;
+
+  // 3. Exact title match alone
+  if (qSong && tName === qSong) score += 500;
+
+  // 4. Title starts with query
+  if (qSong && tName.startsWith(qSong)) score += 300;
+
+  // 5. Artist exact match
+  if (qArtist && tArtist === qArtist) score += 200;
+  if (qArtist && tArtist.includes(qArtist)) score += 100;
+
+  // 6. Title contains query
+  if (qSong && tName.includes(qSong)) score += 80;
+
+  // 7. Preview availability bonus
+  if (track.previewUrl) score += 50;
+
+  // 8. Popularity via trackCount
+  score += Math.min((track.trackCount || 0) / 10, 30);
+
+  return score;
+}
+
 Deno.serve(async (req) => {
   let body;
   try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON' }, { status: 400 }); }
@@ -13,14 +71,18 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { query } = body;
-  if (!query || typeof query !== 'string') {
+  const { query, songQuery: rawSong, artistQuery: rawArtist } = body;
+
+  // Support both combined query (legacy) and split song/artist fields
+  const songQ = rawSong || '';
+  const artistQ = rawArtist || '';
+  const searchTerm = query || [songQ, artistQ].filter(Boolean).join(' ');
+
+  if (!searchTerm.trim()) {
     return Response.json({ error: 'query is required' }, { status: 400 });
   }
 
-  const encoded = encodeURIComponent(query.trim());
-
-  // Fetch a large set so we can sort by popularity ourselves
+  const encoded = encodeURIComponent(searchTerm.trim());
   const url = `https://itunes.apple.com/search?term=${encoded}&media=music&entity=song&limit=50`;
 
   const res = await fetch(url);
@@ -31,21 +93,16 @@ Deno.serve(async (req) => {
 
   if (results.length === 0) return Response.json({ results: [], message: 'No results found' });
 
-  // Sort by trackCount (album total tracks is iTunes' best popularity proxy — 
-  // albums with more catalog entries / reissues = more popular artist).
-  // Secondary: prefer tracks that have a preview URL.
-  const sorted = results.sort((a, b) => {
-    // Prioritize results that have a preview
-    const aHasPreview = a.previewUrl ? 1 : 0;
-    const bHasPreview = b.previewUrl ? 1 : 0;
-    if (bHasPreview !== aHasPreview) return bHasPreview - aHasPreview;
+  // Filter junk unless user explicitly searched for those terms
+  const filtered = results.filter(r => !isJunk(r, searchTerm));
+  const pool = filtered.length > 0 ? filtered : results; // fallback if all filtered
 
-    // Then sort by trackCount descending as popularity signal
-    return (b.trackCount || 0) - (a.trackCount || 0);
-  });
+  // Score and sort
+  const scored = pool
+    .map(r => ({ r, score: scoreTrack(r, songQ || searchTerm, artistQ) }))
+    .sort((a, b) => b.score - a.score);
 
-  // Return top 8 results (with or without preview — label no-preview ones)
-  const matches = sorted.slice(0, 8).map(r => ({
+  const matches = scored.slice(0, 8).map(({ r }) => ({
     preview_url: r.previewUrl || null,
     track_name: r.trackName,
     artist_name: r.artistName,

@@ -36,8 +36,8 @@ function FlipCard({ flip, user, onInterest, onClick, priority }) {
           </div>
           <ProfileLink
             userEmail={flip.posted_by}
-            username={flip.posted_by_name?.[0] || 'U'}
-            userName={flip.posted_by_name?.[0] || 'U'}
+            username={flip.posted_by_name}
+            userName={flip.posted_by_name || 'Unknown'}
             className="absolute top-1.5 right-1.5"
           >
             <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium hover:opacity-80">
@@ -170,7 +170,13 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
       .slice(0, 5)
       .map(([email, score]) => {
         const profile = profiles.find(p => p.user_email === email);
-        return { email, name: profile?.display_name || email.split('@')[0], avatar: profile?.avatar_url, score };
+        return { 
+          email, 
+          name: profile?.display_name || profile?.username || email.split('@')[0], 
+          username: profile?.username,
+          avatar: profile?.avatar_url, 
+          score 
+        };
       });
   }, [flips, profiles]);
 
@@ -195,7 +201,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
                 {trendingCollectors.map((collector) => (
                   <div key={collector.email} className="shrink-0 w-20 text-center">
-                    <ProfileLink userEmail={collector.email} username={collector.name} userName={collector.name}>
+                    <ProfileLink userEmail={collector.email} username={collector.username || collector.name} userName={collector.name}>
                       <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary border-2 border-border mx-auto mb-1">
                         {collector.avatar ? (
                           <img src={collector.avatar} alt="" className="w-full h-full object-cover" />

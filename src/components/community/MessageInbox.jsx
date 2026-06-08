@@ -39,7 +39,7 @@ function ThreadItem({ thread, onClick, onProfileClick }) {
         </div>
         <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex items-center justify-between gap-2 mb-0.5">
-            <ProfileLink userEmail={thread.otherEmail} username={thread.otherName} userName={thread.otherName} showAvatar={false} onClick={(e) => { e.stopPropagation(); onProfileClick?.(); }} className="flex-1 min-w-0">
+            <ProfileLink userEmail={thread.otherEmail} username={thread.otherUsername || thread.otherName} userName={thread.otherName} showAvatar={false} onClick={(e) => { e.stopPropagation(); onProfileClick?.(); }} className="flex-1 min-w-0">
               <span className="font-semibold text-sm truncate block hover:text-primary">{thread.otherName}</span>
             </ProfileLink>
             <span className="text-[10px] text-muted-foreground shrink-0">{timestamp}</span>
@@ -93,14 +93,18 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length]);
 
   const sendMutation = useMutation({
-    mutationFn: (payload) => base44.entities.Message.create({
-      community_flip_id: thread.flipId,
-      sender_email: currentUser.email,
-      sender_name: senderName || currentUser.full_name || currentUser.email.split('@')[0],
-      recipient_email: thread.otherEmail,
-      is_read: false,
-      ...payload,
-    }),
+    mutationFn: (payload) => {
+      // Use username from profile if available - fetch from query cache or use fallback
+      const senderDisplayName = currentUser?.email ? currentUser.full_name || currentUser.email.split('@')[0] : 'User';
+      return base44.entities.Message.create({
+        community_flip_id: thread.flipId,
+        sender_email: currentUser.email,
+        sender_name: senderDisplayName,
+        recipient_email: thread.otherEmail,
+        is_read: false,
+        ...payload,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', thread.flipId], queryKey: ['myMessages'] });
       setText('');
@@ -113,7 +117,7 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
       <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8"><ArrowLeft className="w-4 h-4" /></Button>
-          <ProfileLink userEmail={thread.otherEmail} username={thread.otherName} userName={thread.otherName} showAvatar={true} className="flex-1 min-w-0">
+          <ProfileLink userEmail={thread.otherEmail} username={thread.otherUsername || thread.otherName} userName={thread.otherName} showAvatar={true} className="flex-1 min-w-0">
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-sm truncate">{thread.otherName}</p>
               <p className="text-[10px] text-muted-foreground truncate">Re: {thread.flipName}</p>
@@ -186,6 +190,11 @@ export default function MessageInbox({ open, onClose }) {
   const { data: myProfileRaw = [] } = useQuery({ queryKey: ['myProfile'], queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1), enabled: !!user });
   const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
   const { data: messages = [] } = useQuery({ queryKey: ['myMessages'], queryFn: () => base44.entities.Message.list('-created_date', 200), enabled: open, refetchInterval: 10000 });
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ['allProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
+    initialData: [],
+  });
   const { data: flips = [] } = useQuery({ queryKey: ['communityFlips'], queryFn: () => base44.entities.CommunityFlip.list('-created_date', 200), enabled: open });
 
   const threads = useMemo(() => {
@@ -196,7 +205,20 @@ export default function MessageInbox({ open, onClose }) {
       const otherName = m.sender_email === user.email ? m.recipient_name : m.sender_name;
       if (!map.has(otherEmail)) {
         const flip = flips.find(f => f.id === m.community_flip_id);
-        map.set(otherEmail, { otherEmail, otherName: otherName || otherEmail.split('@')[0], flipId: m.community_flip_id, flipName: flip?.item_name || 'Flip', messages: [], currentUserEmail: user.email, avatarUrl: null });
+        // Lookup username from profile
+        const otherUserProfile = allProfiles?.find(p => p.user_email === otherEmail);
+        const displayName = otherUserProfile?.display_name || otherUserProfile?.username || otherName || otherEmail.split('@')[0];
+        const username = otherUserProfile?.username;
+        map.set(otherEmail, { 
+          otherEmail, 
+          otherName: displayName,
+          otherUsername: username,
+          flipId: m.community_flip_id, 
+          flipName: flip?.item_name || 'Flip', 
+          messages: [], 
+          currentUserEmail: user.email, 
+          avatarUrl: otherUserProfile?.avatar_url || null 
+        });
       }
       map.get(otherEmail).messages.push(m);
     });
@@ -207,7 +229,7 @@ export default function MessageInbox({ open, onClose }) {
       if (!aUnread && bUnread) return 1;
       return b.messages[0]?.created_date.localeCompare(a.messages[0]?.created_date);
     });
-  }, [messages, flips, user]);
+  }, [messages, flips, user, allProfiles]);
 
   useEffect(() => {
     threads.forEach(t => {
@@ -215,7 +237,13 @@ export default function MessageInbox({ open, onClose }) {
     });
   }, [threads.length]);
 
-  const handleViewProfile = () => { if (selectedThread) window.open(`/profile/${encodeURIComponent(selectedThread.otherName)}`, '_blank'); };
+  const handleViewProfile = () => {
+    if (!selectedThread) return;
+    // Lookup username for the other user
+    const otherUserProfile = allProfiles?.find(p => p.user_email === selectedThread.otherEmail);
+    const routeParam = otherUserProfile?.username || selectedThread.otherName;
+    window.open(`/profile/${encodeURIComponent(routeParam)}`, '_blank');
+  };
 
   const confirmBlock = async () => {
     try {
@@ -246,14 +274,18 @@ export default function MessageInbox({ open, onClose }) {
                 ) : (
                   <div className="space-y-1">
                     {threads.map(thread => (
-                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} onProfileClick={() => window.open(`/profile/${encodeURIComponent(thread.otherName)}`, '_blank')} />
+                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} onProfileClick={() => {
+                        const otherUserProfile = allProfiles?.find(p => p.user_email === thread.otherEmail);
+                        const routeParam = otherUserProfile?.username || thread.otherName;
+                        window.open(`/profile/${encodeURIComponent(routeParam)}`, '_blank');
+                      }} />
                     ))}
                   </div>
                 )}
               </motion.div>
             ) : (
               <motion.div key="conversation" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex-1 flex flex-col p-4">
-                <Conversation thread={selectedThread} currentUser={user} senderName={user?.full_name || user?.email.split('@')[0]} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} onViewProfile={handleViewProfile} />
+                <Conversation thread={selectedThread} currentUser={user} senderName={myProfileRaw?.[0]?.username || user?.full_name || user?.email.split('@')[0]} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} onViewProfile={handleViewProfile} />
               </motion.div>
             )}
           </AnimatePresence>

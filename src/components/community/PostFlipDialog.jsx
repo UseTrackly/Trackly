@@ -65,6 +65,12 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     enabled: !!user,
   });
 
+  const { data: myProfile } = useQuery({
+    queryKey: ['myProfile', user?.email],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1).then(r => r?.[0] ?? null),
+    enabled: !!user?.email,
+  });
+
   const postAllowed = canPostCommunity(user, myPosts);
 
   const postMutation = useMutation({
@@ -115,11 +121,14 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
         setUploading(false);
       }
 
+      // Use username from profile if available, otherwise fall back to display_name
+      const posterName = myProfile?.username || user.full_name || user.email.split('@')[0];
+
       await base44.entities.CommunityFlip.create({
         ...data,
         image_url: imageUrl,
         posted_by: user.email,
-        posted_by_name: user.full_name,
+        posted_by_name: posterName,
         is_poster_pro: !!user.is_pro,
         interested_users: [],
       });

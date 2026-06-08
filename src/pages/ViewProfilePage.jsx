@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
-  MapPin, MessageCircle, UserPlus, UserCheck, Package, TrendingUp, Lock, Crown, User, X, Calendar,
+  MapPin, MessageCircle, UserPlus, UserCheck, Package, TrendingUp, Lock, Crown, User, X, Calendar, Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProfileSongCard from '@/components/profile/ProfileSongCard';
@@ -368,29 +368,32 @@ export default function ViewProfilePage() {
           </div>
         )}
 
-        {/* Followers/Following Dialog */}
+        {/* Followers/Following Bottom Sheet */}
         {showFollowers && (
           <>
             <div
               className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
               onClick={() => setShowFollowers(null)}
             />
-            <div className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 max-w-[90vw] rounded-2xl bg-card border border-border shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <h3 className="text-base font-semibold">
+            <div className="fixed z-50 bottom-0 left-0 right-0 max-h-[85vh] bg-card border-t border-border rounded-t-2xl shadow-2xl overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+                <h3 className="text-lg font-bold text-foreground">
                   {showFollowers === 'followers' ? 'Followers' : 'Following'}
                 </h3>
                 <button
                   onClick={() => setShowFollowers(null)}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-4 max-h-80 overflow-y-auto">
+
+              {/* Scrollable List */}
+              <div className="flex-1 overflow-y-auto p-4">
                 {showFollowers === 'followers' ? (
                   otherProfile?.followers && otherProfile.followers.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {otherProfile.followers.map((email, i) => {
                         const followerProfile = allProfiles?.find(p => p.user_email === email);
                         const displayName = followerProfile?.display_name || followerProfile?.username || email.split('@')[0];
@@ -400,25 +403,36 @@ export default function ViewProfilePage() {
                             userEmail={email}
                             username={followerProfile?.username || displayName}
                             userName={displayName}
-                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
+                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 -mx-2"
                           >
-                            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
                               {followerProfile?.avatar_url ? (
-                                <img src={followerProfile.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
+                                <img src={followerProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                               ) : (
-                                <User className="w-4 h-4 text-muted-foreground" />
+                                <User className="w-5 h-5 text-muted-foreground" />
                               )}
                             </div>
-                            <span className="text-sm font-medium truncate">{displayName}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-base font-medium truncate block">{displayName}</span>
+                              {followerProfile?.username && (
+                                <span className="text-xs text-muted-foreground">@{followerProfile.username}</span>
+                              )}
+                            </div>
                           </ProfileLink>
                         );
                       })}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">No followers yet</p>
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                        <Users className="w-7 h-7 text-muted-foreground" />
+                      </div>
+                      <p className="text-base font-semibold text-foreground mb-1">No followers yet</p>
+                      <p className="text-sm text-muted-foreground">When people follow you, they'll appear here</p>
+                    </div>
                   )
                 ) : otherProfile?.following && otherProfile.following.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     {otherProfile.following.map((email, i) => {
                       const followingProfile = allProfiles?.find(p => p.user_email === email);
                       const displayName = followingProfile?.display_name || followingProfile?.username || email.split('@')[0];
@@ -428,22 +442,33 @@ export default function ViewProfilePage() {
                           userEmail={email}
                           username={followingProfile?.username || displayName}
                           userName={displayName}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
+                          className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 -mx-2"
                         >
-                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
                             {followingProfile?.avatar_url ? (
-                              <img src={followingProfile.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
+                              <img src={followingProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <User className="w-4 h-4 text-muted-foreground" />
+                              <User className="w-5 h-5 text-muted-foreground" />
                             )}
                           </div>
-                          <span className="text-sm font-medium truncate">{displayName}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-base font-medium truncate block">{displayName}</span>
+                            {followingProfile?.username && (
+                              <span className="text-xs text-muted-foreground">@{followingProfile.username}</span>
+                            )}
+                          </div>
                         </ProfileLink>
                       );
                     })}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-8">Not following anyone yet</p>
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                      <Users className="w-7 h-7 text-muted-foreground" />
+                    </div>
+                    <p className="text-base font-semibold text-foreground mb-1">Not following anyone yet</p>
+                    <p className="text-sm text-muted-foreground">Start following collectors to see their activity</p>
+                  </div>
                 )}
               </div>
             </div>

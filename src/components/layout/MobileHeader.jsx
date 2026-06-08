@@ -1,33 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, MessageCircle, History, Menu, X, Home, Calculator, Package, Users } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import MessageInbox from '@/components/community/MessageInbox';
+import SideDrawer from './SideDrawer';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useUserProfile } from '@/lib/useUserProfile';
-import { useTabReset } from '@/lib/TabResetContext';
 
 const CHILD_ROUTES = ['/terms', '/privacy'];
+const PAGE_TITLES = {
+  '/terms': 'Terms of Service',
+  '/privacy': 'Privacy Policy',
+};
 
-const NAV_ITEMS = [
-  { path: '/',           icon: Home,       label: 'Home' },
-  { path: '/calculator', icon: Calculator, label: 'Calculator' },
-  { path: '/inventory',  icon: Package,    label: 'Inventory' },
-  { path: '/community',  icon: Users,      label: 'Community' },
-];
-
-export default function MobileHeader({ asFlexItem = false }) {
+export default function MobileHeader() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { resetTab } = useTabReset();
   const [inboxOpen, setInboxOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
   const { data: profile } = useUserProfile(user);
-
   const avatarUrl = profile?.avatar_url || user?.profile_picture;
 
   const { data: messagesRaw = [] } = useQuery({
@@ -36,32 +31,19 @@ export default function MobileHeader({ asFlexItem = false }) {
     enabled: !!user,
     refetchInterval: 10000,
   });
-
   const unreadMsgCount = messagesRaw.filter(m => !m.is_read && m.recipient_email === user?.email).length;
 
-  if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories' || location.pathname === '/upgrade') return null;
+  if (
+    location.pathname === '/onboarding' ||
+    location.pathname === '/onboarding-categories' ||
+    location.pathname === '/upgrade'
+  ) return null;
 
   const isChildPage = CHILD_ROUTES.includes(location.pathname);
 
-  const PAGE_TITLES = {
-    '/terms': 'Terms of Service',
-    '/privacy': 'Privacy Policy',
-  };
-
-  const handleNav = (path) => {
-    if (location.pathname === path) {
-      resetTab(path);
-    } else {
-      navigate(path);
-    }
-  };
-
   return (
     <>
-      <div
-        className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0"
-      >
-        {/* Top strip */}
+      <div className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0">
         <div
           className="flex items-center justify-between px-3"
           style={{
@@ -85,128 +67,42 @@ export default function MobileHeader({ asFlexItem = false }) {
             </>
           ) : (
             <>
-              {/* Left: profile avatar */}
-              <button
-                onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 rounded-full bg-secondary border border-border overflow-hidden shrink-0 pr-2.5"
-                aria-label="Profile"
-              >
-                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-xs font-semibold text-muted-foreground">
-                        {user?.full_name?.[0]?.toUpperCase() || '?'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs font-semibold text-foreground">Profile</span>
-              </button>
+              {/* Left: app logo / brand */}
+              <div className="flex items-center gap-2">
+                <img
+                  src="https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/c29d404d0_logo_no_bg_final.png"
+                  alt="Trackly"
+                  style={{ height: 28, width: 'auto' }}
+                />
+              </div>
 
-              {/* Right: history, messages, notifications, nav menu */}
+              {/* Right: notifications + hamburger */}
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/history')}
-                  aria-label="History"
-                >
-                  <History className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative"
-                  onClick={() => setInboxOpen(true)}
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  {unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
-                    </span>
-                  )}
-                </Button>
                 <NotificationBell />
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setNavOpen(v => !v)}
-                  aria-label="Navigation menu"
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Open navigation"
                 >
-                  {navOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                  <Menu className="w-5 h-5" />
                 </Button>
               </div>
             </>
           )}
         </div>
-
-
       </div>
 
       <MessageInbox open={inboxOpen} onClose={() => setInboxOpen(false)} />
 
-      {/* Nav dropdown */}
-      <AnimatePresence>
-        {navOpen && (
-          <>
-            <motion.div
-              key="nav-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setNavOpen(false)}
-              style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
-            />
-            <motion.div
-              key="nav-menu"
-              initial={{ opacity: 0, y: -8, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-              style={{
-                position: 'fixed',
-                top: 'calc(var(--header-height, 100px))',
-                right: 12,
-                zIndex: 50,
-                background: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: 16,
-                overflow: 'hidden',
-                minWidth: 180,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
-              }}
-            >
-              {NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => { setNavOpen(false); handleNav(item.path); }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      width: '100%',
-                      padding: '14px 18px',
-                      background: isActive ? 'hsl(var(--primary) / 0.12)' : 'transparent',
-                      borderBottom: '1px solid hsl(var(--border) / 0.5)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Icon size={18} style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.6)' }} />
-                    <span style={{ fontSize: 14, fontWeight: 600, color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground))' }}>
-                      {item.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <SideDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onOpenMessages={() => setInboxOpen(true)}
+        user={user}
+        profile={profile}
+        unreadMsgCount={unreadMsgCount}
+      />
     </>
   );
 }

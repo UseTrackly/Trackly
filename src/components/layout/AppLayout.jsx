@@ -1,7 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import FloatingNav from './FloatingNav';
 const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
 import MobileHeader from './MobileHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
@@ -148,8 +147,7 @@ function AppLayoutInner() {
         </div>
       </main>
 
-      {/* Floating nav */}
-      {!isFullscreen && <FloatingNav />}
+
     </div>
   );
 }

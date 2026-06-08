@@ -10,121 +10,51 @@ const tabs = [
   { path: '/community', icon: Users, label: 'Community' },
 ];
 
-export default function BottomNav({ asFlexItem = false }) {
+export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { resetTab } = useTabReset();
 
-  if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories' || location.pathname === '/upgrade') return null;
+  if (
+    location.pathname === '/onboarding' ||
+    location.pathname === '/onboarding-categories' ||
+    location.pathname === '/upgrade'
+  ) return null;
 
   return (
     <nav
       role="navigation"
       aria-label="Main navigation"
-      className="relative z-50 border-t border-white/[0.06] shrink-0"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="relative z-50 border-t border-white/[0.06] shrink-0 bg-background"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
     >
-      {/* Animated gradient background */}
+      {/* Subtle top shimmer */}
       <div
         aria-hidden="true"
         style={{
-          position: 'absolute',
-          inset: 0,
-          bottom: '-200px',
-          zIndex: 0,
-          background: 'hsl(var(--background) / 0.55)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-        }}
-      />
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1,
-          pointerEvents: 'none',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Orb 1 */}
-        <div style={{
-          position: 'absolute',
-          width: 180,
-          height: 80,
-          borderRadius: '50%',
-          background: 'hsl(var(--primary) / 0.18)',
-          filter: 'blur(32px)',
-          top: '-20px',
-          left: '-10%',
-          animation: 'bnav-drift1 8s ease-in-out infinite',
-          willChange: 'transform',
-        }} />
-        {/* Orb 2 */}
-        <div style={{
-          position: 'absolute',
-          width: 140,
-          height: 70,
-          borderRadius: '50%',
-          background: 'hsl(var(--primary) / 0.12)',
-          filter: 'blur(28px)',
-          top: '-10px',
-          right: '5%',
-          animation: 'bnav-drift2 10s ease-in-out infinite',
-          willChange: 'transform',
-        }} />
-        {/* Subtle shimmer line */}
-        <div style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           height: '1px',
           background: 'linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent)',
-          animation: 'bnav-shimmer 4s ease-in-out infinite',
-        }} />
-      </div>
+          pointerEvents: 'none',
+        }}
+      />
 
-      <style>{`
-        @keyframes bnav-drift1 {
-          0%, 100% { transform: translateX(0px) scale(1); }
-          50% { transform: translateX(60px) scale(1.1); }
-        }
-        @keyframes bnav-drift2 {
-          0%, 100% { transform: translateX(0px) scale(1); }
-          50% { transform: translateX(-50px) scale(0.95); }
-        }
-        @keyframes bnav-shimmer {
-          0%, 100% { opacity: 0.3; transform: scaleX(0.6); }
-          50% { opacity: 1; transform: scaleX(1); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .bnav-drift1, .bnav-drift2, .bnav-shimmer { animation: none !important; }
-        }
-      `}</style>
-
-      {/* Solid fill that extends below the nav into the safe area / home indicator zone */}
-      <div style={{
-        position: 'absolute',
-        bottom: '-200px',
-        left: 0,
-        right: 0,
-        height: '200px',
-        background: 'hsl(var(--background))',
-        zIndex: 0,
-      }} />
-
-      <div className="relative flex items-center justify-center gap-2" style={{ zIndex: 2, paddingTop: '6px', paddingBottom: '6px' }}>
+      <div
+        className="flex items-center justify-center gap-2"
+        style={{ paddingTop: '6px', paddingBottom: '6px' }}
+      >
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
           return (
             <button
               key={tab.path}
-              onClick={() => isActive ? resetTab(tab.path) : navigate(tab.path)}
+              onClick={() => (isActive ? resetTab(tab.path) : navigate(tab.path))}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
               className="relative flex flex-col items-center gap-1 px-6 py-2 min-h-[44px] min-w-[70px] justify-center focus-visible:outline-none"
@@ -154,7 +84,9 @@ export default function BottomNav({ asFlexItem = false }) {
               />
               <span
                 className="text-[10px] font-medium tracking-wider uppercase transition-colors duration-200"
-                style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.55)' }}
+                style={{
+                  color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.55)',
+                }}
               >
                 {tab.label}
               </span>
@@ -162,7 +94,6 @@ export default function BottomNav({ asFlexItem = false }) {
           );
         })}
       </div>
-
     </nav>
   );
 }

@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useTheme } from '@/lib/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  Moon, Sun, Globe, Bell, Mail, FileText, Shield,
+  Moon, Sun, Globe, Bell, Mail, FileText, Shield, Eye, EyeOff, Lock,
   LogOut, Trash2, ChevronRight, Crown, MessageCircle,
   Settings, Instagram, Twitter, Youtube,
 } from 'lucide-react';
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -67,6 +67,7 @@ export default function SettingsPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelOther, setCancelOther] = useState('');
+  const [showProfitVisibility, setShowProfitVisibility] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -207,6 +208,16 @@ export default function SettingsPage() {
         />
       </Section>
 
+      {/* Privacy */}
+      <Section title="Privacy">
+        <SettingRow
+          icon={Eye}
+          label="Profit Visibility"
+          description="Who can see your net profit"
+          onClick={() => setShowProfitVisibility(true)}
+        />
+      </Section>
+
       {/* Notifications */}
       <Section title="Notifications">
         <SettingRow
@@ -312,6 +323,110 @@ export default function SettingsPage() {
           </a>
         </div>
       </div>
+
+      {/* Profit Visibility Dialog */}
+      <Dialog open={showProfitVisibility} onOpenChange={setShowProfitVisibility}>
+        <DialogContent className="max-w-sm mx-auto bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Profit Visibility</DialogTitle>
+            <DialogDescription className="text-xs">
+              Choose who can see your net profit on your profile.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-3">
+            {/* Public */}
+            <button
+              onClick={() => {
+                updateSettingsMutation.mutate({ profit_visibility: 'public' });
+                setShowProfitVisibility(false);
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                user?.profit_visibility === 'public'
+                  ? 'bg-primary/10 border-primary/30'
+                  : 'bg-card border-border hover:border-primary/30'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                user?.profit_visibility === 'public' ? 'bg-primary/20' : 'bg-secondary'
+              }`}>
+                <Eye className={`w-4 h-4 ${user?.profit_visibility === 'public' ? 'text-primary' : 'text-muted-foreground'}`} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold">Public</p>
+                <p className="text-xs text-muted-foreground">Anyone can see your net profit</p>
+              </div>
+              {user?.profit_visibility === 'public' && (
+                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-primary-foreground" />
+                </div>
+              )}
+            </button>
+
+            {/* Followers Only */}
+            <button
+              onClick={() => {
+                updateSettingsMutation.mutate({ profit_visibility: 'followers_only' });
+                setShowProfitVisibility(false);
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                user?.profit_visibility === 'followers_only'
+                  ? 'bg-amber-500/10 border-amber-500/30'
+                  : 'bg-card border-border hover:border-primary/30'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                user?.profit_visibility === 'followers_only' ? 'bg-amber-500/20' : 'bg-secondary'
+              }`}>
+                <EyeOff className={`w-4 h-4 ${user?.profit_visibility === 'followers_only' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold">Followers Only</p>
+                <p className="text-xs text-muted-foreground">Only approved followers can see it</p>
+              </div>
+              {user?.profit_visibility === 'followers_only' && (
+                <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-background" />
+                </div>
+              )}
+            </button>
+
+            {/* Private */}
+            <button
+              onClick={() => {
+                updateSettingsMutation.mutate({ profit_visibility: 'private' });
+                setShowProfitVisibility(false);
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                user?.profit_visibility === 'private'
+                  ? 'bg-muted/50 border-muted-foreground/30'
+                  : 'bg-card border-border hover:border-primary/30'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                user?.profit_visibility === 'private' ? 'bg-muted' : 'bg-secondary'
+              }`}>
+                <Lock className={`w-4 h-4 text-muted-foreground`} />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold">Private</p>
+                <p className="text-xs text-muted-foreground">Only you can see your net profit</p>
+              </div>
+              {user?.profit_visibility === 'private' && (
+                <div className="w-5 h-5 rounded-full bg-muted-foreground flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-background" />
+                </div>
+              )}
+            </button>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProfitVisibility(false)} className="w-full">
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Account Dialog */}
       <AlertDialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>

@@ -3,12 +3,12 @@ import { base44, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { useUserProfile } from '@/lib/useUserProfile';
 import { useAuth } from '@/lib/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCameraPicker } from '@/lib/useCameraPicker';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import {
   MapPin, Edit3, Camera, User, Image as ImageIcon,
-  Package, TrendingUp, Users, ShoppingBag,
+  Package, TrendingUp, Users, ShoppingBag, X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import ProfileSongCard from '@/components/profile/ProfileSongCard';
 import FollowStats from '@/components/profile/FollowStats';
 import SongSearchPicker from '@/components/profile/SongSearchPicker';
 import EditSongDialog from '@/components/profile/EditSongDialog';
+import ProfitVisibilityToggle from '@/components/profile/ProfitVisibilityToggle';
 
 const CATEGORIES = [
   { value: 'cards', label: 'Cards', emoji: '🎴' },
@@ -41,6 +42,7 @@ export default function ProfilePage() {
   const { isAuthenticated, navigateToLogin } = useAuth();
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditSong, setShowEditSong] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(null); // 'followers' | 'following' | null
   const [bio, setBio] = useState('');
   const [locationVal, setLocationVal] = useState('');
   const [username, setUsername] = useState('');
@@ -76,6 +78,10 @@ export default function ProfilePage() {
 
   const totalProfit = flips.reduce((s, f) => s + (f.net_profit || 0), 0);
   const recentActivity = flips.slice(0, 5);
+
+  // Determine if current user can see the profit (for own profile, always visible)
+  const canSeeProfit = true; // Own profile - always visible
+  const displayProfit = canSeeProfit ? totalProfit : 0;
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data) => {
@@ -162,6 +168,15 @@ export default function ProfilePage() {
         if (savedProfile) queryClient.setQueryData(['userProfile', user?.email], savedProfile);
         setShowEditSong(false);
         toast.success('Song updated');
+      },
+    });
+  };
+
+  const handleUpdateProfitVisibility = (visibility) => {
+    updateProfileMutation.mutate({ profit_visibility: visibility }, {
+      onSuccess: (savedProfile) => {
+        if (savedProfile) queryClient.setQueryData(['userProfile', user?.email], savedProfile);
+        toast.success('Privacy setting updated');
       },
     });
   };
@@ -339,20 +354,25 @@ export default function ProfilePage() {
               currentUserEmail={user?.email}
               isOwnProfile={true}
               compact
-              onOpenPreview={(type) => {
-                toast.info(`${type === 'followers' ? 'Followers' : 'Following'} list coming soon`);
-              }}
+              onOpenPreview={(type) => setShowFollowers(type)}
             />
           </div>
         </div>
 
         {/* Track Record Section */}
         <div className="mt-6">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Track Record</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Track Record</p>
+            <ProfitVisibilityToggle
+              profile={profile}
+              onUpdate={handleUpdateProfitVisibility}
+              isUpdating={updateProfileMutation.isPending}
+            />
+          </div>
           <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Net Profit</p>
-            <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
-              {formatCurrency(totalProfit, user?.currency)}
+            <p className={`text-3xl font-bold ${displayProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {formatCurrency(displayProfit, user?.currency)}
             </p>
           </div>
         </div>
@@ -445,6 +465,70 @@ export default function ProfilePage() {
         onSave={handleSaveSong}
         isSaving={updateProfileMutation.isPending}
       />
+
+      {/* Followers/Following Dialog */}
+      <AnimatePresence>
+        {showFollowers && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowFollowers(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 max-w-[90vw] rounded-2xl bg-card border border-border shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <DialogTitle className="text-base font-semibold">
+                  {showFollowers === 'followers' ? 'Followers' : 'Following'}
+                </DialogTitle>
+                <button
+                  onClick={() => setShowFollowers(null)}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-4 max-h-80 overflow-y-auto">
+                {showFollowers === 'followers' ? (
+                  profile?.followers?.length > 0 ? (
+                    <div className="space-y-2">
+                      {profile.followers.map((email, i) => (
+                        <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50">
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <span className="text-sm font-medium truncate">{email}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">No followers yet</p>
+                  )
+                ) : profile?.following?.length > 0 ? (
+                  <div className="space-y-2">
+                    {profile.following.map((email, i) => (
+                      <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50">
+                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                        </div>
+                        <span className="text-sm font-medium truncate">{email}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">Not following anyone yet</p>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Edit Profile Dialog */}
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>

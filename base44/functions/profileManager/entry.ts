@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'data object required' }, { status: 400 });
       }
 
-      const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users', 'banner_url', 'song_name', 'song_preview_url', 'song_artwork_url', 'song_artist'];
+      const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users', 'banner_url', 'song_name', 'song_preview_url', 'song_artwork_url', 'song_artist', 'profit_visibility'];
       const cleanData = Object.fromEntries(
         Object.entries(data).filter(([k]) => ALLOWED_PROFILE_FIELDS.includes(k))
       );

@@ -66,6 +66,16 @@
         "type": "string"
       },
       "description": "Blocked user emails"
+    },
+    "profit_visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "followers_only",
+        "private"
+      ],
+      "default": "public",
+      "description": "Who can see the user's net profit"
     }
   },
   "required": [

@@ -1,13 +1,14 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTabReset } from '@/lib/TabResetContext';
-import { Home, Calculator, Users, Package } from 'lucide-react';
+import { Home, Calculator, Users, Package, User } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/calculator', icon: Calculator, label: 'Calculator' },
+  { path: '/calculator', icon: Calculator, label: 'Add Flip' },
   { path: '/inventory', icon: Package, label: 'Inventory' },
   { path: '/community', icon: Users, label: 'Community' },
+  { path: '/profile', icon: User, label: 'Profile' },
 ];
 
 export default function BottomNav() {
@@ -27,7 +28,7 @@ export default function BottomNav() {
       aria-label="Main navigation"
       className="relative z-50 border-t border-white/[0.06] shrink-0 bg-background"
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
       }}
     >
       {/* Subtle top shimmer */}
@@ -45,8 +46,8 @@ export default function BottomNav() {
       />
 
       <div
-        className="flex items-center justify-center gap-2"
-        style={{ paddingTop: '6px', paddingBottom: '6px' }}
+        className="flex items-center justify-center gap-1"
+        style={{ paddingTop: '8px', paddingBottom: '8px' }}
       >
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
@@ -57,35 +58,42 @@ export default function BottomNav() {
               onClick={() => (isActive ? resetTab(tab.path) : navigate(tab.path))}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className="relative flex flex-col items-center gap-1 px-6 py-2 min-h-[44px] min-w-[70px] justify-center focus-visible:outline-none"
+              className="relative flex flex-col items-center gap-1.5 px-4 py-2 min-h-[48px] min-w-[64px] justify-center focus-visible:outline-none"
             >
-              {/* Active indicator line */}
-              <div
-                className="absolute top-0 h-[2px] rounded-full transition-all duration-300"
-                style={{
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: isActive ? '32px' : '0px',
-                  opacity: isActive ? 1 : 0,
-                  backgroundColor: 'hsl(var(--primary))',
-                  boxShadow: isActive ? '0 0 8px 2px hsl(var(--primary) / 0.5)' : 'none',
-                }}
-              />
-
-              <Icon
-                className="transition-colors duration-200"
-                style={{
-                  width: 22,
-                  height: 22,
-                  color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.55)',
-                  strokeWidth: isActive ? 2 : 1.5,
-                }}
-                aria-hidden="true"
-              />
+              {/* Active background glow */}
+              {isActive && (
+                <div
+                  className="absolute inset-0 rounded-lg"
+                  style={{
+                    background: 'hsl(var(--primary) / 0.08)',
+                    boxShadow: '0 2px 8px hsl(var(--primary) / 0.15)',
+                  }}
+                />
+              )}
+              
+              {/* Active indicator dot */}
+              <div className="relative z-10">
+                <Icon
+                  className="transition-all duration-200"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.5)',
+                    strokeWidth: isActive ? 2.5 : 1.5,
+                    filter: isActive ? 'drop-shadow(0 0 6px hsl(var(--primary) / 0.4))' : 'none',
+                  }}
+                  aria-hidden="true"
+                />
+                {isActive && (
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                )}
+              </div>
+              
               <span
-                className="text-[10px] font-medium tracking-wider uppercase transition-colors duration-200"
+                className="relative z-10 text-[10px] font-semibold tracking-wide uppercase transition-all duration-200"
                 style={{
-                  color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.55)',
+                  color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.5)',
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
                 }}
               >
                 {tab.label}

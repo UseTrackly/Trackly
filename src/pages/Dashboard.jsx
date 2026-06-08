@@ -178,8 +178,8 @@ export default function Dashboard() {
             allFlips.length === 0 ? (
               <EmptyState
                 icon={Calculator}
-                title="No flips yet"
-                description="Run your first calculation and save it to start tracking your profit."
+                title="Start tracking your first flip"
+                description="Track profits from cards, clothing, electronics, collectibles, and more."
                 action={
                   <Button onClick={() => navigate('/calculator')} className="bg-primary hover:bg-primary/90">
                     Open Calculator <ArrowRight className="w-4 h-4 ml-2" />

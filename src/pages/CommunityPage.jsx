@@ -143,13 +143,18 @@ export default function CommunityPage() {
 
   return (
     <div>
-      {/* Header */}
+      {/* Header with activity stats */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-3 pt-4 pb-3"
+        className="px-3 pt-4 pb-2"
       >
         <h1 className="text-lg font-bold tracking-tight">Community</h1>
+        {communityFlips.length > 0 && (
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {communityFlips.length} active listings • {totalInterests} collectors interested
+          </p>
+        )}
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -163,33 +168,33 @@ export default function CommunityPage() {
             </h2>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-1.5 bg-card border border-border rounded-lg p-2.5">
-        <div className="text-center">
-          <p className="text-lg font-bold">{communityFlips.length}</p>
-          <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Listings</p>
-        </div>
-        <div className="text-center">
-          <p className="text-lg font-bold">{totalInterests}+</p>
-          <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Interests</p>
-        </div>
-        <div className="text-center">
-          <p className="text-lg font-bold">{categoriesWithCounts.filter(c => c.count > 0).length - 1}</p>
-          <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Categories</p>
-        </div>
-        <div className="text-center">
-          <p className="text-lg font-bold">{avgMargin.toFixed(0)}%</p>
-          <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Margin</p>
-          </div>
+          {/* Activity Stats */}
+          <div className="grid grid-cols-4 gap-1.5 bg-card/60 backdrop-blur-xl border border-border/50 rounded-lg p-2.5">
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">{communityFlips.length}</p>
+              <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Listings</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">{totalInterests}</p>
+              <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Active</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">{categoriesWithCounts.filter(c => c.count > 0).length - 1}</p>
+              <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Categories</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">{avgMargin.toFixed(0)}%</p>
+              <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Avg Margin</p>
+            </div>
           </div>
 
           {/* Post Button */}
           <Button
-        onClick={() => requireAuth() && setShowPost(true)}
-        className="w-full h-9 text-sm font-semibold bg-primary hover:bg-primary/90 rounded-lg"
-      >
+            onClick={() => requireAuth() && setShowPost(true)}
+            className="w-full h-10 text-sm font-semibold bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/20"
+          >
             <Plus className="w-4 h-4 mr-2" />
-            Post Your Flip
+            Share Your Flip
           </Button>
 
           {/* Category Filters */}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music2, Play, Pause, Pencil, Crown, Lock } from 'lucide-react';
+import { Music2, Play, Pause, Pencil, Lock } from 'lucide-react';
 
 // Equalizer bars animation (CSS-driven)
 function EqualizerBars() {

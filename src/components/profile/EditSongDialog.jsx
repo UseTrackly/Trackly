@@ -89,7 +89,7 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
               value={query}
               onChange={(e) => { setQuery(e.target.value); setResults([]); }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); doSearch(); } }}
-              placeholder="e.g. Love Blur, Drake, One Dance Drake…"
+              placeholder="Search songs or artists…"
               className="bg-background flex-1"
               autoFocus
             />
@@ -164,22 +164,24 @@ export default function EditSongDialog({ open, onOpenChange, profile, onSave, is
 
           {!selectedName && results.length === 0 && !loading && (
             <p className="text-[10px] text-muted-foreground">
-              Search by song, artist, or both — e.g. "CRG Central Cee"
+              Search by song, artist, or both. Try "Love Blur Slayr".
             </p>
           )}
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className={selectedName ? 'flex-1' : 'w-full'}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || !selectedName}
-            className="flex-1 bg-primary hover:bg-primary/90"
-          >
-            {isSaving ? 'Saving...' : 'Save Song'}
-          </Button>
+          {selectedName && (
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex-1 bg-primary hover:bg-primary/90"
+            >
+              {isSaving ? 'Saving...' : 'Save Song'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

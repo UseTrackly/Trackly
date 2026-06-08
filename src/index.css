@@ -114,13 +114,6 @@
     background-color: inherit !important;
     background: inherit !important;
   }
-  /* Re-enable for actual buttons and links */
-  button:active,
-  a:active,
-  [role="button"]:active {
-    background-color: unset !important;
-    background: unset !important;
-  }
 }
 
 /* Custom scrollbar for dark theme */

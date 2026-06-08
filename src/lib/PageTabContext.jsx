@@ -6,7 +6,7 @@ export function PageTabProvider({ children }) {
   const [tabs, setTabs] = useState({
     '/calculator': 'calculator',
     '/inventory': 'inventory',
-    '/community': 'community',
+    '/community': 'discover',
   });
 
   const setTab = useCallback((route, value) => {

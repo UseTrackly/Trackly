@@ -47,7 +47,7 @@ export default function MobileHeader() {
         <div
           className="flex items-center justify-between px-3"
           style={{
-            paddingTop: 'max(env(safe-area-inset-top, 0px), 10px)',
+            paddingTop: 'env(safe-area-inset-top, 0px)',
             paddingBottom: '0.5rem',
           }}
         >

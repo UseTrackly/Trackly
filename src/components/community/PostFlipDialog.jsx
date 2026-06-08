@@ -121,8 +121,8 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
         setUploading(false);
       }
 
-      // Use username from profile if available, otherwise fall back to display_name
-      const posterName = myProfile?.username || user.full_name || user.email.split('@')[0];
+      // Use display_name from profile for consistency, fallback to username
+      const posterName = myProfile?.display_name || myProfile?.username || user.full_name || user.email.split('@')[0];
 
       await base44.entities.CommunityFlip.create({
         ...data,

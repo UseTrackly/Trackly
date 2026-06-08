@@ -8,11 +8,16 @@ import { Button } from '@/components/ui/button';
 import EmptyState from '@/components/shared/EmptyState';
 import ProfileLink from '@/components/shared/ProfileLink';
 
-function FlipCard({ flip, user, onInterest, onClick, priority }) {
+function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const isInterested = flip.interested_users?.includes(user?.email);
   const interestCount = flip.interested_users?.length || 0;
   const buyPrice = flip.price * 0.6;
   const margin = ((flip.price - buyPrice) / buyPrice * 100).toFixed(0);
+  
+  // Get profile data for consistent display name
+  const posterProfile = profiles?.find(p => p.user_email === flip.posted_by);
+  const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name || flip.posted_by.split('@')[0];
+  const username = posterProfile?.username;
 
   return (
     <motion.div
@@ -36,12 +41,12 @@ function FlipCard({ flip, user, onInterest, onClick, priority }) {
           </div>
           <ProfileLink
             userEmail={flip.posted_by}
-            username={flip.posted_by_name}
-            userName={flip.posted_by_name || 'Unknown'}
+            username={username}
+            userName={displayName}
             className="absolute top-1.5 right-1.5"
           >
             <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium hover:opacity-80">
-              {flip.posted_by_name?.[0] || 'U'}
+              {displayName[0] || 'U'}
             </span>
           </ProfileLink>
         </div>
@@ -49,9 +54,9 @@ function FlipCard({ flip, user, onInterest, onClick, priority }) {
 
       <div className="p-2 space-y-1">
         <div className="flex items-center gap-1">
-          <ProfileLink userEmail={flip.posted_by} username={flip.posted_by_name} userName={flip.posted_by_name}>
+          <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
             <p className="text-[8px] text-muted-foreground hover:text-foreground truncate">
-              {flip.posted_by_name}
+              {displayName}
             </p>
           </ProfileLink>
           {flip.is_poster_pro && <Crown className="w-2.5 h-2.5 text-primary shrink-0" />}
@@ -115,13 +120,14 @@ function FlipCard({ flip, user, onInterest, onClick, priority }) {
 export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFlipClick, onInterest }) {
   const feedTab = activeTab || 'discover';
 
-  // Remove internal state management - tabs controlled by PageTabBar
-
+  // Fetch profiles for display name resolution
   const { data: profiles } = useQuery({
     queryKey: ['allProfiles'],
     queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
     initialData: [],
   });
+
+
 
   const { data: myProfile } = useQuery({
     queryKey: ['myProfile', user?.email],
@@ -234,7 +240,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip, i) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={i < 3} />
+                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={i < 3} profiles={profiles} />
               ))}
             </div>
           )}
@@ -250,7 +256,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
+                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}
             </div>
           )}
@@ -264,7 +270,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
+                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}
             </div>
           )}
@@ -282,7 +288,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
+                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}
             </div>
           )}

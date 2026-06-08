@@ -271,18 +271,7 @@ export default function ConversationProfilePanel({ open, onClose, otherEmail, cu
               </div>
             )}
 
-            {/* View Full Profile */}
-            <Button
-              variant="outline"
-              className="w-full gap-2"
-              onClick={() => {
-                navigate(`/profile/${encodeURIComponent(otherProfile?.username || otherEmail)}`);
-                onClose();
-              }}
-            >
-              <ExternalLink className="w-4 h-4" />
-              View Full Profile
-            </Button>
+
           </div>
         </ScrollArea>
       </SheetContent>

@@ -26,6 +26,15 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
     queryFn: () => base44.auth.me(),
   });
 
+  // Fetch poster's profile for display name
+  const { data: posterProfile } = useQuery({
+    queryKey: ['posterProfile', flip?.posted_by],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: flip?.posted_by }, '-created_date', 1).then(r => r?.[0] ?? null),
+    enabled: !!flip?.posted_by && open,
+  });
+  const posterDisplayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name || flip.posted_by.split('@')[0];
+  const posterUsername = posterProfile?.username;
+
   // Check if poster has blocked the current user (or current user blocked poster)
   const { data: myProfileRaw = [] } = useQuery({
     queryKey: ['myProfile'],
@@ -107,8 +116,8 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
                 <p className="text-2xl font-bold text-primary">${flip.price?.toFixed(2)}</p>
                 <ProfileLink
                   userEmail={flip.posted_by}
-                  username={flip.posted_by_name}
-                  userName={flip.posted_by_name}
+                  username={posterUsername}
+                  userName={posterDisplayName}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 />
               </div>

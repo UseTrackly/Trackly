@@ -69,37 +69,45 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
   return (
     <div className="mt-3 w-full">
       <div
-        className="relative flex items-center gap-3 px-3 py-3 rounded-2xl overflow-hidden transition-all"
+        className="relative flex items-center gap-3 px-4 py-3.5 rounded-2xl overflow-hidden transition-all backdrop-blur-xl"
         style={{
           background: playing
-            ? 'linear-gradient(135deg, hsl(var(--primary) / 0.28) 0%, hsl(var(--accent) / 0.22) 100%)'
-            : 'linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--accent) / 0.08) 100%)',
-          border: playing
-            ? '1px solid hsl(var(--primary) / 0.45)'
-            : '1px solid hsl(var(--primary) / 0.18)',
-          boxShadow: playing ? `0 0 18px hsl(var(--primary) / 0.2)` : 'none',
-          transition: 'all 0.3s ease',
+            ? 'linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--accent) / 0.10) 100%)'
+            : 'linear-gradient(135deg, hsl(var(--card) / 0.8) 0%, hsl(var(--card) / 0.6) 100%)',
+          border: '1px solid hsl(var(--primary) / 0.25)',
+          boxShadow: playing 
+            ? `0 8px 32px hsl(var(--primary) / 0.15), inset 0 1px 0 hsl(var(--primary) / 0.1)`
+            : '0 4px 16px hsl(var(--primary) / 0.08), inset 0 1px 0 hsl(var(--primary) / 0.05)',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
+        {/* Subtle shine overlay */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.03) 0%, transparent 50%, hsl(var(--accent) / 0.02) 100%)',
+          }}
+        />
+        
         {/* Artwork */}
-        <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 relative">
+        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 relative shadow-lg" style={{ border: '1px solid hsl(var(--primary) / 0.2)' }}>
           {artworkUrl ? (
             <img src={artworkUrl} alt="artwork" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-primary/20 flex items-center justify-center">
+            <div className="w-full h-full bg-primary/15 flex items-center justify-center">
               <Music2 className="w-5 h-5 text-primary" />
             </div>
           )}
         </div>
 
         {/* Song info */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 ml-3">
           <p className="text-sm font-semibold leading-tight truncate text-foreground">{displayTitle}</p>
           {displayArtist && (
             <p className="text-xs text-muted-foreground truncate mt-0.5">{displayArtist}</p>
           )}
           {playing && (
-            <div className="mt-1">
+            <div className="mt-1.5">
               <EqualizerBars />
             </div>
           )}
@@ -109,17 +117,20 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         {previewUrl && (
           <button
             onClick={togglePlay}
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 hover:scale-105 ml-2"
             style={{
               background: playing
                 ? 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))'
-                : 'hsl(var(--primary) / 0.2)',
-              border: '1px solid hsl(var(--primary) / 0.35)',
+                : 'linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--accent) / 0.10))',
+              border: `1px solid ${playing ? 'transparent' : 'hsl(var(--primary) / 0.3)'}`,
+              boxShadow: playing 
+                ? `0 4px 16px hsl(var(--primary) / 0.3), inset 0 1px 0 hsl(white / 0.2)`
+                : '0 2px 8px hsl(var(--primary) / 0.15)',
             }}
           >
             {playing
               ? <Pause className="w-4 h-4 text-white" />
-              : <Play className="w-4 h-4 text-primary" />}
+              : <Play className="w-4 h-4 text-primary ml-0.5" />}
           </button>
         )}
 
@@ -127,9 +138,9 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         {onEdit && (
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
           >
-            <Pencil className="w-3 h-3" />
+            <Pencil className="w-3.5 h-3.5" />
           </button>
         )}
 

@@ -213,7 +213,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
                           <img src={collector.avatar} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-lg font-bold text-muted-foreground">
-                            {collector.name[0]?.toUpperCase()}
+                            {(collector.name || '?')[0]?.toUpperCase()}
                           </div>
                         )}
                       </div>

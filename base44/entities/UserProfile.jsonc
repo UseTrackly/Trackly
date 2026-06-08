@@ -26,6 +26,14 @@
       "type": "string",
       "description": "Profile picture URL"
     },
+    "banner_url": {
+      "type": "string",
+      "description": "Profile header/banner image URL"
+    },
+    "song_name": {
+      "type": "string",
+      "description": "Optional profile song name displayed on profile"
+    },
     "blocked_users": {
       "type": "array",
       "items": {

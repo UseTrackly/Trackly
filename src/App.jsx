@@ -82,6 +82,7 @@ import TermsOfService from '@/pages/TermsOfService';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import AuthCallback from '@/pages/AuthCallback';
 import UpgradePage from '@/pages/UpgradePage';
+import SettingsPage from '@/pages/SettingsPage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, authError, checkAppState, showNativeAuth, setShowNativeAuth, onNativeAuthSuccess } = useAuth();
@@ -145,6 +146,7 @@ const AuthenticatedApp = () => {
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/upgrade" element={<UpgradePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
           </Route>

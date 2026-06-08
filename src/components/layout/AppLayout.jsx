@@ -13,6 +13,7 @@ const InventoryPage = lazy(() => import('@/pages/InventoryPage'));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
 const CommunityPage = lazy(() => import('@/pages/CommunityPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 
 const TAB_ROUTES = [
   { path: '/', component: Dashboard },
@@ -21,6 +22,7 @@ const TAB_ROUTES = [
   { path: '/history', component: HistoryPage },
   { path: '/community', component: CommunityPage },
   { path: '/profile', component: ProfilePage },
+  { path: '/settings', component: SettingsPage },
 ];
 
 const TAB_PATHS = TAB_ROUTES.map(r => r.path);

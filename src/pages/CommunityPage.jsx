@@ -3,12 +3,11 @@ import { usePageTab } from '@/lib/PageTabContext';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
+
 import PostFlipDialog from '@/components/community/PostFlipDialog';
 import FlipDetailsDialog from '@/components/community/FlipDetailsDialog';
-import FeaturedListings from '@/components/community/FeaturedListings';
-import MarketAlerts from '@/components/alerts/MarketAlerts';
-import ManagePosts from '@/components/community/ManagePosts';
+
+
 import CommunityFeed from '@/components/community/CommunityFeed';
 
 
@@ -113,31 +112,14 @@ export default function CommunityPage() {
         )}
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="hidden" />
-
-        <TabsContent value="community" className="px-0 pb-0">
-          <CommunityFeed
-            user={user}
-            blockedUsers={blockedUsers}
-            onPostFlip={() => setShowPost(true)}
-            onFlipClick={setSelectedFlip}
-            onInterest={(flipId) => interestMutation.mutate(flipId)}
-          />
-        </TabsContent>
-
-        <TabsContent value="featured" className="px-3 pb-24">
-          <FeaturedListings />
-        </TabsContent>
-
-        <TabsContent value="alerts" className="px-3 pb-24">
-          <MarketAlerts />
-        </TabsContent>
-
-        <TabsContent value="manage" className="px-3 pb-24">
-          <ManagePosts />
-        </TabsContent>
-      </Tabs>
+      <CommunityFeed
+        user={user}
+        blockedUsers={blockedUsers}
+        activeTab={activeTab}
+        onPostFlip={() => setShowPost(true)}
+        onFlipClick={setSelectedFlip}
+        onInterest={(flipId) => interestMutation.mutate(flipId)}
+      />
 
       <PostFlipDialog
         open={showPost}

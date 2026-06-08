@@ -16,10 +16,10 @@ const ROUTE_TABS = {
     { value: 'ai', label: 'AI Assist' },
   ],
   '/community': [
-    { value: 'community', label: 'Feed' },
-    { value: 'featured', label: 'Market' },
+    { value: 'discover', label: 'Discover' },
+    { value: 'following', label: 'Following' },
+    { value: 'market', label: 'Market' },
     { value: 'alerts', label: 'Alerts' },
-    { value: 'manage', label: 'My Posts' },
   ],
 };
 

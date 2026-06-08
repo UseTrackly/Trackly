@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, MapPin, Crown, TrendingUp, Users, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -111,8 +111,10 @@ function FlipCard({ flip, user, onInterest, onClick, priority }) {
   );
 }
 
-export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, onInterest }) {
-  const [feedTab, setFeedTab] = React.useState('for-you');
+export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFlipClick, onInterest }) {
+  const feedTab = activeTab || 'discover';
+
+  // Remove internal state management - tabs controlled by PageTabBar
 
   const { data: profiles } = useQuery({
     queryKey: ['allProfiles'],
@@ -136,9 +138,10 @@ export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, on
         return flips.filter(f => followingEmails.includes(f.posted_by));
       case 'market':
         return [...flips].sort((a, b) => (b.interested_users?.length || 0) - (a.interested_users?.length || 0));
-      case 'my-posts':
-        return flips.filter(f => f.posted_by === user?.email);
-      case 'for-you':
+      case 'alerts':
+        // Show flips the user has expressed interest in
+        return flips.filter(f => f.interested_users?.includes(user?.email));
+      case 'discover':
       default:
         const userCats = user?.selected_categories || [];
         return [...flips].sort((a, b) => {
@@ -180,16 +183,8 @@ export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, on
 
   return (
     <div className="space-y-4 pb-24">
-      <Tabs value={feedTab} onValueChange={setFeedTab}>
-        <TabsList className="w-full grid grid-cols-4 bg-card/60 backdrop-blur-xl border border-border/50">
-          <TabsTrigger value="discover" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Discover</TabsTrigger>
-          <TabsTrigger value="following" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Following</TabsTrigger>
-          <TabsTrigger value="market" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Market</TabsTrigger>
-          <TabsTrigger value="alerts" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Alerts</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="for-you" className="space-y-4">
-          {trendingCollectors.length > 0 && (
+      {feedTab === 'discover' && (
+          trendingCollectors.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
@@ -234,10 +229,10 @@ export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, on
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={i < 3} />
               ))}
             </div>
-          )}
-        </TabsContent>
+          )
+      )}
 
-        <TabsContent value="following" className="space-y-4">
+      {feedTab === 'following' && (
           {followingEmails.length === 0 ? (
             <EmptyState icon={Users} title="Not following anyone yet" description="Follow collectors to see their flips here." />
           ) : filteredFlips.length === 0 ? (
@@ -248,10 +243,10 @@ export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, on
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
               ))}
             </div>
-          )}
-        </TabsContent>
+          )
+      )}
 
-        <TabsContent value="market" className="space-y-4">
+      {feedTab === 'market' && (
           {filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No market activity" description="Check back later for market updates." />
           ) : (
@@ -260,20 +255,15 @@ export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, on
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
               ))}
             </div>
-          )}
-        </TabsContent>
+          )
+      )}
 
-        <TabsContent value="my-posts" className="space-y-4">
-          {filteredFlips.length === 0 ? (
+      {feedTab === 'alerts' && (
+          filteredFlips.length === 0 ? (
             <EmptyState
-              icon={Package}
-              title="You haven't posted yet"
-              description="Share your first flip with the community."
-              action={
-                <Button onClick={() => requireAuth() && onPostFlip()} className="bg-primary hover:bg-primary/90">
-                  Post Your First Flip
-                </Button>
-              }
+              icon={MessageCircle}
+              title="No alerts yet"
+              description="Express interest in flips to get updates."
             />
           ) : (
             <div className="grid grid-cols-2 gap-2">
@@ -281,9 +271,8 @@ export default function CommunityFeed({ user, flips, onPostFlip, onFlipClick, on
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} />
               ))}
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          )
+      )}
     </div>
   );
 }

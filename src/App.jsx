@@ -146,7 +146,7 @@ const AuthenticatedApp = () => {
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/profile/:userEmail" element={<ViewProfilePage />} />
+            <Route path="/profile/:userProfile" element={<ViewProfilePage />} />
             <Route path="/upgrade" element={<UpgradePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/terms" element={<TermsOfService />} />

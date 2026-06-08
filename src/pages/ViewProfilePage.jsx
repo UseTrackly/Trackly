@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import ProfileLink from '@/components/shared/ProfileLink';
 
 export default function ViewProfilePage() {
-  const { userEmail } = useParams();
+  const { userProfile: profileParam } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -24,8 +24,27 @@ export default function ViewProfilePage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const decodedEmail = userEmail ? decodeURIComponent(userEmail) : null;
-  const isOwnProfile = decodedEmail === currentUser?.email;
+  const decodedParam = profileParam ? decodeURIComponent(profileParam) : null;
+  
+  // Lookup profile by username or email
+  const { data: otherProfile, isLoading: loadingProfile } = useQuery({
+    queryKey: ['otherProfile', decodedParam],
+    queryFn: async () => {
+      if (!decodedParam) return null;
+      const token = await nativeStorage.get();
+      const res = await base44.functions.invoke('profileManager', { 
+        action: 'get', 
+        targetEmail: decodedParam,
+        token 
+      });
+      if (res.data?.error) throw new Error(res.data.error);
+      return res.data?.profile;
+    },
+    enabled: !!decodedParam,
+  });
+
+  // Check if viewing own profile
+  const isOwnProfile = otherProfile?.user_email === currentUser?.email;
 
   // Redirect to own profile page if viewing own profile
   useEffect(() => {
@@ -34,38 +53,28 @@ export default function ViewProfilePage() {
     }
   }, [isOwnProfile, navigate]);
 
-  const [showFollowers, setShowFollowers] = useState(null); // 'followers' | 'following' | null
-
-  // Fetch other user's profile
-  const { data: otherProfile, isLoading: loadingProfile } = useQuery({
-    queryKey: ['otherProfile', decodedEmail],
-    queryFn: async () => {
-      if (!decodedEmail) return null;
-      const token = await nativeStorage.get();
-      const res = await base44.functions.invoke('profileManager', { 
-        action: 'get', 
-        targetEmail: decodedEmail,
-        token 
-      });
-      if (res.data?.error) throw new Error(res.data.error);
-      return res.data?.profile;
-    },
-    enabled: !!decodedEmail && !isOwnProfile,
-  });
+  const [showFollowers, setShowFollowers] = useState(null);
 
   // Fetch other user's flips (public data only)
   const { data: flipsRaw = [] } = useQuery({
-    queryKey: ['otherFlips', decodedEmail],
-    queryFn: () => base44.entities.Flip.filter({ created_by_email: decodedEmail }, '-created_date', 50),
-    enabled: !!decodedEmail,
+    queryKey: ['otherFlips', decodedParam],
+    queryFn: () => base44.entities.Flip.filter({ created_by_email: decodedParam }, '-created_date', 50),
+    enabled: !!decodedParam && !!otherProfile,
   });
   const flips = Array.isArray(flipsRaw) ? flipsRaw : [];
 
+  // Fetch all profiles for username lookup in followers/following lists
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ['allProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
+    initialData: [],
+  });
+
   // Fetch other user's inventory
   const { data: inventoryRaw = [] } = useQuery({
-    queryKey: ['otherInventory', decodedEmail],
-    queryFn: () => base44.entities.Inventory.filter({ created_by_email: decodedEmail }, '-created_date', 50),
-    enabled: !!decodedEmail,
+    queryKey: ['otherInventory', decodedParam],
+    queryFn: () => base44.entities.Inventory.filter({ created_by_email: decodedParam }, '-created_date', 50),
+    enabled: !!decodedParam && !!otherProfile,
   });
   const inventory = Array.isArray(inventoryRaw) ? inventoryRaw : [];
 
@@ -82,14 +91,14 @@ export default function ViewProfilePage() {
       const token = await nativeStorage.get();
       const res = await base44.functions.invoke('profileManager', {
         action: isFollowing ? 'unfollow' : 'follow',
-        targetEmail: decodedEmail,
+        targetEmail: otherProfile?.user_email,
         token,
       });
       if (res.data?.error) throw new Error(res.data.error);
       return res.data?.profile;
     },
     onSuccess: (updatedProfile) => {
-      queryClient.invalidateQueries({ queryKey: ['otherProfile', decodedEmail] });
+      queryClient.invalidateQueries({ queryKey: ['otherProfile', decodedParam] });
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
       toast.success(isFollowing ? 'Unfollowed' : 'Following!');
     },
@@ -97,10 +106,10 @@ export default function ViewProfilePage() {
 
   // Message button
   const handleMessage = () => {
-    navigate('/community', { state: { openMessages: true, prefillRecipient: decodedEmail } });
+    navigate('/community', { state: { openMessages: true, prefillRecipient: otherProfile?.user_email } });
   };
 
-  if (!decodedEmail || isOwnProfile) {
+  if (!decodedParam || !otherProfile || isOwnProfile) {
     return null;
   }
 
@@ -126,7 +135,7 @@ export default function ViewProfilePage() {
     );
   }
 
-  const displayName = otherProfile.display_name || otherProfile.username || decodedEmail.split('@')[0];
+  const displayName = otherProfile.display_name || otherProfile.username || otherProfile.user_email.split('@')[0];
   const avatarUrl = otherProfile.avatar_url;
   const bannerUrl = otherProfile.banner_url;
   const locationVal = otherProfile.location;
@@ -335,38 +344,48 @@ export default function ViewProfilePage() {
                 {showFollowers === 'followers' ? (
                   otherProfile?.followers?.length > 0 ? (
                     <div className="space-y-2">
-                      {otherProfile.followers.map((email, i) => (
-                        <ProfileLink
-                          key={i}
-                          userEmail={email}
-                          userName={email.split('@')[0]}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                          <span className="text-sm font-medium truncate">{email.split('@')[0]}</span>
-                        </ProfileLink>
-                      ))}
+                      {otherProfile.followers.map((email, i) => {
+                        const followerProfile = allProfiles.find(p => p.user_email === email);
+                        const displayName = followerProfile?.display_name || followerProfile?.username || email.split('@')[0];
+                        return (
+                          <ProfileLink
+                            key={i}
+                            userEmail={email}
+                            username={followerProfile?.username || displayName}
+                            userName={displayName}
+                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                              <User className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <span className="text-sm font-medium truncate">{displayName}</span>
+                          </ProfileLink>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-8">No followers yet</p>
                   )
                 ) : otherProfile?.following?.length > 0 ? (
                   <div className="space-y-2">
-                    {otherProfile.following.map((email, i) => (
-                      <ProfileLink
-                        key={i}
-                        userEmail={email}
-                        userName={email.split('@')[0]}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                        <span className="text-sm font-medium truncate">{email.split('@')[0]}</span>
-                      </ProfileLink>
-                    ))}
+                    {otherProfile.following.map((email, i) => {
+                      const followingProfile = allProfiles.find(p => p.user_email === email);
+                      const displayName = followingProfile?.display_name || followingProfile?.username || email.split('@')[0];
+                      return (
+                        <ProfileLink
+                          key={i}
+                          userEmail={email}
+                          username={followingProfile?.username || displayName}
+                          userName={displayName}
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 -mx-2"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <span className="text-sm font-medium truncate">{displayName}</span>
+                        </ProfileLink>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground text-center py-8">Not following anyone yet</p>

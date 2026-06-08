@@ -36,6 +36,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority }) {
           </div>
           <ProfileLink
             userEmail={flip.posted_by}
+            username={flip.posted_by_name?.[0] || 'U'}
             userName={flip.posted_by_name?.[0] || 'U'}
             className="absolute top-1.5 right-1.5"
           >
@@ -48,7 +49,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority }) {
 
       <div className="p-2 space-y-1">
         <div className="flex items-center gap-1">
-          <ProfileLink userEmail={flip.posted_by} userName={flip.posted_by_name}>
+          <ProfileLink userEmail={flip.posted_by} username={flip.posted_by_name} userName={flip.posted_by_name}>
             <p className="text-[8px] text-muted-foreground hover:text-foreground truncate">
               {flip.posted_by_name}
             </p>
@@ -194,7 +195,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3">
                 {trendingCollectors.map((collector) => (
                   <div key={collector.email} className="shrink-0 w-20 text-center">
-                    <ProfileLink userEmail={collector.email} userName={collector.name}>
+                    <ProfileLink userEmail={collector.email} username={collector.name} userName={collector.name}>
                       <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary border-2 border-border mx-auto mb-1">
                         {collector.avatar ? (
                           <img src={collector.avatar} alt="" className="w-full h-full object-cover" />

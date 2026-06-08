@@ -39,7 +39,7 @@ function ThreadItem({ thread, onClick, onProfileClick }) {
         </div>
         <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex items-center justify-between gap-2 mb-0.5">
-            <ProfileLink userEmail={thread.otherEmail} userName={thread.otherName} showAvatar={false} onClick={(e) => { e.stopPropagation(); onProfileClick?.(); }} className="flex-1 min-w-0">
+            <ProfileLink userEmail={thread.otherEmail} username={thread.otherName} userName={thread.otherName} showAvatar={false} onClick={(e) => { e.stopPropagation(); onProfileClick?.(); }} className="flex-1 min-w-0">
               <span className="font-semibold text-sm truncate block hover:text-primary">{thread.otherName}</span>
             </ProfileLink>
             <span className="text-[10px] text-muted-foreground shrink-0">{timestamp}</span>
@@ -113,7 +113,7 @@ function Conversation({ thread, currentUser, senderName, onBack, onBlock, blocke
       <div className="flex items-center justify-between pb-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8"><ArrowLeft className="w-4 h-4" /></Button>
-          <ProfileLink userEmail={thread.otherEmail} userName={thread.otherName} showAvatar={true} className="flex-1 min-w-0">
+          <ProfileLink userEmail={thread.otherEmail} username={thread.otherName} userName={thread.otherName} showAvatar={true} className="flex-1 min-w-0">
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-sm truncate">{thread.otherName}</p>
               <p className="text-[10px] text-muted-foreground truncate">Re: {thread.flipName}</p>
@@ -215,7 +215,7 @@ export default function MessageInbox({ open, onClose }) {
     });
   }, [threads.length]);
 
-  const handleViewProfile = () => { if (selectedThread) window.open(`/profile/${encodeURIComponent(selectedThread.otherEmail)}`, '_blank'); };
+  const handleViewProfile = () => { if (selectedThread) window.open(`/profile/${encodeURIComponent(selectedThread.otherName)}`, '_blank'); };
 
   const confirmBlock = async () => {
     try {
@@ -246,7 +246,7 @@ export default function MessageInbox({ open, onClose }) {
                 ) : (
                   <div className="space-y-1">
                     {threads.map(thread => (
-                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} onProfileClick={() => window.open(`/profile/${encodeURIComponent(thread.otherEmail)}`, '_blank')} />
+                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} onProfileClick={() => window.open(`/profile/${encodeURIComponent(thread.otherName)}`, '_blank')} />
                     ))}
                   </div>
                 )}

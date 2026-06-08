@@ -274,7 +274,7 @@ export default function ConversationProfilePanel({ open, onClose, otherEmail, cu
               variant="outline"
               className="w-full gap-2"
               onClick={() => {
-                window.open(`/profile/${encodeURIComponent(otherEmail)}`, '_blank');
+                window.open(`/profile/${encodeURIComponent(otherProfile?.username || otherEmail)}`, '_blank');
                 onClose();
               }}
             >

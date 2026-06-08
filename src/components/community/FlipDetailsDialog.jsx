@@ -107,6 +107,7 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
                 <p className="text-2xl font-bold text-primary">${flip.price?.toFixed(2)}</p>
                 <ProfileLink
                   userEmail={flip.posted_by}
+                  username={flip.posted_by_name}
                   userName={flip.posted_by_name}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 />

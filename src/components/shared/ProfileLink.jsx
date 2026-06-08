@@ -7,7 +7,8 @@ import { base44 } from '@/api/base44Client';
  * ProfileLink - Makes any user identity clickable to open their profile
  * 
  * Props:
- * - userEmail: The email of the user whose profile to open
+ * - userEmail: The email of the user whose profile to open (for lookup)
+ * - username: The username/handle for the URL (optional, falls back to email)
  * - userName: Display name to show (falls back to email)
  * - avatarUrl: Profile picture URL
  * - showAvatar: Whether to show avatar (default: true)
@@ -16,6 +17,7 @@ import { base44 } from '@/api/base44Client';
  */
 export default function ProfileLink({ 
   userEmail, 
+  username,
   userName, 
   avatarUrl, 
   showAvatar = true,
@@ -26,8 +28,10 @@ export default function ProfileLink({
 
   const handleClick = (e) => {
     e.stopPropagation();
-    if (userEmail) {
-      navigate(`/profile/${encodeURIComponent(userEmail)}`);
+    // Use username for URL if available, otherwise fall back to email
+    const routeParam = username || userEmail;
+    if (routeParam) {
+      navigate(`/profile/${encodeURIComponent(routeParam)}`);
     }
   };
 

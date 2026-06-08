@@ -46,7 +46,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
             className="absolute top-1.5 right-1.5"
           >
             <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium hover:opacity-80">
-              {displayName[0] || 'U'}
+              {displayName?.[0] || 'U'}
             </span>
           </ProfileLink>
         </div>

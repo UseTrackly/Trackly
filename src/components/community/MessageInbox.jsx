@@ -14,7 +14,7 @@ import ProfileLink from '@/components/shared/ProfileLink';
 import EmptyState from '@/components/shared/EmptyState';
 
 
-function ThreadItem({ thread, onClick, navigate }) {
+function ThreadItem({ thread, onClick, navigate, onClose }) {
   const hasUnread = thread.messages.some(m => !m.is_read && m.recipient_email === thread.currentUserEmail);
   const latest = thread.messages[0];
   const timestamp = latest ? format(parseISO(latest.created_date.endsWith('Z') ? latest.created_date : latest.created_date + 'Z'), 'MMM d') : '';
@@ -31,7 +31,8 @@ function ThreadItem({ thread, onClick, navigate }) {
       finalRoute: `/profile/${encodeURIComponent(routeParam)}`
     });
     if (routeParam) {
-      // Navigate to profile (sheet will close automatically on route change)
+      // Close sheet first, then navigate
+      onClose?.();
       navigate(`/profile/${encodeURIComponent(routeParam)}`);
     }
   };
@@ -76,7 +77,7 @@ function ThreadItem({ thread, onClick, navigate }) {
   );
 }
 
-function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navigate }) {
+function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navigate, onClose }) {
   const [text, setText] = useState('');
   const [uploadingImg, setUploadingImg] = useState(false);
 
@@ -155,6 +156,8 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
               finalRoute: `/profile/${encodeURIComponent(routeParam)}`
             });
             if (routeParam) {
+              // Close sheet first, then navigate
+              onClose?.();
               navigate(`/profile/${encodeURIComponent(routeParam)}`);
             }
           }}
@@ -360,7 +363,7 @@ export default function MessageInbox({ open, onClose }) {
                 ) : (
                   <div className="py-2">
                     {threads.map(thread => (
-                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} navigate={navigate} />
+                      <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} navigate={navigate} onClose={onClose} />
                     ))}
                   </div>
                 )}
@@ -373,7 +376,7 @@ export default function MessageInbox({ open, onClose }) {
                 exit={{ opacity: 0, x: 20 }} 
                 className="flex-1 flex flex-col"
               >
-                <Conversation thread={selectedThread} currentUser={user} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} navigate={navigate} />
+                <Conversation thread={selectedThread} currentUser={user} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} navigate={navigate} onClose={onClose} />
               </motion.div>
             )}
           </AnimatePresence>

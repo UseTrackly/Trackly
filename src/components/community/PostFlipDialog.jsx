@@ -5,21 +5,76 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Loader2, Crown, CheckCircle2, ExternalLink, ImageIcon, X } from 'lucide-react';
+import { Upload, Loader2, Crown, CheckCircle2, ExternalLink, ImageIcon, X, Eye, ArrowLeft, MapPin, Heart, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
 import { canPostCommunity, FREE_LIMITS } from '@/lib/proGate';
 
+// Mini preview card — mirrors how the post will look in the community feed
+function PreviewCard({ itemName, price, category, description, imageUrl, posterName, posterAvatar }) {
+  const buyPrice = price * 0.6;
+  const margin = price > 0 ? ((price - buyPrice) / buyPrice * 100).toFixed(0) : '—';
+  return (
+    <div className="bg-card border-2 border-primary/30 rounded-xl overflow-hidden shadow-lg">
+      {imageUrl ? (
+        <div className="relative">
+          <img src={imageUrl} alt={itemName} className="w-full h-32 object-cover" />
+          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[9px] font-medium uppercase">{category}</span>
+        </div>
+      ) : (
+        <div className="w-full h-20 bg-secondary flex items-center justify-center">
+          <ImageIcon className="w-6 h-6 text-muted-foreground" />
+        </div>
+      )}
+      <div className="p-3 space-y-2">
+        <div className="flex items-center gap-1.5">
+          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
+            {(posterName || '?')[0]?.toUpperCase()}
+          </div>
+          <p className="text-[9px] text-muted-foreground truncate">{posterName}</p>
+        </div>
+        <p className="font-bold text-xs leading-tight">{itemName || 'Item name'}</p>
+        {description && <p className="text-[10px] text-muted-foreground line-clamp-2">{description}</p>}
+        <div className="grid grid-cols-3 gap-1">
+          <div>
+            <p className="text-[8px] text-muted-foreground">Buy Est.</p>
+            <p className="text-[10px] font-semibold">${buyPrice.toFixed(0)}</p>
+          </div>
+          <div>
+            <p className="text-[8px] text-muted-foreground">Sell</p>
+            <p className="text-[10px] font-semibold">${price > 0 ? price.toFixed(0) : '—'}</p>
+          </div>
+          <div>
+            <p className="text-[8px] text-muted-foreground">Margin</p>
+            <p className="text-[10px] font-semibold text-primary">+{margin}%</p>
+          </div>
+        </div>
+        <div className="flex gap-1 pt-1">
+          <div className="flex-1 h-6 rounded-md border border-border flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+            <Heart className="w-3 h-3" /> Interested
+          </div>
+          <div className="h-6 w-6 rounded-md border border-border flex items-center justify-center">
+            <MessageCircle className="w-3 h-3 text-muted-foreground" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const navigate = useNavigate();
+  // step: 'edit' | 'preview' | 'done'
+  const [step, setStep] = useState('edit');
+
   const [itemName, setItemName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [location, setLocation] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [prefillImageUrl, setPrefillImageUrl] = useState(null);
-  const [useInventoryImage, setUseInventoryImage] = useState(true);
+  const [costBasis, setCostBasis] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [isGraded, setIsGraded] = useState(false);
   const [gradingCompany, setGradingCompany] = useState('PSA');
@@ -27,7 +82,6 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
   const [category, setCategory] = useState('other');
-  const [postedFlipId, setPostedFlipId] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -37,20 +91,22 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       setPrice(prefillData.price ? String(prefillData.price) : '');
       setDescription(prefillData.notes || '');
       setPrefillImageUrl(prefillData.image_url || null);
-      setUseInventoryImage(!!prefillData.image_url);
+      setCostBasis(prefillData.cost_basis ?? null);
+      setLocation(prefillData.location || '');
       setIsGraded(!!prefillData.is_graded);
       setGradingCompany(prefillData.grading_company || 'PSA');
       setGrade(prefillData.grade || '');
       setCertNumber(prefillData.cert_number || '');
       setImageFile(null);
       setCertImageUrl(null);
+      setStep('edit');
     }
     if (!open) {
-      // reset on close
+      setStep('edit');
       setItemName(''); setCategory('other'); setDescription(''); setPrice('');
-      setLocation(''); setImageFile(null); setPrefillImageUrl(null);
-      setUseInventoryImage(true); setIsGraded(false); setGradingCompany('PSA');
-      setGrade(''); setCertNumber(''); setCertImageUrl(null); setPostedFlipId(null);
+      setLocation(''); setImageFile(null); setPrefillImageUrl(null); setCostBasis(null);
+      setIsGraded(false); setGradingCompany('PSA');
+      setGrade(''); setCertNumber(''); setCertImageUrl(null);
     }
   }, [open, prefillData]);
 
@@ -75,7 +131,6 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     mutationFn: async (initialData) => {
       let data = { ...initialData };
 
-      // Moderate text
       const textToCheck = [data.item_name, data.description].filter(Boolean).join(' ');
       const textModResult = await base44.integrations.Core.InvokeLLM({
         prompt: `Is the following text appropriate for a professional reselling marketplace? Check for slurs, hate speech, profanity, or offensive content. Text: "${textToCheck}"\n\nRespond with only "approved" or "rejected".`
@@ -84,7 +139,6 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
         throw new Error('Your post contains inappropriate content. Please revise and try again.');
       }
 
-      // Auto-classify category
       const VALID_CATS = ['cards','sneakers','clothing','electronics','collectibles','games','technology','vintage','other'];
       const catResult = await base44.integrations.Core.InvokeLLM({
         prompt: `Classify this resale item into exactly one of these categories: cards, sneakers, clothing, electronics, collectibles, games, technology, vintage, other.\nItem: "${data.item_name}"\nRespond with only the single category word, lowercase.`
@@ -92,7 +146,6 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       const detectedCat = catResult.trim().toLowerCase().split(/\s/)[0];
       data = { ...data, category: VALID_CATS.includes(detectedCat) ? detectedCat : data.category };
 
-      // Resolve image
       let imageUrl = null;
       if (imageFile) {
         setUploading(true);
@@ -105,7 +158,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
         }
       } else if (certImageUrl) {
         imageUrl = certImageUrl;
-      } else if (prefillImageUrl && useInventoryImage) {
+      } else if (prefillImageUrl) {
         imageUrl = prefillImageUrl;
       }
 
@@ -121,18 +174,22 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       });
       return created;
     },
-    onSuccess: (created) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
-      setPostedFlipId(created?.id || true);
+      setStep('done');
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to post flip');
     },
   });
 
-  const handleSubmit = () => {
+  const handleGoToPreview = () => {
     if (!itemName || !price) { toast.error('Please fill in item name and price'); return; }
     if (!postAllowed) { toast.error(`Free plan allows ${FREE_LIMITS.community_posts} active posts. Upgrade to Pro for unlimited.`); return; }
+    setStep('preview');
+  };
+
+  const handleConfirmPost = () => {
     postMutation.mutate({
       item_name: itemName,
       category,
@@ -146,26 +203,39 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     });
   };
 
-  // Determine what image is "active"
+  // Resolve the active image URL for display
   const activeImageUrl = imageFile
     ? URL.createObjectURL(imageFile)
-    : certImageUrl
-    ? certImageUrl
-    : (useInventoryImage && prefillImageUrl)
-    ? prefillImageUrl
-    : null;
+    : certImageUrl || prefillImageUrl || null;
+
+  const posterName = myProfile?.display_name || myProfile?.username || user?.full_name || '—';
+  const priceNum = parseFloat(price) || 0;
+  const potentialProfit = costBasis != null && priceNum > 0 ? (priceNum - costBasis).toFixed(2) : null;
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto p-0">
         <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
-          <SheetTitle className="text-base">
-            {postedFlipId ? 'Posted!' : 'Share to Community'}
-          </SheetTitle>
+          <div className="flex items-center gap-2">
+            {step === 'preview' && (
+              <button onClick={() => setStep('edit')} className="p-1 rounded-lg hover:bg-secondary transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            )}
+            <SheetTitle className="text-base">
+              {step === 'done' ? 'Posted!' : step === 'preview' ? 'Preview Listing' : 'Share to Community'}
+            </SheetTitle>
+            {step === 'edit' && (
+              <span className="ml-auto text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Step 1 of 2</span>
+            )}
+            {step === 'preview' && (
+              <span className="ml-auto text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Step 2 of 2</span>
+            )}
+          </div>
         </SheetHeader>
 
-        {/* ── Success ── */}
-        {postedFlipId && (
+        {/* ── Done ── */}
+        {step === 'done' && (
           <div className="flex flex-col items-center gap-4 py-8 px-4 text-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
               <CheckCircle2 className="w-7 h-7 text-primary" />
@@ -183,11 +253,9 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
           </div>
         )}
 
-        {/* ── Form ── */}
-        {!postedFlipId && (
+        {/* ── Step 1: Edit ── */}
+        {step === 'edit' && (
           <div className="px-4 pt-3 pb-6 space-y-4">
-
-            {/* Free tier warning */}
             {!user?.is_pro && (
               <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
                 <Crown className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -197,80 +265,73 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
               </div>
             )}
 
-            {/* Image preview + controls */}
-            <div className="flex gap-3 items-start">
-              {/* Thumbnail */}
-              <div className="w-16 h-16 rounded-xl border border-border bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
+            {/* Item summary row */}
+            <div className="flex gap-3 items-center p-3 bg-secondary/50 rounded-xl border border-border">
+              <div className="w-14 h-14 rounded-lg border border-border bg-background flex items-center justify-center shrink-0 overflow-hidden">
                 {activeImageUrl ? (
                   <img src={activeImageUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <ImageIcon className="w-6 h-6 text-muted-foreground" />
+                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
                 )}
               </div>
-              {/* Image options */}
-              <div className="flex-1 space-y-1.5">
-                {prefillImageUrl && !imageFile && (
-                  <button
-                    type="button"
-                    onClick={() => setUseInventoryImage(v => !v)}
-                    className={`w-full text-left text-xs px-3 py-2 rounded-lg border transition-colors ${useInventoryImage ? 'border-primary bg-primary/5 text-primary font-medium' : 'border-border text-muted-foreground'}`}
-                  >
-                    {useInventoryImage ? '✓ Using inventory image' : 'Use inventory image'}
-                  </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{itemName || 'Unnamed Item'}</p>
+                <p className="text-xs text-muted-foreground capitalize">{category}</p>
+                {costBasis != null && (
+                  <p className="text-xs text-muted-foreground">Cost basis: <span className="font-medium text-foreground">${costBasis.toFixed(2)}</span></p>
                 )}
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                    onChange={(e) => { setImageFile(e.target.files?.[0] || null); setUseInventoryImage(false); }}
-                    className="hidden"
-                    id="flip-image"
-                  />
-                  <label
-                    htmlFor="flip-image"
-                    className="flex items-center gap-1.5 w-full text-left text-xs px-3 py-2 rounded-lg border border-border text-muted-foreground cursor-pointer hover:bg-secondary transition-colors"
-                  >
-                    <Upload className="w-3.5 h-3.5 shrink-0" />
-                    {imageFile ? imageFile.name : 'Upload photo'}
-                  </label>
-                </div>
+                {potentialProfit !== null && (
+                  <p className={`text-xs font-medium ${parseFloat(potentialProfit) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                    Potential: {parseFloat(potentialProfit) >= 0 ? '+' : ''}${potentialProfit}
+                  </p>
+                )}
+              </div>
+              {/* Replace image */}
+              <div className="shrink-0">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                  onChange={(e) => { setImageFile(e.target.files?.[0] || null); }}
+                  className="hidden"
+                  id="flip-image"
+                />
+                <label htmlFor="flip-image" className="flex flex-col items-center gap-0.5 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                  <Upload className="w-4 h-4" />
+                  <span className="text-[9px]">{imageFile ? 'Replace' : prefillImageUrl ? 'Replace' : 'Add photo'}</span>
+                </label>
                 {imageFile && (
-                  <button type="button" onClick={() => { setImageFile(null); setUseInventoryImage(!!prefillImageUrl); }} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors">
-                    <X className="w-3 h-3" /> Remove photo
+                  <button type="button" onClick={() => setImageFile(null)} className="flex items-center justify-center mt-1">
+                    <X className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Item name + price */}
+            {/* Ask price + location */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Item Name *</label>
-                <Input value={itemName} onChange={(e) => setItemName(e.target.value)} placeholder="e.g. Jordan 4 Retro" className="bg-background" style={{ fontSize: 16 }} />
-              </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">Ask Price *</label>
                 <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" className="bg-background" style={{ fontSize: 16 }} />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Location</label>
+                <label className="text-xs font-medium text-muted-foreground">Location <span className="text-muted-foreground/60">(optional)</span></label>
                 <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="City, State" className="bg-background" style={{ fontSize: 16 }} />
               </div>
             </div>
 
             {/* Description */}
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Description</label>
+              <label className="text-xs font-medium text-muted-foreground">Description <span className="text-muted-foreground/60">(optional)</span></label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Condition, details, why it's a good flip..."
-                className="bg-background min-h-[72px] text-sm"
+                className="bg-background min-h-[60px] text-sm"
                 style={{ fontSize: 16 }}
               />
             </div>
 
-            {/* Graded card section (cards only) */}
+            {/* Graded card */}
             {category === 'cards' && (
               <div className="space-y-3 border border-border rounded-xl p-3 bg-background">
                 <div className="flex items-center justify-between">
@@ -288,15 +349,8 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Company</label>
-                        <select
-                          value={gradingCompany}
-                          onChange={(e) => setGradingCompany(e.target.value)}
-                          className="w-full h-9 rounded-md border border-input bg-card px-3 text-sm"
-                          style={{ fontSize: 16 }}
-                        >
-                          {['PSA', 'BGS', 'CGC', 'SGC', 'GMA', 'HGA', 'CSG', 'AGS', 'other'].map(g => (
-                            <option key={g} value={g}>{g}</option>
-                          ))}
+                        <select value={gradingCompany} onChange={(e) => setGradingCompany(e.target.value)} className="w-full h-9 rounded-md border border-input bg-card px-3 text-sm" style={{ fontSize: 16 }}>
+                          {['PSA','BGS','CGC','SGC','GMA','HGA','CSG','AGS','other'].map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
                       </div>
                       <div className="space-y-1">
@@ -308,26 +362,48 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                       <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cert Number</label>
                       <Input value={certNumber} onChange={(e) => setCertNumber(e.target.value)} placeholder="Certificate / serial number" className="bg-card h-9" style={{ fontSize: 16 }} />
                     </div>
-                    <CertImagePreview
-                      certNumber={certNumber}
-                      gradingCompany={gradingCompany}
-                      currentImageUrl={certImageUrl}
-                      onImageFound={(url, name) => {
-                        setCertImageUrl(url);
-                        if (name && !itemName) setItemName(name);
-                      }}
-                    />
+                    <CertImagePreview certNumber={certNumber} gradingCompany={gradingCompany} currentImageUrl={certImageUrl} onImageFound={(url, name) => { setCertImageUrl(url); if (name && !itemName) setItemName(name); }} />
                   </div>
                 )}
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-2 pt-1">
-              <Button variant="outline" onClick={onClose} className="flex-1" disabled={postMutation.isPending || uploading}>
-                Cancel
+              <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+              <Button onClick={handleGoToPreview} className="flex-1 bg-primary hover:bg-primary/90">
+                <Eye className="w-4 h-4 mr-1.5" /> Preview Listing
               </Button>
-              <Button onClick={handleSubmit} className="flex-1 bg-primary hover:bg-primary/90" disabled={postMutation.isPending || uploading}>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: Preview ── */}
+        {step === 'preview' && (
+          <div className="px-4 pt-4 pb-6 space-y-4">
+            <p className="text-xs text-muted-foreground text-center">This is how your listing will appear in the community feed.</p>
+
+            <div className="max-w-[200px] mx-auto">
+              <PreviewCard
+                itemName={itemName}
+                price={priceNum}
+                category={category}
+                description={description}
+                imageUrl={activeImageUrl}
+                posterName={posterName}
+              />
+            </div>
+
+            {location && (
+              <div className="flex items-center gap-1.5 justify-center text-xs text-muted-foreground">
+                <MapPin className="w-3 h-3" />{location}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" onClick={() => setStep('edit')} className="flex-1">
+                <ArrowLeft className="w-4 h-4 mr-1" /> Edit
+              </Button>
+              <Button onClick={handleConfirmPost} className="flex-1 bg-primary hover:bg-primary/90" disabled={postMutation.isPending || uploading}>
                 {postMutation.isPending || uploading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{uploading ? 'Uploading...' : 'Posting...'}</>
                 ) : 'Post to Community'}

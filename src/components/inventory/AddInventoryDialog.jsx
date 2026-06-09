@@ -315,6 +315,14 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                       setCertImageUrl(url);
                       if (name && !itemName) setItemName(name);
                     }}
+                    onCardInfoFound={({ card_name, grade: g, year, set_name }) => {
+                      if (card_name && !itemName) {
+                        const fullName = [year, set_name, card_name].filter(Boolean).join(' ');
+                        setItemName(fullName || card_name);
+                      }
+                      if (g && !grade) setGrade(g);
+                    }}
+                    onManualUpload={() => document.getElementById('inventory-image')?.click()}
                   />
                 </div>
               )}

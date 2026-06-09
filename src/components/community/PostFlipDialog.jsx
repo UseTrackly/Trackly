@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Loader2, Crown, X, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag, Sparkles } from 'lucide-react';
+import { Upload, Loader2, Crown, X, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag, Sparkles, Image } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import AIImageSearch from '@/components/community/AIImageSearch';
@@ -41,6 +41,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
   const [aiSuggestedImageUrl, setAiSuggestedImageUrl] = useState(null);
+  const [referenceImageType, setReferenceImageType] = useState(null); // 'reference' or 'ai_generated'
   const [category, setCategory] = useState('other');
   const queryClient = useQueryClient();
 
@@ -59,6 +60,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       setImageFile(null);
       setCertImageUrl(null);
       setAiSuggestedImageUrl(null);
+      setReferenceImageType(null);
       setStep('edit');
     }
     if (!open) {
@@ -68,6 +70,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       setIsGraded(false); setGradingCompany('PSA');
       setGrade(''); setCertNumber(''); setCertImageUrl(null);
       setAiSuggestedImageUrl(null);
+      setReferenceImageType(null);
     }
   }, [open, prefillData]);
 
@@ -130,7 +133,8 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       const created = await base44.entities.CommunityFlip.create({
         ...data,
         image_url: imageUrl,
-        is_ai_generated_image: !!aiSuggestedImageUrl && !imageFile && !certImageUrl,
+        is_ai_generated_image: referenceImageType === 'ai_generated',
+        is_reference_image: referenceImageType === 'reference',
         posted_by: user.email,
         posted_by_name: posterName,
         is_poster_pro: !!user.is_pro,
@@ -254,34 +258,47 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
               </div>
             </div>
 
-            {/* AI Image Search - shown when no image exists */}
+            {/* Reference Image Lookup - shown when no image exists */}
             {!activeImageUrl && (
               <div className="space-y-2">
                 <AIImageSearch
                   itemName={itemName}
                   category={category}
-                  onImageFound={(url) => {
+                  onImageFound={(url, type) => {
                     setAiSuggestedImageUrl(url);
+                    setReferenceImageType(type);
                     setImageFile(null); // Clear any manual upload
                   }}
                 />
               </div>
             )}
 
-            {/* AI image disclaimer when shown */}
+            {/* Reference image disclaimer when shown */}
             {aiSuggestedImageUrl && (
               <div className="flex items-start gap-2 p-3 bg-primary/5 border border-primary/20 rounded-xl">
-                <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                {referenceImageType === 'reference' ? (
+                  <Image className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                ) : (
+                  <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                )}
                 <div className="flex-1">
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    <span className="font-medium text-primary">AI-suggested placeholder image.</span> This is a generic product image based on your item name, not an actual photo of your item's condition. Consider uploading a real photo for better buyer trust.
+                    {referenceImageType === 'reference' ? (
+                      <>
+                        <span className="font-medium text-primary">Reference image from official sources.</span> This is a product image found online, not an actual photo of your item's specific condition. Upload a real photo for better buyer trust.
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-primary">AI-generated reference image.</span> This is a synthetic image based on your item name, not an actual photo of your item. Upload a real photo for better buyer trust.
+                      </>
+                    )}
                   </p>
                   <button
                     type="button"
-                    onClick={() => setAiSuggestedImageUrl(null)}
+                    onClick={() => { setAiSuggestedImageUrl(null); setReferenceImageType(null); }}
                     className="text-[10px] text-muted-foreground underline mt-1"
                   >
-                    Remove suggested image
+                    Remove image
                   </button>
                 </div>
               </div>

@@ -42,6 +42,11 @@
       "default": false,
       "description": "Whether the image is AI-generated"
     },
+    "is_reference_image": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the image is a reference image from official sources"
+    },
     "is_sold": {
       "type": "boolean",
       "default": false,

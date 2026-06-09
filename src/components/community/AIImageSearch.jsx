@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Search, Loader2, RefreshCw, Image } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Determines if item name is too vague and needs clarification
@@ -21,6 +21,10 @@ function getNeedsMoreDetails(itemName, category) {
       { match: /psa|bgs|sgc|cgc/i, question: "What card is this? Please provide player name, year, and set (e.g. 2003 Topps LeBron James RC PSA 10)" },
       { match: /card/i, question: "Which card specifically? Please provide player/character name, year, and set name." },
     ],
+    electronics: [
+      { match: /xbox|playstation|nintendo|switch/i, question: "Which specific game or accessory? (e.g. NBA 2K23 Xbox Series X, PlayStation 5 DualSense Controller)" },
+      { match: /controller/i, question: "Which controller exactly? (e.g. Xbox Wireless Controller Carbon Black, PS5 DualSense)" },
+    ],
   };
 
   const patterns = vaguePatterns[category] || [];
@@ -29,60 +33,55 @@ function getNeedsMoreDetails(itemName, category) {
   }
 
   // Generic vagueness check — name too short
-  if (itemName.trim().split(' ').length <= 1) {
-    return `Can you give more details about "${itemName}"? (brand, model, colorway, year, etc.)`;
+  if (itemName.trim().split(' ').length <= 2) {
+    return `Can you give more details about "${itemName}"? (brand, model, colorway, year, platform, etc.)`;
   }
 
   return null;
 }
 
-export default function AIImageSearch({ itemName, category, onImageFound }) {
+export default function ReferenceImageLookup({ itemName, category, onImageFound }) {
   const [loading, setLoading] = useState(false);
   const [clarifying, setClarifying] = useState(false);
   const [clarifyQuestion, setClarifyQuestion] = useState('');
   const [clarifyAnswer, setClarifyAnswer] = useState('');
   const [foundImage, setFoundImage] = useState(null);
+  const [imageType, setImageType] = useState(null); // 'reference' or 'ai_generated'
 
-  const fetchImage = async (searchQuery) => {
+  const fetchReferenceImage = async (searchQuery) => {
     setLoading(true);
     try {
+      // Step 1: Use InvokeLLM to find official/reference image URLs from the web
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a product image finder. I need a real, publicly accessible image URL for: "${searchQuery}".
+        prompt: `Find an official product image URL for: "${searchQuery}".
 
-Search your knowledge for a well-known, high-quality product image URL for this exact item. 
-Return ONLY a direct image URL (ending in .jpg, .jpeg, .png, or .webp) from a reputable source like:
-- stockx.com
-- goat.com  
-- sneakernews.com
-- beckett.com
-- psacard.com
-- flightclub.com
-- or any major retailer/marketplace
+Search for a real, publicly accessible image from official sources like:
+- Manufacturer websites (nike.com, adidas.com, sony.com, microsoft.com, etc.)
+- Major retailers (stockx.com, goat.com, amazon.com, bestbuy.com)
+- Official databases (psacard.com, beckett.com for cards)
 
-Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL.`,
+Return ONLY a direct image URL (ending in .jpg, .jpeg, .png, or .webp).
+Return ONLY the raw URL, nothing else. No explanation, no markdown.`,
         add_context_from_internet: true,
       });
 
       const url = (result || '').trim().replace(/^["'\`]|["'\`]$/g, '');
       
       if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-        // Generate image via AI instead since LLM URL lookup is unreliable
-        const generated = await base44.integrations.Core.GenerateImage({
-          prompt: `Professional product photo of ${searchQuery}, clean white background, high quality, realistic, product listing style`,
-        });
-        const imageUrl = generated?.url || generated?.image_url || generated;
-        if (imageUrl && typeof imageUrl === 'string') {
-          setFoundImage(imageUrl);
-          onImageFound(imageUrl);
-          toast.success('AI found an image!');
-        } else {
-          throw new Error('No image returned');
+        // Validate URL by checking it's not a placeholder
+        if (!url.includes('placeholder') && !url.includes('via.placeholder')) {
+          setFoundImage(url);
+          setImageType('reference');
+          onImageFound(url, 'reference');
+          toast.success('Found reference image!');
+          setLoading(false);
+          return;
         }
-      } else {
-        throw new Error('Could not find a valid image');
       }
-    } catch {
-      // Fallback: generate directly
+      
+      throw new Error('No valid reference image found');
+    } catch (error) {
+      // Fallback: Generate AI image only if reference lookup fails
       try {
         const generated = await base44.integrations.Core.GenerateImage({
           prompt: `Professional product photo of ${searchQuery}, clean white background, high quality, realistic product listing photo`,
@@ -90,13 +89,14 @@ Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL
         const imageUrl = generated?.url || generated?.image_url || (typeof generated === 'string' ? generated : null);
         if (imageUrl) {
           setFoundImage(imageUrl);
-          onImageFound(imageUrl);
-          toast.success('AI generated an image!');
+          setImageType('ai_generated');
+          onImageFound(imageUrl, 'ai_generated');
+          toast.success('AI generated reference image');
         } else {
-          toast.error('Could not find an image. Try uploading one manually.');
+          toast.error('Could not find image. Upload manually.');
         }
       } catch {
-        toast.error('Could not generate image. Try uploading one manually.');
+        toast.error('Could not generate image. Upload manually.');
       }
     } finally {
       setLoading(false);
@@ -109,14 +109,14 @@ Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL
       setClarifyQuestion(clarifyQ);
       setClarifying(true);
     } else {
-      fetchImage(itemName);
+      fetchReferenceImage(itemName);
     }
   };
 
   const handleClarifySubmit = () => {
     if (!clarifyAnswer.trim()) return;
     setClarifying(false);
-    fetchImage(`${itemName} ${clarifyAnswer}`);
+    fetchReferenceImage(`${itemName} ${clarifyAnswer}`);
     setClarifyAnswer('');
   };
 
@@ -124,14 +124,18 @@ Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <img src={foundImage} alt="AI found" className="w-16 h-16 object-cover rounded-lg border border-border" />
+          <img src={foundImage} alt="Reference image" className="w-16 h-16 object-cover rounded-lg border border-border" />
           <div className="flex-1">
-            <p className="text-xs text-primary font-medium flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> AI Image
+            <p className="text-xs font-medium flex items-center gap-1" style={{ color: imageType === 'reference' ? 'hsl(160 84% 39%)' : 'hsl(280 65% 60%)' }}>
+              {imageType === 'reference' ? (
+                <><Image className="w-3 h-3" /> Reference Image</>
+              ) : (
+                <><Search className="w-3 h-3" /> AI-Generated Reference</>
+              )}
             </p>
             <button
               type="button"
-              onClick={() => { setFoundImage(null); onImageFound(null); }}
+              onClick={() => { setFoundImage(null); setImageType(null); onImageFound(null, null); }}
               className="text-xs text-muted-foreground underline mt-0.5"
             >
               Remove
@@ -139,10 +143,10 @@ Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL
           </div>
           <button
             type="button"
-            onClick={() => fetchImage(itemName)}
+            onClick={() => fetchReferenceImage(itemName)}
             disabled={loading}
             className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
-            title="Try another image"
+            title="Search again"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -155,7 +159,7 @@ Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL
     return (
       <div className="space-y-2 p-3 border border-primary/30 rounded-xl bg-primary/5">
         <p className="text-xs font-medium text-primary flex items-center gap-1">
-          <Sparkles className="w-3 h-3" /> AI needs more details
+          <Search className="w-3 h-3" /> Need more details
         </p>
         <p className="text-xs text-muted-foreground">{clarifyQuestion}</p>
         <Input
@@ -168,7 +172,7 @@ Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL
         />
         <div className="flex gap-2">
           <Button size="sm" onClick={handleClarifySubmit} disabled={!clarifyAnswer.trim()} className="text-xs h-7 bg-primary">
-            Find Image
+            Search Image
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setClarifying(false)} className="text-xs h-7">
             Cancel
@@ -188,9 +192,9 @@ Return ONLY the raw URL, nothing else. No explanation, no markdown, just the URL
       {loading ? (
         <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
-        <Sparkles className="w-4 h-4" />
+        <Search className="w-4 h-4" />
       )}
-      {loading ? 'Searching for image...' : "Don't have a picture? Use AI"}
+      {loading ? 'Searching for reference image...' : "Find Reference Image"}
     </button>
   );
 }

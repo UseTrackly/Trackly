@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 import { motion } from 'framer-motion';
-import { Heart, MessageCircle, MapPin, Crown, TrendingUp, Users, Package, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, Crown, TrendingUp, Users, Package, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EmptyState from '@/components/shared/EmptyState';
 import ProfileLink from '@/components/shared/ProfileLink';
@@ -60,6 +60,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
   const hasImage = !!flip.image_url;
   const hasGrade = !!(flip.grade && flip.grading_company);
   const isAiImage = !!flip.is_ai_generated_image;
+  const isReferenceImage = !!flip.is_reference_image;
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -130,10 +131,15 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
               {flip.grading_company} {flip.grade}
             </span>
           )}
-          {/* AI Image badge */}
-          {isAiImage && (
+          {/* Reference/AI Image badge */}
+          {isReferenceImage && (
+            <span className={`absolute px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-medium flex items-center gap-0.5 ${isSold ? 'bottom-2 right-2' : 'top-2 right-2'}`}>
+              <Image className="w-2 h-2" /> Reference
+            </span>
+          )}
+          {isAiImage && !isReferenceImage && (
             <span className={`absolute px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[8px] font-medium ${isSold ? 'bottom-2 right-2' : 'top-2 right-2'}`}>
-              AI IMAGE
+              AI Generated
             </span>
           )}
           {/* Owner menu */}

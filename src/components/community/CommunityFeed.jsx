@@ -3,10 +3,22 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 import { motion } from 'framer-motion';
-import { Heart, MessageCircle, MapPin, Crown, TrendingUp, Users, Package } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, Crown, TrendingUp, Users, Package, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import EmptyState from '@/components/shared/EmptyState';
 import ProfileLink from '@/components/shared/ProfileLink';
+
+const CATEGORY_META = {
+  cards:       { icon: CreditCard, gradient: 'from-blue-900/80 to-indigo-900/80' },
+  sneakers:    { icon: Trophy,     gradient: 'from-orange-900/80 to-red-900/80' },
+  clothing:    { icon: Shirt,      gradient: 'from-purple-900/80 to-pink-900/80' },
+  electronics: { icon: Cpu,        gradient: 'from-cyan-900/80 to-teal-900/80' },
+  collectibles:{ icon: Trophy,     gradient: 'from-yellow-900/80 to-amber-900/80' },
+  games:       { icon: Gamepad2,   gradient: 'from-green-900/80 to-emerald-900/80' },
+  technology:  { icon: Cpu,        gradient: 'from-sky-900/80 to-blue-900/80' },
+  vintage:     { icon: Watch,      gradient: 'from-stone-800/80 to-zinc-900/80' },
+  other:       { icon: Tag,        gradient: 'from-gray-800/80 to-slate-900/80' },
+};
 
 function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const isInterested = flip.interested_users?.includes(user?.email);
@@ -17,6 +29,9 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name;
   const username = posterProfile?.username;
 
+  const meta = CATEGORY_META[flip.category] || CATEGORY_META.other;
+  const CategoryIcon = meta.icon;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -24,31 +39,37 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
       className="bg-card border border-border rounded-lg overflow-hidden"
       onClick={() => onClick(flip)}
     >
-      {flip.image_url && (
-        <div className="relative">
+      {/* Image or placeholder */}
+      <div className="relative">
+        {flip.image_url ? (
           <img src={flip.image_url} alt={flip.item_name} className="w-full h-20 object-cover" />
-          <div className="absolute top-1.5 left-1.5 flex gap-1">
-            <span className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium uppercase">
-              {flip.category}
-            </span>
-            {priority && (
-              <span className="px-2 py-0.5 rounded-full bg-orange-500/90 backdrop-blur-sm text-white text-[8px] font-bold uppercase">
-                HOT
-              </span>
-            )}
+        ) : (
+          <div className={`w-full h-20 bg-gradient-to-br ${meta.gradient} flex flex-col items-center justify-center gap-1`}>
+            <CategoryIcon className="w-6 h-6 text-white/60" />
+            <span className="text-white/40 text-[9px] font-medium uppercase tracking-wider">{flip.category}</span>
           </div>
-          <ProfileLink
-            userEmail={flip.posted_by}
-            username={username}
-            userName={displayName}
-            className="absolute top-1.5 right-1.5"
-          >
-            <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium hover:opacity-80">
-              {displayName?.[0] || 'U'}
+        )}
+        <div className="absolute top-1.5 left-1.5 flex gap-1">
+          <span className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium uppercase">
+            {flip.category}
+          </span>
+          {priority && (
+            <span className="px-2 py-0.5 rounded-full bg-orange-500/90 backdrop-blur-sm text-white text-[8px] font-bold uppercase">
+              HOT
             </span>
-          </ProfileLink>
+          )}
         </div>
-      )}
+        <ProfileLink
+          userEmail={flip.posted_by}
+          username={username}
+          userName={displayName}
+          className="absolute top-1.5 right-1.5"
+        >
+          <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium hover:opacity-80">
+            {displayName?.[0] || 'U'}
+          </span>
+        </ProfileLink>
+      </div>
 
       <div className="p-2 space-y-1">
         <div className="flex items-center gap-1">

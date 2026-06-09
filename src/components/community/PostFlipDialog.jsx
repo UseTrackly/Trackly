@@ -5,69 +5,27 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Loader2, Crown, CheckCircle2, ExternalLink, ImageIcon, X, Eye, ArrowLeft, MapPin, Heart, MessageCircle } from 'lucide-react';
+import { Upload, Loader2, Crown, CheckCircle2, ExternalLink, ImageIcon, X, MapPin, Heart, MessageCircle, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
 import { canPostCommunity, FREE_LIMITS } from '@/lib/proGate';
 
-// Mini preview card — mirrors the exact community FlipCard layout
-function PreviewCard({ itemName, price, category, description, imageUrl, posterName, grade, gradingCompany, location, condition }) {
-  return (
-    <div className="bg-card border-2 border-primary/30 rounded-lg overflow-hidden shadow-lg">
-      {imageUrl ? (
-        <div className="relative">
-          <img src={imageUrl} alt={itemName} className="w-full h-28 object-cover" />
-          <div className="absolute top-1.5 left-1.5">
-            <span className="px-2 py-0.5 rounded-full bg-black/70 text-white text-[8px] font-medium uppercase">{category}</span>
-          </div>
-          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-black/70 text-white text-[8px] font-medium">
-            {(posterName || '?')[0]?.toUpperCase()}
-          </span>
-        </div>
-      ) : (
-        <div className="w-full h-16 bg-secondary flex items-center justify-center">
-          <ImageIcon className="w-5 h-5 text-muted-foreground" />
-        </div>
-      )}
-      <div className="p-2 space-y-1">
-        <p className="text-[8px] text-muted-foreground truncate">{posterName}</p>
-        <p className="font-bold text-xs leading-tight">{itemName || 'Item name'}</p>
-        {description && <p className="text-[10px] text-muted-foreground line-clamp-2">{description}</p>}
-        <div className="flex items-center justify-between pt-0.5">
-          <p className="text-sm font-bold">${price > 0 ? price.toFixed(0) : '—'}</p>
-          {grade && gradingCompany && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-              {gradingCompany} {grade}
-            </span>
-          )}
-        </div>
-        {(location || condition) && (
-          <div className="flex items-center gap-2 text-[8px] text-muted-foreground">
-            {condition && <span className="capitalize">{condition.replace('_', ' ')}</span>}
-            {location && (
-              <span className="flex items-center gap-0.5">
-                <MapPin className="w-2 h-2" />{location}
-              </span>
-            )}
-          </div>
-        )}
-        <div className="flex gap-1 pt-1">
-          <div className="flex-1 h-6 rounded-md border border-border flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-            <Heart className="w-3 h-3" /> Interested
-          </div>
-          <div className="h-6 w-6 rounded-md border border-border flex items-center justify-center">
-            <MessageCircle className="w-3 h-3 text-muted-foreground" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const CATEGORY_META = {
+  cards:       { icon: CreditCard, gradient: 'from-blue-900/80 to-indigo-900/80' },
+  sneakers:    { icon: Trophy,     gradient: 'from-orange-900/80 to-red-900/80' },
+  clothing:    { icon: Shirt,      gradient: 'from-purple-900/80 to-pink-900/80' },
+  electronics: { icon: Cpu,        gradient: 'from-cyan-900/80 to-teal-900/80' },
+  collectibles:{ icon: Trophy,     gradient: 'from-yellow-900/80 to-amber-900/80' },
+  games:       { icon: Gamepad2,   gradient: 'from-green-900/80 to-emerald-900/80' },
+  technology:  { icon: Cpu,        gradient: 'from-sky-900/80 to-blue-900/80' },
+  vintage:     { icon: Watch,      gradient: 'from-stone-800/80 to-zinc-900/80' },
+  other:       { icon: Tag,        gradient: 'from-gray-800/80 to-slate-900/80' },
+};
 
 export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const navigate = useNavigate();
-  // step: 'edit' | 'preview' | 'done'
+  // step: 'edit' | 'done'
   const [step, setStep] = useState('edit');
 
   const [itemName, setItemName] = useState('');
@@ -183,13 +141,9 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     },
   });
 
-  const handleGoToPreview = () => {
+  const handlePost = () => {
     if (!itemName || !price) { toast.error('Please fill in item name and price'); return; }
     if (!postAllowed) { toast.error(`Free plan allows ${FREE_LIMITS.community_posts} active posts. Upgrade to Pro for unlimited.`); return; }
-    setStep('preview');
-  };
-
-  const handleConfirmPost = () => {
     postMutation.mutate({
       item_name: itemName,
       category,
@@ -208,29 +162,13 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     ? URL.createObjectURL(imageFile)
     : certImageUrl || prefillImageUrl || null;
 
-  const posterName = myProfile?.display_name || myProfile?.username || user?.full_name || '—';
-  const priceNum = parseFloat(price) || 0;
-
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto p-0">
         <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
-          <div className="flex items-center gap-2">
-            {step === 'preview' && (
-              <button onClick={() => setStep('edit')} className="p-1 rounded-lg hover:bg-secondary transition-colors">
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-            )}
-            <SheetTitle className="text-base">
-              {step === 'done' ? 'Posted!' : step === 'preview' ? 'Preview Listing' : 'Share to Community'}
-            </SheetTitle>
-            {step === 'edit' && (
-              <span className="ml-auto text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Step 1 of 2</span>
-            )}
-            {step === 'preview' && (
-              <span className="ml-auto text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">Step 2 of 2</span>
-            )}
-          </div>
+          <SheetTitle className="text-base">
+            {step === 'done' ? 'Posted!' : 'Share to Community'}
+          </SheetTitle>
         </SheetHeader>
 
         {/* ── Done ── */}
@@ -270,7 +208,15 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                 {activeImageUrl ? (
                   <img src={activeImageUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                  (() => {
+                    const meta = CATEGORY_META[category] || CATEGORY_META.other;
+                    const CatIcon = meta.icon;
+                    return (
+                      <div className={`w-full h-full bg-gradient-to-br ${meta.gradient} flex items-center justify-center`}>
+                        <CatIcon className="w-5 h-5 text-white/60" />
+                      </div>
+                    );
+                  })()
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -367,38 +313,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
 
             <div className="flex gap-2 pt-1">
               <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-              <Button onClick={handleGoToPreview} className="flex-1 bg-primary hover:bg-primary/90">
-                <Eye className="w-4 h-4 mr-1.5" /> Preview Listing
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 2: Preview ── */}
-        {step === 'preview' && (
-          <div className="px-4 pt-4 pb-6 space-y-4">
-            <p className="text-xs text-muted-foreground text-center">This is how your listing will appear in the community feed.</p>
-
-            <div className="max-w-[200px] mx-auto">
-              <PreviewCard
-                itemName={itemName}
-                price={priceNum}
-                category={category}
-                description={description}
-                imageUrl={activeImageUrl}
-                posterName={posterName}
-                grade={isGraded ? grade : null}
-                gradingCompany={isGraded ? gradingCompany : null}
-                location={location}
-                condition={prefillData?.condition}
-              />
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <Button variant="outline" onClick={() => setStep('edit')} className="flex-1">
-                <ArrowLeft className="w-4 h-4 mr-1" /> Edit
-              </Button>
-              <Button onClick={handleConfirmPost} className="flex-1 bg-primary hover:bg-primary/90" disabled={postMutation.isPending || uploading}>
+              <Button onClick={handlePost} className="flex-1 bg-primary hover:bg-primary/90" disabled={postMutation.isPending || uploading}>
                 {postMutation.isPending || uploading ? (
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{uploading ? 'Uploading...' : 'Posting...'}</>
                 ) : 'Post to Community'}

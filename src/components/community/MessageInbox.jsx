@@ -46,17 +46,13 @@ function ThreadItem({ thread, onClick, navigate, onClose }) {
       }`}
     >
       <div className="flex gap-3">
-        {/* Listing thumbnail */}
-        {thread.flipImage ? (
-          <div className="w-16 h-16 rounded-lg overflow-hidden bg-secondary border border-border shrink-0">
-            <img src={thread.flipImage} alt="" className="w-full h-full object-cover" />
-          </div>
-        ) : thread.flipName ? (
-          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-border flex items-center justify-center shrink-0">
-            <Package className="w-6 h-6 text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-secondary border-2 border-border shrink-0">
+        {/* User avatar - always show user's profile photo or initial */}
+        <button
+          onClick={handleProfileClick}
+          className="cursor-pointer shrink-0 hover:opacity-80"
+          type="button"
+        >
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-secondary border-2 border-border">
             {thread.avatarUrl ? (
               <img src={thread.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -65,7 +61,7 @@ function ThreadItem({ thread, onClick, navigate, onClose }) {
               </div>
             )}
           </div>
-        )}
+        </button>
         
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -77,9 +73,10 @@ function ThreadItem({ thread, onClick, navigate, onClose }) {
             </span>
           </div>
           
-          {/* Listing name + price */}
+          {/* Listing title + price (grouped together) */}
           {thread.flipName && (
-            <div className="flex items-center gap-2 mb-0.5">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Package className="w-3 h-3 text-muted-foreground shrink-0" />
               <span className="text-xs text-muted-foreground truncate flex-1">{thread.flipName}</span>
               {thread.flipPrice && (
                 <span className="text-xs font-semibold text-primary shrink-0">${thread.flipPrice.toFixed(0)}</span>
@@ -87,7 +84,7 @@ function ThreadItem({ thread, onClick, navigate, onClose }) {
             </div>
           )}
           
-          {/* Preview + unread indicator */}
+          {/* Message preview + unread indicator */}
           <div className="flex items-center justify-between gap-2">
             <p className={`text-sm truncate flex-1 ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
               {preview}

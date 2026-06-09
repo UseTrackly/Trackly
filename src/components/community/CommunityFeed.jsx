@@ -123,10 +123,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
           {isSold && (
             <span className="absolute top-2 left-2 px-2 py-1 rounded-full bg-destructive text-white text-[10px] font-bold uppercase">SOLD</span>
           )}
-          {/* HOT badge */}
-          {priority && !isSold && (
-            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[8px] font-bold uppercase">HOT</span>
-          )}
+
           {/* Grade badge */}
           {hasGrade && (
             <span className={`absolute px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-medium ${isSold ? 'top-2 right-2' : 'top-2 right-2'}`}>
@@ -193,7 +190,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
               disabled={isSold}
             >
               <Heart className={`w-3 h-3 mr-0.5 ${isInterested ? 'fill-current' : ''}`} />
-              {interestCount > 0 ? interestCount : isSold ? 'Sold' : 'Want'}
+              {interestCount > 0 ? interestCount : isSold ? 'Sold' : 'Interested'}
             </Button>
             <Button
               variant="outline"
@@ -309,7 +306,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
               disabled={isSold}
             >
               <Heart className={`w-3 h-3 ${isInterested ? 'fill-current' : ''}`} />
-              {interestCount > 0 && <span className="ml-0.5 text-[10px]">{interestCount}</span>}
+              <span className="ml-0.5 text-[10px]">{interestCount > 0 ? interestCount : 'Interested'}</span>
             </Button>
           )}
         </div>

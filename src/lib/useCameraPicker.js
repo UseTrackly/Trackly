@@ -1,6 +1,13 @@
 import { useState } from 'react';
-import { isIOSApp } from './platformDetect';
 import { toast } from 'sonner';
+
+/**
+ * Returns true only when running inside a Capacitor native container.
+ * Must NOT return true for plain mobile Safari / web preview on iOS.
+ */
+function isCapacitorNative() {
+  return window?.Capacitor?.isNativePlatform?.() === true;
+}
 
 /**
  * Reusable hook for camera/image picker with iOS Capacitor support.
@@ -10,14 +17,14 @@ export function useCameraPicker({ onImageSelected }) {
   const [isUploading, setIsUploading] = useState(false);
 
   const openCameraPicker = async ({ inputId }) => {
-    // Web fallback - use native file input
-    if (!isIOSApp()) {
+    // Web / mobile browser fallback - use native file input
+    if (!isCapacitorNative()) {
       const input = document.getElementById(inputId);
       if (input) input.click();
       return;
     }
 
-    // iOS native - use Capacitor Camera
+    // Capacitor native only - use Capacitor Camera plugin
     setIsUploading(true);
     try {
       const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');

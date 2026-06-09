@@ -20,6 +20,8 @@ const CATEGORY_META = {
   other:       { icon: Tag,        gradient: 'from-gray-800/80 to-slate-900/80' },
 };
 
+
+
 function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const isInterested = flip.interested_users?.includes(user?.email);
   const interestCount = flip.interested_users?.length || 0;
@@ -32,6 +34,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const CategoryIcon = meta.icon;
   const hasImage = !!flip.image_url;
   const hasGrade = !!(flip.grade && flip.grading_company);
+  const isAiImage = !!flip.is_ai_generated_image;
 
   if (hasImage) {
     // Photo listing — product is the hero
@@ -61,6 +64,10 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
             <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-medium">
               {flip.grading_company} {flip.grade}
             </span>
+          )}
+          {/* AI Image badge */}
+          {isAiImage && (
+            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[8px] font-medium">AI IMAGE</span>
           )}
         </div>
 
@@ -115,7 +122,12 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
           <CategoryIcon className="w-4 h-4 text-white/60" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm leading-tight line-clamp-1">{flip.item_name}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="font-semibold text-sm leading-tight line-clamp-1">{flip.item_name}</h3>
+            {isAiImage && (
+              <span className="px-1 py-0.5 rounded-full bg-purple-500/90 text-white text-[7px] font-medium whitespace-nowrap">AI</span>
+            )}
+          </div>
           <div className="flex items-center gap-2 mt-0.5">
             <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
               <p className="text-[9px] text-muted-foreground truncate">{displayName}</p>

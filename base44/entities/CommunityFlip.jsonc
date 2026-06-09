@@ -37,6 +37,11 @@
       "type": "string",
       "description": "Image of the item"
     },
+    "is_ai_generated_image": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the image is AI-generated"
+    },
     "posted_by": {
       "type": "string",
       "description": "Email of user who posted"

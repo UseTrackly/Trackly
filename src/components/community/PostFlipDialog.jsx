@@ -130,6 +130,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       const created = await base44.entities.CommunityFlip.create({
         ...data,
         image_url: imageUrl,
+        is_ai_generated_image: !!aiSuggestedImageUrl && !imageFile && !certImageUrl,
         posted_by: user.email,
         posted_by_name: posterName,
         is_poster_pro: !!user.is_pro,

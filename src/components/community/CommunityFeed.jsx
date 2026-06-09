@@ -235,7 +235,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
     );
   }
 
-  // Text-only listing — compact, no wasted space
+  // Listing without image — use placeholder card with same layout
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -243,39 +243,34 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
       className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer"
       onClick={() => onClick(flip)}
     >
-      <div className={`w-full h-1 bg-gradient-to-r ${meta.gradient}`} />
-      <div className="px-3 py-2.5 flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${meta.gradient} flex items-center justify-center shrink-0`}>
-          <CategoryIcon className="w-4 h-4 text-white/60" />
+      {/* Full-bleed placeholder with gradient */}
+      <div className={`relative w-full aspect-square bg-gradient-to-br ${meta.gradient}`}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <CategoryIcon className="w-16 h-16 text-white/30" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h3 className="font-semibold text-sm leading-tight line-clamp-1">{flip.item_name}</h3>
-            {isAiImage && (
-              <span className="px-1 py-0.5 rounded-full bg-purple-500/90 text-white text-[7px] font-medium whitespace-nowrap">AI</span>
-            )}
-            {isSold && (
-              <span className="px-1 py-0.5 rounded-full bg-destructive text-white text-[7px] font-bold whitespace-nowrap">SOLD</span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5">
-            <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
-              <p className="text-[9px] text-muted-foreground truncate">{displayName}</p>
-            </ProfileLink>
-            {flip.location && (
-              <span className="flex items-center gap-0.5 text-[8px] text-muted-foreground">
-                <MapPin className="w-2 h-2 shrink-0" />{flip.location}
-              </span>
-            )}
-          </div>
+        {/* Price pill — bottom left */}
+        <div className="absolute bottom-2 left-2">
+          <span className="px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-sm text-white text-xs font-bold">
+            ${flip.price?.toFixed(0)}
+          </span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <p className="text-base font-bold">${flip.price?.toFixed(0)}</p>
-          {isMyPost ? (
+        {/* SOLD badge */}
+        {isSold && (
+          <span className="absolute top-2 left-2 px-2 py-1 rounded-full bg-destructive text-white text-[10px] font-bold uppercase">SOLD</span>
+        )}
+        {/* AI Image badge */}
+        {isAiImage && (
+          <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[8px] font-medium">
+            AI IMAGE
+          </span>
+        )}
+        {/* Owner menu */}
+        {isMyPost && (
+          <div className="absolute top-2 right-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreVertical className="w-3.5 h-3.5" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60">
+                  <MoreVertical className="w-4 h-4 text-white" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -297,18 +292,43 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button
-              variant={isInterested ? "default" : "outline"}
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
-              className="h-7 px-2"
-              disabled={isSold}
-            >
-              <Heart className={`w-3 h-3 ${isInterested ? 'fill-current' : ''}`} />
-              <span className="ml-0.5 text-[10px]">{interestCount > 0 ? interestCount : 'Interested'}</span>
-            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Below image: title, seller, actions */}
+      <div className="p-2.5 space-y-1.5">
+        <h3 className="font-semibold text-sm leading-tight line-clamp-2">{flip.item_name}</h3>
+        <div className="flex items-center justify-between">
+          <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
+            <p className="text-[9px] text-muted-foreground truncate max-w-[80px]">{displayName}</p>
+          </ProfileLink>
+          {flip.location && (
+            <span className="flex items-center gap-0.5 text-[8px] text-muted-foreground truncate">
+              <MapPin className="w-2 h-2 shrink-0" />{flip.location}
+            </span>
           )}
+        </div>
+        <div className="flex gap-1.5">
+          <Button
+            variant={isInterested ? "default" : "outline"}
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
+            className="flex-1 h-7 text-[10px]"
+            disabled={isSold}
+          >
+            <Heart className={`w-3 h-3 mr-0.5 ${isInterested ? 'fill-current' : ''}`} />
+            {interestCount > 0 ? interestCount : isSold ? 'Sold' : 'Interested'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onClick(flip); }}
+            className="h-7 w-7 p-0 shrink-0"
+            disabled={isSold}
+          >
+            <MessageCircle className="w-3 h-3" />
+          </Button>
         </div>
       </div>
 
@@ -344,22 +364,10 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
 }
 
 function FlipGrid({ flips, user, onInterest, onFlipClick, profiles, showPriority = false }) {
-  const photoFlips = flips.filter(f => !!f.image_url);
-  const textFlips = flips.filter(f => !f.image_url);
-
   return (
-    <div className="space-y-2">
-      {/* Photo listings in 2-col grid */}
-      {photoFlips.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {photoFlips.map((flip, i) => (
-            <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={showPriority && i < 3} profiles={profiles} />
-          ))}
-        </div>
-      )}
-      {/* Text-only listings as full-width rows */}
-      {textFlips.map((flip) => (
-        <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
+    <div className="grid grid-cols-2 gap-2">
+      {flips.map((flip, i) => (
+        <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={showPriority && i < 3} profiles={profiles} />
       ))}
     </div>
   );

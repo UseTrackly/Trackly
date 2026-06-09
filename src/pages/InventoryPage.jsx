@@ -309,13 +309,13 @@ export default function InventoryPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="hidden" />
 
-        <TabsContent value="inventory" className="space-y-4 px-3 pb-24">
+        <TabsContent value="inventory" className="space-y-3 px-3 pb-24">
           <Button
             onClick={() => setShowAdd(true)}
-            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
+            className="w-full h-9 text-sm font-medium bg-primary hover:bg-primary/90 rounded-lg"
           >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Item to Inventory
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add Item
           </Button>
 
           {items.length === 0 ? (
@@ -510,13 +510,13 @@ export default function InventoryPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="expenses" className="space-y-4 px-3 pb-24">
+        <TabsContent value="expenses" className="space-y-3 px-3 pb-24">
           <Button
             onClick={() => setShowAddExpense(true)}
-            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl"
+            className="w-full h-9 text-sm font-medium bg-primary hover:bg-primary/90 rounded-lg"
           >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Business Expense
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add Expense
           </Button>
 
           {expenses.length === 0 ? (

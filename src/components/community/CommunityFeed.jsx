@@ -235,7 +235,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
     );
   }
 
-  // Listing without image — use placeholder card with same layout
+  // Listing without image — compact "No Image Available" card with same dimensions
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -243,10 +243,11 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
       className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer"
       onClick={() => onClick(flip)}
     >
-      {/* Full-bleed placeholder with gradient */}
-      <div className={`relative w-full aspect-square bg-gradient-to-br ${meta.gradient}`}>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <CategoryIcon className="w-16 h-16 text-white/30" />
+      {/* Compact no-image placeholder */}
+      <div className="relative w-full aspect-square bg-secondary flex items-center justify-center border-b border-border">
+        <div className="text-center px-3">
+          <Package className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+          <p className="text-xs text-muted-foreground font-medium">No Image Available</p>
         </div>
         {/* Price pill — bottom left */}
         <div className="absolute bottom-2 left-2">
@@ -257,12 +258,6 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
         {/* SOLD badge */}
         {isSold && (
           <span className="absolute top-2 left-2 px-2 py-1 rounded-full bg-destructive text-white text-[10px] font-bold uppercase">SOLD</span>
-        )}
-        {/* AI Image badge */}
-        {isAiImage && (
-          <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[8px] font-medium">
-            AI IMAGE
-          </span>
         )}
         {/* Owner menu */}
         {isMyPost && (

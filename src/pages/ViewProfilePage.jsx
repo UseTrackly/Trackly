@@ -187,7 +187,9 @@ export default function ViewProfilePage() {
   }
 
   const displayName = otherProfile.display_name || otherProfile.username || 'User';
-  const handle = otherProfile.username || `user${(otherProfile.id || otherProfile.user_email || '').slice(-6)}`;
+  const handle = otherProfile.username 
+    || (otherProfile.display_name ? otherProfile.display_name.toLowerCase().replace(/\s+/g, '') : null)
+    || `user${(otherProfile.id || '').slice(-6)}`;
   const avatarUrl = otherProfile.avatar_url;
   const bannerUrl = otherProfile.banner_url;
   const locationVal = otherProfile.location;
@@ -399,12 +401,15 @@ export default function ViewProfilePage() {
                     <div className="space-y-1">
                       {otherProfile.followers.map((email, i) => {
                         const followerProfile = allProfiles?.find(p => p.user_email === email);
-                        const displayName = followerProfile?.display_name || followerProfile?.username || email.split('@')[0];
+                        const displayName = followerProfile?.display_name || followerProfile?.username || 'User';
+                        const followerHandle = followerProfile?.username 
+                          || (followerProfile?.display_name ? followerProfile.display_name.toLowerCase().replace(/\s+/g, '') : null)
+                          || `user${(followerProfile?.id || '').slice(-6)}`;
                         return (
                           <ProfileLink
                             key={i}
                             userEmail={email}
-                            username={followerProfile?.username || displayName}
+                            username={followerProfile?.username}
                             userName={displayName}
                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 -mx-2"
                           >
@@ -417,9 +422,7 @@ export default function ViewProfilePage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <span className="text-base font-medium truncate block">{displayName}</span>
-                              {followerProfile?.username && (
-                                <span className="text-xs text-muted-foreground">@{followerProfile.username}</span>
-                              )}
+                              <span className="text-xs text-muted-foreground">@{followerHandle}</span>
                             </div>
                           </ProfileLink>
                         );
@@ -438,12 +441,15 @@ export default function ViewProfilePage() {
                   <div className="space-y-1">
                     {otherProfile.following.map((email, i) => {
                       const followingProfile = allProfiles?.find(p => p.user_email === email);
-                      const displayName = followingProfile?.display_name || followingProfile?.username || email.split('@')[0];
+                      const displayName = followingProfile?.display_name || followingProfile?.username || 'User';
+                      const followingHandle = followingProfile?.username
+                        || (followingProfile?.display_name ? followingProfile.display_name.toLowerCase().replace(/\s+/g, '') : null)
+                        || `user${(followingProfile?.id || '').slice(-6)}`;
                       return (
                         <ProfileLink
                           key={i}
                           userEmail={email}
-                          username={followingProfile?.username || displayName}
+                          username={followingProfile?.username}
                           userName={displayName}
                           className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 -mx-2"
                         >
@@ -456,9 +462,7 @@ export default function ViewProfilePage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-base font-medium truncate block">{displayName}</span>
-                            {followingProfile?.username && (
-                              <span className="text-xs text-muted-foreground">@{followingProfile.username}</span>
-                            )}
+                            <span className="text-xs text-muted-foreground">@{followingHandle}</span>
                           </div>
                         </ProfileLink>
                       );

@@ -327,7 +327,10 @@ export default function ProfilePage() {
             {profile?.display_name || user?.full_name || 'Reseller'}
           </h2>
           <p className="text-sm text-primary font-medium">
-            @{profile?.username || `user${(profile?.id || user?.id || '').slice(-6)}`}
+            @{profile?.username 
+              || (profile?.display_name ? profile.display_name.toLowerCase().replace(/\s+/g, '') : null)
+              || (user?.full_name ? user.full_name.toLowerCase().replace(/\s+/g, '') : null)
+              || `user${(profile?.id || user?.id || '').slice(-6)}`}
           </p>
           {profile?.location && (
             <div className="flex items-center gap-1 mt-1">
@@ -533,12 +536,15 @@ export default function ProfilePage() {
                     <div className="space-y-1">
                       {profile.followers.map((email, i) => {
                         const followerProfile = allProfiles?.find(p => p.user_email === email);
-                        const displayName = followerProfile?.display_name || followerProfile?.username || email.split('@')[0];
+                        const displayName = followerProfile?.display_name || followerProfile?.username || 'User';
+                        const followerHandle = followerProfile?.username
+                          || (followerProfile?.display_name ? followerProfile.display_name.toLowerCase().replace(/\s+/g, '') : null)
+                          || `user${(followerProfile?.id || '').slice(-6)}`;
                         return (
                           <ProfileLink
                             key={i}
                             userEmail={email}
-                            username={followerProfile?.username || displayName}
+                            username={followerProfile?.username}
                             userName={displayName}
                             className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 -mx-2"
                           >
@@ -551,9 +557,7 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <span className="text-base font-medium truncate block">{displayName}</span>
-                              {followerProfile?.username && (
-                                <span className="text-xs text-muted-foreground">@{followerProfile.username}</span>
-                              )}
+                              <span className="text-xs text-muted-foreground">@{followerHandle}</span>
                             </div>
                           </ProfileLink>
                         );
@@ -572,12 +576,15 @@ export default function ProfilePage() {
                   <div className="space-y-1">
                     {profile.following.map((email, i) => {
                       const followingProfile = allProfiles?.find(p => p.user_email === email);
-                      const displayName = followingProfile?.display_name || followingProfile?.username || email.split('@')[0];
+                      const displayName = followingProfile?.display_name || followingProfile?.username || 'User';
+                      const followingHandle = followingProfile?.username
+                        || (followingProfile?.display_name ? followingProfile.display_name.toLowerCase().replace(/\s+/g, '') : null)
+                        || `user${(followingProfile?.id || '').slice(-6)}`;
                       return (
                         <ProfileLink
                           key={i}
                           userEmail={email}
-                          username={followingProfile?.username || displayName}
+                          username={followingProfile?.username}
                           userName={displayName}
                           className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 -mx-2"
                         >
@@ -590,9 +597,7 @@ export default function ProfilePage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-base font-medium truncate block">{displayName}</span>
-                            {followingProfile?.username && (
-                              <span className="text-xs text-muted-foreground">@{followingProfile.username}</span>
-                            )}
+                            <span className="text-xs text-muted-foreground">@{followingHandle}</span>
                           </div>
                         </ProfileLink>
                       );

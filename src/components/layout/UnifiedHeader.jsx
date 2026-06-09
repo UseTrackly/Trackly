@@ -120,14 +120,14 @@ export default function UnifiedHeader() {
               {/* Right: notifications + hamburger */}
               <div className="flex items-center gap-0.5">
                 <NotificationBell />
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <button
                   onClick={() => setDrawerOpen(true)}
                   aria-label="Open navigation"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-card border border-border hover:bg-secondary transition-colors text-foreground"
                 >
-                  <Menu className="w-5 h-5" />
-                </Button>
+                  <Menu className="w-4 h-4" />
+                  <span className="text-sm font-semibold">Menu</span>
+                </button>
               </div>
             </>
           )}

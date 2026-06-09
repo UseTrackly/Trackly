@@ -45,6 +45,8 @@ export default function CalculatorPage() {
   const [shippingCost, setShippingCost] = useState(aiData?.shipping_cost || 0);
   const [customExpenses, setCustomExpenses] = useState([]);
   const [showSave, setShowSave] = useState(false);
+  const [casinoResetKey, setCasinoResetKey] = useState(0);
+  const [sportsResetKey, setSportsResetKey] = useState(0);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -76,10 +78,16 @@ export default function CalculatorPage() {
   }, [buyPrice, salePrice, platform, shippingCost, customExpenses]);
 
   const handleReset = () => {
-    setBuyPrice(0);
-    setSalePrice(0);
-    setShippingCost(0);
-    setCustomExpenses([]);
+    if (activeTab === 'calculator') {
+      setBuyPrice(0);
+      setSalePrice(0);
+      setShippingCost(0);
+      setCustomExpenses([]);
+    } else if (activeTab === 'casino') {
+      setCasinoResetKey(k => k + 1);
+    } else if (activeTab === 'sports') {
+      setSportsResetKey(k => k + 1);
+    }
   };
 
   const handleSaveFlip = async (flipData) => {
@@ -312,11 +320,11 @@ export default function CalculatorPage() {
         </TabsContent>
 
         <TabsContent value="casino" className="px-3 pb-24">
-          <CasinoTracker user={user} />
+          <CasinoTracker key={casinoResetKey} user={user} />
         </TabsContent>
 
         <TabsContent value="sports" className="px-3 pb-24">
-          <SportsBetTracker user={user} />
+          <SportsBetTracker key={sportsResetKey} user={user} />
         </TabsContent>
 
         <TabsContent value="ai" className="px-3 pb-24">

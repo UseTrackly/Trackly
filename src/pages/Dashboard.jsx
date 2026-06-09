@@ -61,6 +61,13 @@ export default function Dashboard() {
   });
   const communityFlips = Array.isArray(communityFlipsRaw) ? communityFlipsRaw : [];
 
+  const { data: communityProfiles = [] } = useQuery({
+    queryKey: ['allProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
+    initialData: [],
+    enabled: communityFlips.length > 0,
+  });
+
   const todayFlips = useMemo(() => {
     return allFlips.filter(f => {
       // date_sold is a YYYY-MM-DD string; created_date is an ISO timestamp
@@ -308,36 +315,40 @@ export default function Dashboard() {
           </div>
           <ScrollArea className="w-full">
             <div className="flex gap-3 pb-2">
-              {communityFlips.map((flip) => (
-                <div
-                  key={flip.id}
-                  onClick={() => navigate('/community')}
-                  className="flex-shrink-0 w-44 bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
-                >
-                  {/* Thumbnail — always shown */}
-                  {flip.image_url ? (
-                    <img
-                      src={flip.image_url}
-                      alt={flip.item_name}
-                      className="w-full h-28 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-28 bg-secondary flex items-center justify-center">
-                      <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+              {communityFlips.map((flip) => {
+                const posterProfile = communityProfiles.find(p => p.user_email === flip.posted_by);
+                const posterName = posterProfile?.display_name || posterProfile?.username || 'User';
+                return (
+                  <div
+                    key={flip.id}
+                    onClick={() => navigate('/community')}
+                    className="flex-shrink-0 w-44 bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                  >
+                    {/* Thumbnail — always shown */}
+                    {flip.image_url ? (
+                      <img
+                        src={flip.image_url}
+                        alt={flip.item_name}
+                        className="w-full h-28 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-28 bg-secondary flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <div className="p-2.5">
+                      <h4 className="font-semibold text-xs line-clamp-1 mb-1">{flip.item_name}</h4>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary capitalize">
+                          {flip.category}
+                        </span>
+                        <span className="text-xs font-bold text-primary">${flip.price}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">by {posterName}</p>
                     </div>
-                  )}
-                  <div className="p-2.5">
-                    <h4 className="font-semibold text-xs line-clamp-1 mb-1">{flip.item_name}</h4>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary capitalize">
-                        {flip.category}
-                      </span>
-                      <span className="text-xs font-bold text-primary">${flip.price}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">by {flip.posted_by_name?.split(' ')[0] || 'User'}</p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         </motion.div>

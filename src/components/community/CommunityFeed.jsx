@@ -24,13 +24,16 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const isInterested = flip.interested_users?.includes(user?.email);
   const interestCount = flip.interested_users?.length || 0;
 
-  // Get profile data for consistent display name
   const posterProfile = profiles?.find(p => p.user_email === flip.posted_by);
   const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name;
   const username = posterProfile?.username;
 
   const meta = CATEGORY_META[flip.category] || CATEGORY_META.other;
   const CategoryIcon = meta.icon;
+  const hasImage = !!flip.image_url;
+  const hasDescription = !!flip.description;
+  const hasLocation = !!flip.location;
+  const hasGrade = !!(flip.grade && flip.grading_company);
 
   return (
     <motion.div
@@ -39,64 +42,55 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
       className="bg-card border border-border rounded-lg overflow-hidden"
       onClick={() => onClick(flip)}
     >
-      {/* Image or placeholder */}
-      <div className="relative">
-        {flip.image_url ? (
-          <img src={flip.image_url} alt={flip.item_name} className="w-full h-20 object-cover" />
-        ) : (
-          <div className={`w-full h-20 bg-gradient-to-br ${meta.gradient} flex flex-col items-center justify-center gap-1`}>
-            <CategoryIcon className="w-6 h-6 text-white/60" />
-            <span className="text-white/40 text-[9px] font-medium uppercase tracking-wider">{flip.category}</span>
+      {/* Image — only shown when there's a real photo */}
+      {hasImage ? (
+        <div className="relative">
+          <img src={flip.image_url} alt={flip.item_name} className="w-full h-24 object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute top-1.5 left-1.5 flex gap-1">
+            <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium uppercase">{flip.category}</span>
+            {priority && <span className="px-1.5 py-0.5 rounded-full bg-orange-500/90 text-white text-[8px] font-bold uppercase">HOT</span>}
           </div>
-        )}
-        <div className="absolute top-1.5 left-1.5 flex gap-1">
-          <span className="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium uppercase">
-            {flip.category}
-          </span>
-          {priority && (
-            <span className="px-2 py-0.5 rounded-full bg-orange-500/90 backdrop-blur-sm text-white text-[8px] font-bold uppercase">
-              HOT
-            </span>
-          )}
         </div>
-        <ProfileLink
-          userEmail={flip.posted_by}
-          username={username}
-          userName={displayName}
-          className="absolute top-1.5 right-1.5"
-        >
-          <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium hover:opacity-80">
-            {displayName?.[0] || 'U'}
-          </span>
-        </ProfileLink>
-      </div>
+      ) : (
+        /* No image: small category strip instead of full placeholder block */
+        <div className={`w-full h-8 bg-gradient-to-r ${meta.gradient} flex items-center px-2 gap-1.5`}>
+          <CategoryIcon className="w-3 h-3 text-white/60 shrink-0" />
+          <span className="text-white/50 text-[8px] font-medium uppercase tracking-wider">{flip.category}</span>
+          {priority && <span className="ml-auto px-1.5 py-0.5 rounded-full bg-orange-500/70 text-white text-[8px] font-bold uppercase">HOT</span>}
+        </div>
+      )}
 
       <div className="p-2 space-y-1">
+        {/* Seller */}
         <div className="flex items-center gap-1">
           <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
-            <p className="text-[8px] text-muted-foreground hover:text-foreground truncate">
-              {displayName}
-            </p>
+            <p className="text-[8px] text-muted-foreground hover:text-foreground truncate">{displayName}</p>
           </ProfileLink>
           {flip.is_poster_pro && <Crown className="w-2.5 h-2.5 text-primary shrink-0" />}
         </div>
 
-        <h3 className="font-bold text-xs leading-tight truncate">{flip.item_name}</h3>
-        {flip.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{flip.description}</p>}
+        {/* Title */}
+        <h3 className="font-bold text-xs leading-tight line-clamp-2">{flip.item_name}</h3>
 
+        {/* Description — only when present */}
+        {hasDescription && <p className="text-[10px] text-muted-foreground line-clamp-2">{flip.description}</p>}
+
+        {/* Price + grade */}
         <div className="flex items-center justify-between pt-0.5">
           <p className="text-sm font-bold">${flip.price?.toFixed(0)}</p>
-          {flip.grade && flip.grading_company && (
+          {hasGrade && (
             <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
               {flip.grading_company} {flip.grade}
             </span>
           )}
         </div>
 
-        {(flip.location || flip.condition) && (
+        {/* Location / condition — only when present */}
+        {(hasLocation || flip.condition) && (
           <div className="flex items-center gap-2 text-[8px] text-muted-foreground">
             {flip.condition && <span className="capitalize">{flip.condition.replace('_', ' ')}</span>}
-            {flip.location && (
+            {hasLocation && (
               <span className="flex items-center gap-0.5">
                 <MapPin className="w-2 h-2 shrink-0" />{flip.location}
               </span>
@@ -104,14 +98,12 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
           </div>
         )}
 
+        {/* Actions */}
         <div className="flex gap-1 pt-1">
           <Button
             variant={isInterested ? "default" : "outline"}
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onInterest(flip.id);
-            }}
+            onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
             className="flex-1 h-6 text-[10px]"
           >
             <Heart className={`w-3 h-3 mr-0.5 ${isInterested ? 'fill-current' : ''}`} />
@@ -120,10 +112,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick(flip);
-            }}
+            onClick={(e) => { e.stopPropagation(); onClick(flip); }}
             className="h-6 w-6 p-0"
           >
             <MessageCircle className="w-3 h-3" />

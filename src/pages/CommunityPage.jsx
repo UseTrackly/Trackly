@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 
 import PostFlipDialog from '@/components/community/PostFlipDialog';
-import FlipDetailsDialog from '@/components/community/FlipDetailsDialog';
+import FlipDetailsSheet from '@/components/community/FlipDetailsSheet';
 
 
 import CommunityFeed from '@/components/community/CommunityFeed';
@@ -128,7 +128,7 @@ export default function CommunityPage() {
       />
 
       {selectedFlip && (
-        <FlipDetailsDialog
+        <FlipDetailsSheet
           flip={selectedFlip}
           open={!!selectedFlip}
           onClose={() => setSelectedFlip(null)}

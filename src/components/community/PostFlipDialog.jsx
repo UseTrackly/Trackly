@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Loader2, Crown, CheckCircle2, ExternalLink, ImageIcon, X, MapPin, Heart, MessageCircle, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag } from 'lucide-react';
+import { Upload, Loader2, Crown, X, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
@@ -25,7 +25,6 @@ const CATEGORY_META = {
 
 export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const navigate = useNavigate();
-  // step: 'edit' | 'done'
   const [step, setStep] = useState('edit');
 
   const [itemName, setItemName] = useState('');
@@ -134,7 +133,9 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
-      setStep('done');
+      toast.success('Your listing is live!');
+      onClose();
+      navigate('/community');
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to post flip');
@@ -166,32 +167,10 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto p-0">
         <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
-          <SheetTitle className="text-base">
-            {step === 'done' ? 'Posted!' : 'Share to Community'}
-          </SheetTitle>
+          <SheetTitle className="text-base">Share to Community</SheetTitle>
         </SheetHeader>
 
-        {/* ── Done ── */}
-        {step === 'done' && (
-          <div className="flex flex-col items-center gap-4 py-8 px-4 text-center">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-              <CheckCircle2 className="w-7 h-7 text-primary" />
-            </div>
-            <div>
-              <p className="font-semibold">Your listing is live!</p>
-              <p className="text-sm text-muted-foreground mt-1">The community can now see your item.</p>
-            </div>
-            <div className="flex gap-2 w-full">
-              <Button variant="outline" className="flex-1" onClick={onClose}>Done</Button>
-              <Button className="flex-1 bg-primary" onClick={() => { onClose(); navigate('/community'); }}>
-                <ExternalLink className="w-4 h-4 mr-1" /> View in Community
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 1: Edit ── */}
-        {step === 'edit' && (
+        {(
           <div className="px-4 pt-3 pb-6 space-y-4">
             {!user?.is_pro && (
               <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">

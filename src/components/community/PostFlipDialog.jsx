@@ -11,45 +11,47 @@ import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
 import { canPostCommunity, FREE_LIMITS } from '@/lib/proGate';
 
-// Mini preview card — mirrors how the post will look in the community feed
-function PreviewCard({ itemName, price, category, description, imageUrl, posterName, posterAvatar }) {
-  const buyPrice = price * 0.6;
-  const margin = price > 0 ? ((price - buyPrice) / buyPrice * 100).toFixed(0) : '—';
+// Mini preview card — mirrors the exact community FlipCard layout
+function PreviewCard({ itemName, price, category, description, imageUrl, posterName, grade, gradingCompany, location, condition }) {
   return (
-    <div className="bg-card border-2 border-primary/30 rounded-xl overflow-hidden shadow-lg">
+    <div className="bg-card border-2 border-primary/30 rounded-lg overflow-hidden shadow-lg">
       {imageUrl ? (
         <div className="relative">
-          <img src={imageUrl} alt={itemName} className="w-full h-32 object-cover" />
-          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[9px] font-medium uppercase">{category}</span>
+          <img src={imageUrl} alt={itemName} className="w-full h-28 object-cover" />
+          <div className="absolute top-1.5 left-1.5">
+            <span className="px-2 py-0.5 rounded-full bg-black/70 text-white text-[8px] font-medium uppercase">{category}</span>
+          </div>
+          <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-black/70 text-white text-[8px] font-medium">
+            {(posterName || '?')[0]?.toUpperCase()}
+          </span>
         </div>
       ) : (
-        <div className="w-full h-20 bg-secondary flex items-center justify-center">
-          <ImageIcon className="w-6 h-6 text-muted-foreground" />
+        <div className="w-full h-16 bg-secondary flex items-center justify-center">
+          <ImageIcon className="w-5 h-5 text-muted-foreground" />
         </div>
       )}
-      <div className="p-3 space-y-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
-            {(posterName || '?')[0]?.toUpperCase()}
-          </div>
-          <p className="text-[9px] text-muted-foreground truncate">{posterName}</p>
-        </div>
+      <div className="p-2 space-y-1">
+        <p className="text-[8px] text-muted-foreground truncate">{posterName}</p>
         <p className="font-bold text-xs leading-tight">{itemName || 'Item name'}</p>
         {description && <p className="text-[10px] text-muted-foreground line-clamp-2">{description}</p>}
-        <div className="grid grid-cols-3 gap-1">
-          <div>
-            <p className="text-[8px] text-muted-foreground">Buy Est.</p>
-            <p className="text-[10px] font-semibold">${buyPrice.toFixed(0)}</p>
-          </div>
-          <div>
-            <p className="text-[8px] text-muted-foreground">Sell</p>
-            <p className="text-[10px] font-semibold">${price > 0 ? price.toFixed(0) : '—'}</p>
-          </div>
-          <div>
-            <p className="text-[8px] text-muted-foreground">Margin</p>
-            <p className="text-[10px] font-semibold text-primary">+{margin}%</p>
-          </div>
+        <div className="flex items-center justify-between pt-0.5">
+          <p className="text-sm font-bold">${price > 0 ? price.toFixed(0) : '—'}</p>
+          {grade && gradingCompany && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+              {gradingCompany} {grade}
+            </span>
+          )}
         </div>
+        {(location || condition) && (
+          <div className="flex items-center gap-2 text-[8px] text-muted-foreground">
+            {condition && <span className="capitalize">{condition.replace('_', ' ')}</span>}
+            {location && (
+              <span className="flex items-center gap-0.5">
+                <MapPin className="w-2 h-2" />{location}
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex gap-1 pt-1">
           <div className="flex-1 h-6 rounded-md border border-border flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
             <Heart className="w-3 h-3" /> Interested
@@ -74,7 +76,6 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const [location, setLocation] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [prefillImageUrl, setPrefillImageUrl] = useState(null);
-  const [costBasis, setCostBasis] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [isGraded, setIsGraded] = useState(false);
   const [gradingCompany, setGradingCompany] = useState('PSA');
@@ -91,7 +92,6 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       setPrice(prefillData.price ? String(prefillData.price) : '');
       setDescription(prefillData.notes || '');
       setPrefillImageUrl(prefillData.image_url || null);
-      setCostBasis(prefillData.cost_basis ?? null);
       setLocation(prefillData.location || '');
       setIsGraded(!!prefillData.is_graded);
       setGradingCompany(prefillData.grading_company || 'PSA');
@@ -104,7 +104,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     if (!open) {
       setStep('edit');
       setItemName(''); setCategory('other'); setDescription(''); setPrice('');
-      setLocation(''); setImageFile(null); setPrefillImageUrl(null); setCostBasis(null);
+      setLocation(''); setImageFile(null); setPrefillImageUrl(null);
       setIsGraded(false); setGradingCompany('PSA');
       setGrade(''); setCertNumber(''); setCertImageUrl(null);
     }
@@ -210,7 +210,6 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
 
   const posterName = myProfile?.display_name || myProfile?.username || user?.full_name || '—';
   const priceNum = parseFloat(price) || 0;
-  const potentialProfit = costBasis != null && priceNum > 0 ? (priceNum - costBasis).toFixed(2) : null;
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -277,13 +276,11 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{itemName || 'Unnamed Item'}</p>
                 <p className="text-xs text-muted-foreground capitalize">{category}</p>
-                {costBasis != null && (
-                  <p className="text-xs text-muted-foreground">Cost basis: <span className="font-medium text-foreground">${costBasis.toFixed(2)}</span></p>
+                {prefillData?.condition && (
+                  <p className="text-xs text-muted-foreground capitalize">{prefillData.condition.replace('_', ' ')}</p>
                 )}
-                {potentialProfit !== null && (
-                  <p className={`text-xs font-medium ${parseFloat(potentialProfit) >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                    Potential: {parseFloat(potentialProfit) >= 0 ? '+' : ''}${potentialProfit}
-                  </p>
+                {isGraded && grade && (
+                  <p className="text-xs text-primary font-medium">{gradingCompany} {grade}</p>
                 )}
               </div>
               {/* Replace image */}
@@ -390,14 +387,12 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                 description={description}
                 imageUrl={activeImageUrl}
                 posterName={posterName}
+                grade={isGraded ? grade : null}
+                gradingCompany={isGraded ? gradingCompany : null}
+                location={location}
+                condition={prefillData?.condition}
               />
             </div>
-
-            {location && (
-              <div className="flex items-center gap-1.5 justify-center text-xs text-muted-foreground">
-                <MapPin className="w-3 h-3" />{location}
-              </div>
-            )}
 
             <div className="flex gap-2 pt-1">
               <Button variant="outline" onClick={() => setStep('edit')} className="flex-1">

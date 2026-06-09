@@ -11,17 +11,7 @@ import ProfileLink from '@/components/shared/ProfileLink';
 function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const isInterested = flip.interested_users?.includes(user?.email);
   const interestCount = flip.interested_users?.length || 0;
-  const buyPrice = flip.price * 0.6;
-  const margin = ((flip.price - buyPrice) / buyPrice * 100).toFixed(0);
-  
-  console.log('[FlipCard] Rendering:', { 
-    flipId: flip.id, 
-    itemName: flip.item_name, 
-    posted_by: flip.posted_by, 
-    posted_by_name: flip.posted_by_name,
-    displayName: profiles?.find(p => p.user_email === flip.posted_by)?.display_name || 'User'
-  });
-  
+
   // Get profile data for consistent display name
   const posterProfile = profiles?.find(p => p.user_email === flip.posted_by);
   const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name;
@@ -71,27 +61,25 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
         </div>
 
         <h3 className="font-bold text-xs leading-tight truncate">{flip.item_name}</h3>
-        <p className="text-[10px] text-muted-foreground line-clamp-2 min-h-[2.5em]">{flip.description}</p>
+        {flip.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{flip.description}</p>}
 
-        <div className="grid grid-cols-3 gap-1 pt-1">
-          <div>
-            <p className="text-[8px] text-muted-foreground">Buy</p>
-            <p className="text-[10px] font-semibold">${buyPrice.toFixed(0)}</p>
-          </div>
-          <div>
-            <p className="text-[8px] text-muted-foreground">Sell</p>
-            <p className="text-[10px] font-semibold">${flip.price?.toFixed(0)}</p>
-          </div>
-          <div>
-            <p className="text-[8px] text-muted-foreground">Margin</p>
-            <p className="text-[10px] font-semibold text-primary">+{margin}%</p>
-          </div>
+        <div className="flex items-center justify-between pt-0.5">
+          <p className="text-sm font-bold">${flip.price?.toFixed(0)}</p>
+          {flip.grade && flip.grading_company && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+              {flip.grading_company} {flip.grade}
+            </span>
+          )}
         </div>
 
-        {flip.location && (
-          <div className="flex items-center gap-0.5 text-[8px] text-muted-foreground">
-            <MapPin className="w-2.5 h-2.5 shrink-0" />
-            <span className="truncate">{flip.location}</span>
+        {(flip.location || flip.condition) && (
+          <div className="flex items-center gap-2 text-[8px] text-muted-foreground">
+            {flip.condition && <span className="capitalize">{flip.condition.replace('_', ' ')}</span>}
+            {flip.location && (
+              <span className="flex items-center gap-0.5">
+                <MapPin className="w-2 h-2 shrink-0" />{flip.location}
+              </span>
+            )}
           </div>
         )}
 

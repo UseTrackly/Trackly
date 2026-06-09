@@ -7,11 +7,29 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   MapPin, Sparkles, Loader2, Ban, Crown, Heart,
-  MessageCircle, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag
+  MessageCircle, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag,
+  MoreVertical, Pencil, Trash2, CheckCircle, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ProfileLink from '@/components/shared/ProfileLink';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import EditListingDialog from './EditListingDialog';
 
 const CATEGORY_META = {
   cards:       { icon: CreditCard, gradient: 'from-blue-900/80 to-indigo-900/80' },
@@ -30,6 +48,8 @@ const CATEGORY_META = {
 export default function FlipDetailsSheet({ flip, open, onClose }) {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [analysis, setAnalysis] = useState(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -81,6 +101,43 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
     onError: () => toast.error('Failed to analyze flip'),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.CommunityFlip.delete(flip.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
+      toast.success('Listing deleted');
+      onClose();
+    },
+    onError: () => toast.error('Failed to delete listing'),
+  });
+
+  const markSoldMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.CommunityFlip.update(flip.id, { is_sold: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
+      toast.success('Listing marked as sold');
+    },
+    onError: () => toast.error('Failed to mark as sold'),
+  });
+
+  const renewMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.CommunityFlip.update(flip.id, {
+        created_date: new Date().toISOString(),
+        is_sold: false,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
+      toast.success('Listing renewed');
+    },
+    onError: () => toast.error('Failed to renew listing'),
+  });
+
   if (!flip) return null;
 
   const isMyPost = flip.posted_by === user?.email;
@@ -118,8 +175,44 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
                 </div>
                 {/* Title + price — below image */}
                 <div className="px-4 pt-4 flex items-start justify-between gap-2">
-                  <h2 className="text-lg font-bold leading-tight flex-1">{flip.item_name}</h2>
-                  <p className="text-2xl font-bold text-primary shrink-0">${flip.price?.toFixed(0)}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold leading-tight">{flip.item_name}</h2>
+                      {flip.is_sold && (
+                        <span className="px-2 py-0.5 rounded-full bg-destructive text-white text-[10px] font-bold uppercase">SOLD</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-2xl font-bold text-primary shrink-0">${flip.price?.toFixed(0)}</p>
+                    {isMyPost && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit Listing
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => markSoldMutation.mutate()} disabled={flip.is_sold}>
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            {flip.is_sold ? 'Marked as Sold' : 'Mark as Sold'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => renewMutation.mutate()}>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Renew Listing
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive">
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Listing
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 </div>
               </>
             ) : (
@@ -289,6 +382,34 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
                 )}
               </div>
             )}
+
+            {/* Edit Listing Dialog */}
+            <EditListingDialog
+              open={showEditDialog}
+              onClose={() => setShowEditDialog(false)}
+              flip={flip}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Listing?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your listing and remove all associated data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteMutation.mutate()}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </ScrollArea>
       </SheetContent>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
 import { motion } from 'framer-motion';
@@ -7,6 +7,25 @@ import { Heart, MessageCircle, MapPin, Crown, TrendingUp, Users, Package, Credit
 import { Button } from '@/components/ui/button';
 import EmptyState from '@/components/shared/EmptyState';
 import ProfileLink from '@/components/shared/ProfileLink';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { MoreVertical, Pencil, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import EditListingDialog from './EditListingDialog';
 
 const CATEGORY_META = {
   cards:       { icon: CreditCard, gradient: 'from-blue-900/80 to-indigo-900/80' },
@@ -22,9 +41,15 @@ const CATEGORY_META = {
 
 
 
-function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
+function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipUpdated }) {
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const queryClient = useQueryClient();
+
   const isInterested = flip.interested_users?.includes(user?.email);
   const interestCount = flip.interested_users?.length || 0;
+  const isMyPost = flip.posted_by === user?.email;
+  const isSold = !!flip.is_sold;
 
   const posterProfile = profiles?.find(p => p.user_email === flip.posted_by);
   const displayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name;
@@ -35,6 +60,45 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const hasImage = !!flip.image_url;
   const hasGrade = !!(flip.grade && flip.grading_company);
   const isAiImage = !!flip.is_ai_generated_image;
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.CommunityFlip.delete(flip.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
+      toast.success('Listing deleted');
+      setShowDeleteConfirm(false);
+    },
+    onError: () => toast.error('Failed to delete listing'),
+  });
+
+  const markSoldMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.CommunityFlip.update(flip.id, { is_sold: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
+      toast.success('Listing marked as sold');
+      if (onFlipUpdated) onFlipUpdated(flip.id);
+    },
+    onError: () => toast.error('Failed to mark as sold'),
+  });
+
+  const renewMutation = useMutation({
+    mutationFn: async () => {
+      await base44.entities.CommunityFlip.update(flip.id, {
+        created_date: new Date().toISOString(),
+        is_sold: false,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
+      toast.success('Listing renewed');
+      if (onFlipUpdated) onFlipUpdated(flip.id);
+    },
+    onError: () => toast.error('Failed to renew listing'),
+  });
 
   if (hasImage) {
     // Photo listing — product is the hero
@@ -55,19 +119,55 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
               ${flip.price?.toFixed(0)}
             </span>
           </div>
+          {/* SOLD badge */}
+          {isSold && (
+            <span className="absolute top-2 left-2 px-2 py-1 rounded-full bg-destructive text-white text-[10px] font-bold uppercase">SOLD</span>
+          )}
           {/* HOT badge */}
-          {priority && (
+          {priority && !isSold && (
             <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[8px] font-bold uppercase">HOT</span>
           )}
           {/* Grade badge */}
           {hasGrade && (
-            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-medium">
+            <span className={`absolute px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-medium ${isSold ? 'top-2 right-2' : 'top-2 right-2'}`}>
               {flip.grading_company} {flip.grade}
             </span>
           )}
           {/* AI Image badge */}
           {isAiImage && (
-            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[8px] font-medium">AI IMAGE</span>
+            <span className={`absolute px-1.5 py-0.5 rounded-full bg-purple-500/90 text-white text-[8px] font-medium ${isSold ? 'bottom-2 right-2' : 'top-2 right-2'}`}>
+              AI IMAGE
+            </span>
+          )}
+          {/* Owner menu */}
+          {isMyPost && (
+            <div className="absolute top-2 right-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60">
+                    <MoreVertical className="w-4 h-4 text-white" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Listing
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => markSoldMutation.mutate()} disabled={isSold}>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {isSold ? 'Marked as Sold' : 'Mark as Sold'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => renewMutation.mutate()}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Renew Listing
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Listing
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
         </div>
 
@@ -90,20 +190,50 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
               size="sm"
               onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
               className="flex-1 h-7 text-[10px]"
+              disabled={isSold}
             >
               <Heart className={`w-3 h-3 mr-0.5 ${isInterested ? 'fill-current' : ''}`} />
-              {interestCount > 0 ? interestCount : 'Want'}
+              {interestCount > 0 ? interestCount : isSold ? 'Sold' : 'Want'}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={(e) => { e.stopPropagation(); onClick(flip); }}
               className="h-7 w-7 p-0 shrink-0"
+              disabled={isSold}
             >
               <MessageCircle className="w-3 h-3" />
             </Button>
           </div>
         </div>
+
+        {/* Edit Dialog */}
+        <EditListingDialog
+          open={showEditDialog}
+          onClose={() => setShowEditDialog(false)}
+          flip={flip}
+        />
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Listing?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete your listing and remove all associated data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteMutation.mutate()}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     );
   }
@@ -127,6 +257,9 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
             {isAiImage && (
               <span className="px-1 py-0.5 rounded-full bg-purple-500/90 text-white text-[7px] font-medium whitespace-nowrap">AI</span>
             )}
+            {isSold && (
+              <span className="px-1 py-0.5 rounded-full bg-destructive text-white text-[7px] font-bold whitespace-nowrap">SOLD</span>
+            )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
@@ -141,17 +274,74 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <p className="text-base font-bold">${flip.price?.toFixed(0)}</p>
-          <Button
-            variant={isInterested ? "default" : "outline"}
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
-            className="h-7 px-2"
-          >
-            <Heart className={`w-3 h-3 ${isInterested ? 'fill-current' : ''}`} />
-            {interestCount > 0 && <span className="ml-0.5 text-[10px]">{interestCount}</span>}
-          </Button>
+          {isMyPost ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Listing
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => markSoldMutation.mutate()} disabled={isSold}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {isSold ? 'Marked as Sold' : 'Mark as Sold'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => renewMutation.mutate()}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Renew Listing
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Listing
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant={isInterested ? "default" : "outline"}
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
+              className="h-7 px-2"
+              disabled={isSold}
+            >
+              <Heart className={`w-3 h-3 ${isInterested ? 'fill-current' : ''}`} />
+              {interestCount > 0 && <span className="ml-0.5 text-[10px]">{interestCount}</span>}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <EditListingDialog
+        open={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        flip={flip}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Listing?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your listing and remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

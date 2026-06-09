@@ -42,6 +42,11 @@
       "default": false,
       "description": "Whether the image is AI-generated"
     },
+    "is_sold": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the listing is marked as sold"
+    },
     "posted_by": {
       "type": "string",
       "description": "Email of user who posted"

@@ -96,31 +96,41 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
 
         <ScrollArea className="flex-1 overflow-y-auto">
           <div className="pb-8">
-            {/* Hero image or gradient */}
+            {/* Hero image OR compact no-photo header */}
             {flip.image_url ? (
-              <div className="relative w-full h-52">
-                <img src={flip.image_url} alt={flip.item_name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-3 left-4">
-                  <span className="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium uppercase">
-                    {flip.category}
-                  </span>
+              <>
+                <div className="relative w-full h-52">
+                  <img src={flip.image_url} alt={flip.item_name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-3 left-4">
+                    <span className="px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium uppercase">
+                      {flip.category}
+                    </span>
+                  </div>
                 </div>
-              </div>
+                {/* Title + price — below image */}
+                <div className="px-4 pt-4 flex items-start justify-between gap-2">
+                  <h2 className="text-lg font-bold leading-tight flex-1">{flip.item_name}</h2>
+                  <p className="text-2xl font-bold text-primary shrink-0">${flip.price?.toFixed(0)}</p>
+                </div>
+              </>
             ) : (
-              <div className={`w-full h-14 bg-gradient-to-r ${meta.gradient} flex items-center px-4 gap-2`}>
-                <CategoryIcon className="w-4 h-4 text-white/50 shrink-0" />
-                <span className="text-white/40 text-[10px] font-medium uppercase tracking-wider">{flip.category}</span>
+              /* No photo: compact banner + title+price inline */
+              <div className={`bg-gradient-to-r ${meta.gradient}`}>
+                <div className="flex items-center gap-1.5 px-4 pt-3 pb-1">
+                  <CategoryIcon className="w-3.5 h-3.5 text-white/50 shrink-0" />
+                  <span className="text-white/40 text-[9px] font-medium uppercase tracking-wider">{flip.category}</span>
+                </div>
+                <div className="px-4 pb-3 flex items-start justify-between gap-2">
+                  <h2 className="text-lg font-bold leading-tight flex-1 text-white">{flip.item_name}</h2>
+                  <p className="text-2xl font-bold text-white shrink-0">${flip.price?.toFixed(0)}</p>
+                </div>
               </div>
             )}
 
             {/* Main info */}
-            <div className="px-4 pt-4 space-y-3">
-              {/* Title + price row */}
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="text-lg font-bold leading-tight flex-1">{flip.item_name}</h2>
-                <p className="text-2xl font-bold text-primary shrink-0">${flip.price?.toFixed(0)}</p>
-              </div>
+            <div className="px-4 pt-3 space-y-3">
+              {/* Title + price row — only for photo listings (already rendered above for no-photo) */}
 
               {/* Seller row */}
               <div className="flex items-center justify-between">

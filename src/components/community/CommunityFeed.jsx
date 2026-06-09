@@ -37,86 +37,76 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-lg overflow-hidden"
+      className="bg-card border border-border rounded-xl overflow-hidden flex gap-3"
       onClick={() => onClick(flip)}
     >
-      {/* Image — only shown when there's a real photo */}
-      {hasImage ? (
-        <div className="relative">
-          <img src={flip.image_url} alt={flip.item_name} className="w-full h-24 object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-          <div className="absolute top-1.5 left-1.5 flex gap-1">
-            <span className="px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-white text-[8px] font-medium uppercase">{flip.category}</span>
-            {priority && <span className="px-1.5 py-0.5 rounded-full bg-orange-500/90 text-white text-[8px] font-bold uppercase">HOT</span>}
+      {/* Left: square thumbnail or category swatch */}
+      <div className="shrink-0 w-20 self-stretch relative">
+        {hasImage ? (
+          <img src={flip.image_url} alt={flip.item_name} className="w-full h-full object-cover" />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${meta.gradient} flex items-center justify-center`}>
+            <CategoryIcon className="w-6 h-6 text-white/40" />
           </div>
-        </div>
-      ) : (
-        /* No image: small category strip instead of full placeholder block */
-        <div className={`w-full h-8 bg-gradient-to-r ${meta.gradient} flex items-center px-2 gap-1.5`}>
-          <CategoryIcon className="w-3 h-3 text-white/60 shrink-0" />
-          <span className="text-white/50 text-[8px] font-medium uppercase tracking-wider">{flip.category}</span>
-          {priority && <span className="ml-auto px-1.5 py-0.5 rounded-full bg-orange-500/70 text-white text-[8px] font-bold uppercase">HOT</span>}
-        </div>
-      )}
+        )}
+        {priority && (
+          <span className="absolute top-1 left-1 px-1 py-0.5 rounded-full bg-orange-500/90 text-white text-[7px] font-bold uppercase leading-none">HOT</span>
+        )}
+      </div>
 
-      <div className="p-2 space-y-1">
-        {/* Seller */}
+      {/* Right: content */}
+      <div className="flex-1 min-w-0 py-2.5 pr-3 flex flex-col justify-between gap-1">
+        {/* Top row: seller + crown */}
         <div className="flex items-center gap-1">
           <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
-            <p className="text-[8px] text-muted-foreground hover:text-foreground truncate">{displayName}</p>
+            <p className="text-[9px] text-muted-foreground truncate">{displayName}</p>
           </ProfileLink>
           {flip.is_poster_pro && <Crown className="w-2.5 h-2.5 text-primary shrink-0" />}
+          <span className="ml-auto text-[8px] text-muted-foreground/60 uppercase tracking-wide shrink-0">{flip.category}</span>
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-xs leading-tight line-clamp-2">{flip.item_name}</h3>
+        <h3 className="font-semibold text-sm leading-tight line-clamp-2 text-foreground">{flip.item_name}</h3>
 
-        {/* Description — only when present */}
-        {hasDescription && <p className="text-[10px] text-muted-foreground line-clamp-2">{flip.description}</p>}
+        {/* Description (1 line only) */}
+        {hasDescription && (
+          <p className="text-[10px] text-muted-foreground line-clamp-1">{flip.description}</p>
+        )}
 
-        {/* Price + grade */}
-        <div className="flex items-center justify-between pt-0.5">
-          <p className="text-sm font-bold">${flip.price?.toFixed(0)}</p>
+        {/* Bottom row: price, grade, location, actions */}
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-sm font-bold text-foreground">${flip.price?.toFixed(0)}</p>
           {hasGrade && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium shrink-0">
               {flip.grading_company} {flip.grade}
             </span>
           )}
-        </div>
-
-        {/* Location / condition — only when present */}
-        {(hasLocation || flip.condition) && (
-          <div className="flex items-center gap-2 text-[8px] text-muted-foreground">
-            {flip.condition && <span className="capitalize">{flip.condition.replace('_', ' ')}</span>}
-            {hasLocation && (
-              <span className="flex items-center gap-0.5">
-                <MapPin className="w-2 h-2 shrink-0" />{flip.location}
-              </span>
-            )}
+          {hasLocation && (
+            <span className="flex items-center gap-0.5 text-[8px] text-muted-foreground truncate">
+              <MapPin className="w-2 h-2 shrink-0" />{flip.location}
+            </span>
+          )}
+          <div className="ml-auto flex gap-1 shrink-0">
+            <Button
+              variant={isInterested ? "default" : "outline"}
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
+              className="h-6 px-2 text-[10px]"
+            >
+              <Heart className={`w-3 h-3 ${isInterested ? 'fill-current' : ''}`} />
+              {interestCount > 0 && <span className="ml-0.5">{interestCount}</span>}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onClick(flip); }}
+              className="h-6 w-6 p-0"
+            >
+              <MessageCircle className="w-3 h-3" />
+            </Button>
           </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-1 pt-1">
-          <Button
-            variant={isInterested ? "default" : "outline"}
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
-            className="flex-1 h-6 text-[10px]"
-          >
-            <Heart className={`w-3 h-3 mr-0.5 ${isInterested ? 'fill-current' : ''}`} />
-            {interestCount > 0 && <span className="ml-0.5">{interestCount}</span>}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onClick(flip); }}
-            className="h-6 w-6 p-0"
-          >
-            <MessageCircle className="w-3 h-3" />
-          </Button>
         </div>
       </div>
     </motion.div>
@@ -244,7 +234,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               }
             />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
               {filteredFlips.map((flip, i) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={i < 3} profiles={profiles} />
               ))}
@@ -260,7 +250,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           ) : filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No flips from followed collectors" description="Your followed collectors haven't shared any flips yet." />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
               {filteredFlips.map((flip) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}
@@ -274,7 +264,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           {filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No market activity" description="Check back later for market updates." />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
               {filteredFlips.map((flip) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}
@@ -292,7 +282,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               description="Express interest in flips to get updates."
             />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
               {filteredFlips.map((flip) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}

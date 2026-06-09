@@ -106,7 +106,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer col-span-2"
+      className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer"
       onClick={() => onClick(flip)}
     >
       <div className={`w-full h-1 bg-gradient-to-r ${meta.gradient}`} />
@@ -141,6 +141,28 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
         </div>
       </div>
     </motion.div>
+  );
+}
+
+function FlipGrid({ flips, user, onInterest, onFlipClick, profiles, showPriority = false }) {
+  const photoFlips = flips.filter(f => !!f.image_url);
+  const textFlips = flips.filter(f => !f.image_url);
+
+  return (
+    <div className="space-y-2">
+      {/* Photo listings in 2-col grid */}
+      {photoFlips.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {photoFlips.map((flip, i) => (
+            <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={showPriority && i < 3} profiles={profiles} />
+          ))}
+        </div>
+      )}
+      {/* Text-only listings as full-width rows */}
+      {textFlips.map((flip) => (
+        <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
+      ))}
+    </div>
   );
 }
 
@@ -265,11 +287,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               }
             />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {filteredFlips.map((flip, i) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={i < 3} profiles={profiles} />
-              ))}
-            </div>
+            <FlipGrid flips={filteredFlips} user={user} onInterest={onInterest} onFlipClick={onFlipClick} profiles={profiles} showPriority />
           )}
         </>
       )}
@@ -281,11 +299,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           ) : filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No flips from followed collectors" description="Your followed collectors haven't shared any flips yet." />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {filteredFlips.map((flip) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
-              ))}
-            </div>
+            <FlipGrid flips={filteredFlips} user={user} onInterest={onInterest} onFlipClick={onFlipClick} profiles={profiles} />
           )}
         </>
       )}
@@ -295,11 +309,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           {filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No market activity" description="Check back later for market updates." />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {filteredFlips.map((flip) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
-              ))}
-            </div>
+            <FlipGrid flips={filteredFlips} user={user} onInterest={onInterest} onFlipClick={onFlipClick} profiles={profiles} />
           )}
         </>
       )}
@@ -307,17 +317,9 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
       {feedTab === 'alerts' && (
         <>
           {filteredFlips.length === 0 ? (
-            <EmptyState
-              icon={MessageCircle}
-              title="No alerts yet"
-              description="Express interest in flips to get updates."
-            />
+            <EmptyState icon={MessageCircle} title="No alerts yet" description="Express interest in flips to get updates." />
           ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {filteredFlips.map((flip) => (
-                <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
-              ))}
-            </div>
+            <FlipGrid flips={filteredFlips} user={user} onInterest={onInterest} onFlipClick={onFlipClick} profiles={profiles} />
           )}
         </>
       )}

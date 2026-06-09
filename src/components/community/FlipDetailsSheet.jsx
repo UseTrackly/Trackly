@@ -29,7 +29,7 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
   const [messageText, setMessageText] = useState('');
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [analysis, setAnalysis] = useState(null);
-  const [showMessages, setShowMessages] = useState(false);
+  const [showMessages, setShowMessages] = useState(true);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
@@ -53,7 +53,7 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', flip?.id],
     queryFn: () => base44.entities.Message.filter({ community_flip_id: flip.id }, '-created_date', 100),
-    enabled: open && showMessages,
+    enabled: open && !!flip?.id && flip?.posted_by !== user?.email,
   });
 
   const interestMutation = useMutation({
@@ -188,17 +188,24 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
                 )}
               </div>
 
+              {/* Location + date — prominent, before description */}
+              {(flip.location || flip.created_date) && (
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  {flip.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      {flip.location}
+                    </span>
+                  )}
+                  {flip.created_date && (
+                    <span className="text-xs">Posted {format(new Date(flip.created_date), 'MMM d, yyyy')}</span>
+                  )}
+                </div>
+              )}
+
               {/* Description */}
               {flip.description && (
                 <p className="text-sm text-foreground/80 leading-relaxed">{flip.description}</p>
-              )}
-
-              {/* Location */}
-              {flip.location && (
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4 shrink-0" />
-                  {flip.location}
-                </div>
               )}
 
               {/* Interest count */}
@@ -209,23 +216,23 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
 
             {/* Action buttons */}
             {!isMyPost && !isBlocked && user && (
-              <div className="px-4 pt-3 flex gap-2">
+              <div className="px-4 pt-3 space-y-2">
+                <Button
+                  onClick={() => setShowMessages(true)}
+                  className="w-full bg-primary hover:bg-primary/90 gap-1.5"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Contact Seller
+                </Button>
                 <Button
                   variant={isInterested ? 'default' : 'outline'}
                   onClick={() => interestMutation.mutate()}
                   disabled={interestMutation.isPending}
-                  className="flex-1 gap-1.5"
+                  className="w-full gap-1.5"
+                  size="sm"
                 >
                   <Heart className={`w-4 h-4 ${isInterested ? 'fill-current' : ''}`} />
                   {isInterested ? 'Interested' : 'Mark Interested'}
-                </Button>
-                <Button
-                  variant={showMessages ? 'default' : 'outline'}
-                  onClick={() => setShowMessages(v => !v)}
-                  className="flex-1 gap-1.5"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Message Seller
                 </Button>
               </div>
             )}
@@ -301,7 +308,8 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
                   {analyzeMutation.isPending ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analyzing...</>
                   ) : (
-                    <><Sparkles className="w-4 h-4 mr-2" />Get AI Profit Advice</>
+                    <><Sparkles className="w-4 h-4 mr-2" />AI Selling Tips</>
+
                   )}
                 </Button>
                 {showAnalysis && analysis && (

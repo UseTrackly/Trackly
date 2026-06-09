@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Send, MessageCircle, Image, Loader2, X } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Image, Loader2, X, Search, Package } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -18,60 +18,87 @@ function ThreadItem({ thread, onClick, navigate, onClose }) {
   const hasUnread = thread.messages.some(m => !m.is_read && m.recipient_email === thread.currentUserEmail);
   const latest = thread.messages[0];
   const timestamp = latest ? format(parseISO(latest.created_date.endsWith('Z') ? latest.created_date : latest.created_date + 'Z'), 'MMM d') : '';
+  const unreadCount = thread.messages.filter(m => !m.is_read && m.recipient_email === thread.currentUserEmail).length;
   
   const handleProfileClick = (e) => {
     e.stopPropagation();
-    // Priority: username > email
     const routeParam = thread.otherUsername || thread.otherEmail;
-    console.log('[ThreadItem Avatar] Profile click:', {
-      selectedUserEmail: thread.otherEmail,
-      selectedUsername: thread.otherUsername,
-      selectedName: thread.otherName,
-      routeParam,
-      finalRoute: `/profile/${encodeURIComponent(routeParam)}`
-    });
     if (routeParam) {
-      // Close sheet first, then navigate
       onClose?.();
       navigate(`/profile/${encodeURIComponent(routeParam)}`);
     }
   };
   
+  // Generate preview text
+  const getPreview = () => {
+    if (!latest) return 'Start a conversation';
+    if (latest.image_url) return '📷 Sent an image';
+    return latest.content;
+  };
+  
+  const preview = getPreview();
+  
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3 transition-colors ${
+      className={`w-full text-left px-4 py-3 transition-colors border-b border-border ${
         hasUnread ? 'bg-primary/5' : 'hover:bg-secondary/50'
       }`}
     >
-      <div className="flex items-start gap-3">
-        <button
-          onClick={handleProfileClick}
-          className="cursor-pointer shrink-0 hover:opacity-80"
-          type="button"
-        >
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-secondary border-2 border-border">
+      <div className="flex gap-3">
+        {/* Listing thumbnail */}
+        {thread.flipImage ? (
+          <div className="w-16 h-16 rounded-lg overflow-hidden bg-secondary border border-border shrink-0">
+            <img src={thread.flipImage} alt="" className="w-full h-full object-cover" />
+          </div>
+        ) : thread.flipName ? (
+          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 border border-border flex items-center justify-center shrink-0">
+            <Package className="w-6 h-6 text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-secondary border-2 border-border shrink-0">
             {thread.avatarUrl ? (
               <img src={thread.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-base font-bold text-muted-foreground">
+              <div className="w-full h-full flex items-center justify-center text-sm font-bold text-muted-foreground">
                 {thread.otherName?.[0]?.toUpperCase() || 'U'}
               </div>
             )}
           </div>
-        </button>
-        <div className="flex-1 min-w-0 pt-1">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <span className="font-semibold text-base truncate block text-foreground">{thread.otherName}</span>
+        )}
+        
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Header: name + date */}
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className="font-semibold text-sm truncate text-foreground">{thread.otherName}</span>
             <span className={`text-xs shrink-0 ${hasUnread ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
               {timestamp}
             </span>
           </div>
-          <p className={`text-sm truncate ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-            {latest?.content || (latest?.image_url ? '📷 Photo' : '')}
-          </p>
+          
+          {/* Listing name + price */}
+          {thread.flipName && (
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-xs text-muted-foreground truncate flex-1">{thread.flipName}</span>
+              {thread.flipPrice && (
+                <span className="text-xs font-semibold text-primary shrink-0">${thread.flipPrice.toFixed(0)}</span>
+              )}
+            </div>
+          )}
+          
+          {/* Preview + unread indicator */}
+          <div className="flex items-center justify-between gap-2">
+            <p className={`text-sm truncate flex-1 ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+              {preview}
+            </p>
+            {unreadCount > 0 && (
+              <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-primary text-white text-[10px] font-bold">
+                {unreadCount}
+              </span>
+            )}
+          </div>
         </div>
-        {hasUnread && <div className="w-3 h-3 rounded-full bg-primary shrink-0 ml-2 mt-1.5" />}
       </div>
     </button>
   );
@@ -262,6 +289,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
 export default function MessageInbox({ open, onClose, preselectRecipientEmail }) {
   const [selectedThread, setSelectedThread] = useState(null);
   const [blockDialog, setBlockDialog] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
@@ -289,21 +317,14 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail })
         const displayName = profile?.display_name || profile?.username || (m.sender_email === user.email ? m.recipient_name : m.sender_name) || 'User';
         const username = profile?.username;
         const avatarUrl = profile?.avatar_url;
-        console.log('[MessageInbox] Thread created:', { 
-          otherEmail, 
-          otherUsername: username, 
-          otherName: displayName,
-          profileFound: !!profile,
-          profileData: profile,
-          allProfilesCount: allProfiles.length,
-          willUseForRoute: username || otherEmail
-        });
         map.set(otherEmail, { 
           otherEmail, 
           otherName: displayName,
           otherUsername: username,
           flipId: m.community_flip_id, 
-          flipName: flip?.item_name || 'Flip', 
+          flipName: flip?.item_name,
+          flipPrice: flip?.price,
+          flipImage: flip?.image_url,
           messages: [], 
           currentUserEmail: user.email, 
           avatarUrl
@@ -319,6 +340,16 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail })
       return b.messages[0]?.created_date.localeCompare(a.messages[0]?.created_date);
     });
   }, [messages, flips, user, allProfiles]);
+  
+  const filteredThreads = useMemo(() => {
+    if (!searchQuery.trim()) return threads;
+    const query = searchQuery.toLowerCase();
+    return threads.filter(t => 
+      t.otherName?.toLowerCase().includes(query) ||
+      t.flipName?.toLowerCase().includes(query) ||
+      t.messages.some(m => m.content?.toLowerCase().includes(query))
+    );
+  }, [threads, searchQuery]);
 
   // Auto-select conversation when preselectRecipientEmail is provided
   useEffect(() => {
@@ -361,11 +392,21 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail })
       <Sheet open={open} onOpenChange={onClose}>
         <SheetContent side="right" className="w-full max-w-md p-0 bg-background border-l border-border flex flex-col" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
           <SheetHeader className="px-4 border-b border-border shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)', paddingBottom: '12px' }}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <SheetTitle className="text-2xl font-bold text-foreground">Messages</SheetTitle>
               <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
                 <X className="w-5 h-5" />
               </button>
+            </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search conversations..."
+                className="pl-9 h-10 bg-secondary border-0"
+              />
             </div>
           </SheetHeader>
           <AnimatePresence mode="wait">
@@ -377,17 +418,27 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail })
                 exit={{ opacity: 0, x: -20 }} 
                 className="flex-1 overflow-y-auto"
               >
-                {threads.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-                    <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
-                      <MessageCircle className="w-8 h-8 text-muted-foreground" />
+                {filteredThreads.length === 0 ? (
+                  searchQuery ? (
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                      <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
+                        <Search className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-base font-semibold text-foreground mb-1">No matching conversations</p>
+                      <p className="text-sm text-muted-foreground">Try a different search term</p>
                     </div>
-                    <p className="text-base font-semibold text-foreground mb-1">No messages yet</p>
-                    <p className="text-sm text-muted-foreground">Start a conversation on a community flip!</p>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                      <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
+                        <MessageCircle className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-base font-semibold text-foreground mb-1">No messages yet</p>
+                      <p className="text-sm text-muted-foreground">Express interest on a listing to start chatting!</p>
+                    </div>
+                  )
                 ) : (
                   <div className="py-2">
-                    {threads.map(thread => (
+                    {filteredThreads.map(thread => (
                       <ThreadItem key={thread.otherEmail} thread={thread} onClick={() => setSelectedThread(thread)} navigate={navigate} onClose={onClose} />
                     ))}
                   </div>

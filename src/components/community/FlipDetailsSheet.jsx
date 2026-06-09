@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-  Send, MapPin, Sparkles, Loader2, Ban, Crown, Heart,
-  MessageCircle, X, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag
+  MapPin, Sparkles, Loader2, Ban, Crown, Heart,
+  MessageCircle, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -26,11 +26,10 @@ const CATEGORY_META = {
 };
 
 export default function FlipDetailsSheet({ flip, open, onClose }) {
-  const [messageText, setMessageText] = useState('');
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [analysis, setAnalysis] = useState(null);
-  const [showMessages, setShowMessages] = useState(true);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
 
@@ -50,11 +49,7 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
   const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
   const isBlocked = blockedUsers.includes(flip?.posted_by);
 
-  const { data: messages = [] } = useQuery({
-    queryKey: ['messages', flip?.id],
-    queryFn: () => base44.entities.Message.filter({ community_flip_id: flip.id }, '-created_date', 100),
-    enabled: open && !!flip?.id && flip?.posted_by !== user?.email,
-  });
+
 
   const interestMutation = useMutation({
     mutationFn: async () => {
@@ -68,23 +63,11 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['communityFlips'] }),
   });
 
-  const sendMutation = useMutation({
-    mutationFn: async (content) => {
-      await base44.entities.Message.create({
-        community_flip_id: flip.id,
-        sender_email: user.email,
-        sender_name: user.full_name,
-        recipient_email: flip.posted_by,
-        content,
-        is_read: false,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', flip.id] });
-      setMessageText('');
-    },
-    onError: () => toast.error('Failed to send message'),
-  });
+  const handleContactSeller = () => {
+    if (!user) { base44.auth.redirectToLogin(); return; }
+    onClose();
+    navigate('/community', { state: { openInbox: true, contactEmail: flip.posted_by, flipId: flip.id } });
+  };
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
@@ -102,11 +85,6 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
   const interestCount = flip.interested_users?.length || 0;
   const meta = CATEGORY_META[flip.category] || CATEGORY_META.other;
   const CategoryIcon = meta.icon;
-
-  const conversation = messages.filter(m =>
-    (m.sender_email === user?.email && m.recipient_email === flip.posted_by) ||
-    (m.sender_email === flip.posted_by && m.recipient_email === user?.email)
-  );
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -130,8 +108,8 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
                 </div>
               </div>
             ) : (
-              <div className={`w-full h-28 bg-gradient-to-br ${meta.gradient} flex flex-col items-center justify-center gap-1.5`}>
-                <CategoryIcon className="w-8 h-8 text-white/50" />
+              <div className={`w-full h-14 bg-gradient-to-r ${meta.gradient} flex items-center px-4 gap-2`}>
+                <CategoryIcon className="w-4 h-4 text-white/50 shrink-0" />
                 <span className="text-white/40 text-[10px] font-medium uppercase tracking-wider">{flip.category}</span>
               </div>
             )}
@@ -218,7 +196,7 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
             {!isMyPost && !isBlocked && user && (
               <div className="px-4 pt-3 space-y-2">
                 <Button
-                  onClick={() => setShowMessages(true)}
+                  onClick={handleContactSeller}
                   className="w-full bg-primary hover:bg-primary/90 gap-1.5"
                 >
                   <MessageCircle className="w-4 h-4" />
@@ -254,47 +232,7 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
               </div>
             )}
 
-            {/* Messages panel */}
-            {showMessages && !isMyPost && !isBlocked && (
-              <div className="px-4 pt-4 space-y-3">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Conversation</h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {conversation.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-3">No messages yet.</p>
-                  ) : (
-                    conversation.map((msg) => {
-                      const isMe = msg.sender_email === user?.email;
-                      return (
-                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[75%] rounded-xl px-3 py-2 ${isMe ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
-                            <p className="text-sm">{msg.content}</p>
-                            <p className="text-[10px] opacity-60 mt-0.5">{format(new Date(msg.created_date), 'h:mm a')}</p>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && messageText.trim() && sendMutation.mutate(messageText)}
-                    placeholder="Type a message..."
-                    className="bg-background"
-                    style={{ fontSize: 16 }}
-                  />
-                  <Button
-                    onClick={() => sendMutation.mutate(messageText)}
-                    disabled={!messageText.trim() || sendMutation.isPending}
-                    size="icon"
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </div>
-            )}
+
 
             {/* My post: AI analysis */}
             {isMyPost && (

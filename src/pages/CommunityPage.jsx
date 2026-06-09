@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePageTab } from '@/lib/PageTabContext';
+import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 
 import PostFlipDialog from '@/components/community/PostFlipDialog';
 import FlipDetailsSheet from '@/components/community/FlipDetailsSheet';
-
+import MessageInbox from '@/components/community/MessageInbox';
 
 import CommunityFeed from '@/components/community/CommunityFeed';
 
@@ -15,7 +16,20 @@ export default function CommunityPage() {
   const [activeTab, setActiveTab] = usePageTab('/community', 'discover');
   const [showPost, setShowPost] = useState(false);
   const [selectedFlip, setSelectedFlip] = useState(null);
+  const [showInbox, setShowInbox] = useState(false);
+  const [inboxContactEmail, setInboxContactEmail] = useState(null);
   const queryClient = useQueryClient();
+  const location = useLocation();
+
+  // Auto-open inbox when navigated here from "Contact Seller"
+  useEffect(() => {
+    if (location.state?.openInbox) {
+      setInboxContactEmail(location.state.contactEmail || null);
+      setShowInbox(true);
+      // Clear the state so back/forward nav doesn't re-trigger
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   const { data: user } = useQuery({
     queryKey: ['me'],
@@ -134,6 +148,12 @@ export default function CommunityPage() {
           onClose={() => setSelectedFlip(null)}
         />
       )}
+
+      <MessageInbox
+        open={showInbox}
+        onClose={() => { setShowInbox(false); setInboxContactEmail(null); }}
+        preselectRecipientEmail={inboxContactEmail}
+      />
     </div>
   );
 }

@@ -223,19 +223,23 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                     type="button"
                     onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
                     disabled={isCameraUploading}
-                    className="flex flex-col items-center justify-center gap-2 w-full h-28 border-2 border-dashed border-border rounded-xl bg-secondary/30 hover:bg-secondary/60 transition-colors disabled:opacity-50"
+                    className="flex flex-col items-center justify-center gap-3 w-full h-44 border-2 border-dashed border-primary/40 rounded-2xl bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-50"
                   >
                     {isCameraUploading ? (
-                      <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                      <Loader2 className="w-10 h-10 text-primary animate-spin" />
                     ) : (
-                      <Upload className="w-6 h-6 text-muted-foreground" />
+                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Upload className="w-7 h-7 text-primary" />
+                      </div>
                     )}
-                    <span className="text-sm text-muted-foreground font-medium">
-                      {isCameraUploading ? 'Loading...' : 'Tap to add photo'}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground/60">
-                      Carried automatically to community listings
-                    </span>
+                    <div className="space-y-0.5 text-center">
+                      <p className="text-sm font-semibold text-foreground">
+                        {isCameraUploading ? 'Loading...' : 'Add a Photo'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Tap to upload · carries through to listings
+                      </p>
+                    </div>
                   </button>
                 )}
               </div>

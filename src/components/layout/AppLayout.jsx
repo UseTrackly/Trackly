@@ -72,7 +72,7 @@ function AppLayoutInner() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        width: '100dvw',
+        width: '100%',
         height: '100%',
       }}
     >

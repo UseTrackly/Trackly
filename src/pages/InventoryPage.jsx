@@ -5,6 +5,7 @@ import usePullToRefresh from '@/hooks/usePullToRefresh';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Package, Search, SlidersHorizontal, ArrowUpDown, MessageSquare, Receipt, History, TrendingUp, TrendingDown, Download, Lock, Crown } from 'lucide-react';
+import PostFlipDialog from '@/components/community/PostFlipDialog';
 import FlipCard from '@/components/history/FlipCard';
 import EditFlipDialog from '@/components/history/EditFlipDialog';
 import StatCard from '@/components/shared/StatCard';
@@ -41,6 +42,7 @@ export default function InventoryPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [communityPrefill, setCommunityPrefill] = useState(null);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [search, setSearch] = useState('');
@@ -187,6 +189,20 @@ export default function InventoryPage() {
   const handleEdit = (item) => {
     setEditingItem(item);
     setShowAdd(true);
+  };
+
+  const handlePostToCommunity = (item) => {
+    setCommunityPrefill({
+      item_name: item.item_name,
+      category: item.category,
+      price: item.target_price || item.cost_basis,
+      image_url: item.image_url,
+      is_graded: item.is_graded,
+      grading_company: item.grading_company,
+      grade: item.grade,
+      cert_number: item.cert_number,
+      notes: item.notes,
+    });
   };
 
   const handleCloseDialog = () => {
@@ -380,6 +396,7 @@ export default function InventoryPage() {
                     index={i}
                     onEdit={handleEdit}
                     onDelete={(item) => deleteMutation.mutate(item.id)}
+                    onPostToCommunity={handlePostToCommunity}
                   />
                 </div>
               ))}
@@ -559,6 +576,12 @@ export default function InventoryPage() {
         onClose={() => setEditingFlip(null)}
         onSave={(id, data) => editFlipMutation.mutateAsync({ id, data })}
         flip={editingFlip}
+      />
+
+      <PostFlipDialog
+        open={!!communityPrefill}
+        onClose={() => setCommunityPrefill(null)}
+        prefillData={communityPrefill}
       />
     </div>
   );

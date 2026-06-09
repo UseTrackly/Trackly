@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Trash2, Pencil, Calendar, Package } from 'lucide-react';
+import { Trash2, Pencil, Calendar, Package, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const CONDITION_LABELS = {
@@ -21,7 +21,7 @@ const CONDITION_COLORS = {
   poor: 'bg-red-500/10 text-red-500 border-red-500/20',
 };
 
-export default function InventoryCard({ item, index, onEdit, onDelete }) {
+export default function InventoryCard({ item, index, onEdit, onDelete, onPostToCommunity }) {
   const totalValue = (item.cost_basis || 0) * (item.quantity || 1);
   const potentialProfit = item.target_price ? (item.target_price - item.cost_basis) * (item.quantity || 1) : null;
 
@@ -95,16 +95,23 @@ export default function InventoryCard({ item, index, onEdit, onDelete }) {
           {/* Actions */}
           <div className="flex gap-1 opacity-100 transition-opacity">
             <button
-              onClick={() => onEdit?.(item)}
+              onClick={(e) => { e.stopPropagation(); onEdit?.(item); }}
               className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => onDelete?.(item)}
+              onClick={(e) => { e.stopPropagation(); onDelete?.(item); }}
               className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onPostToCommunity?.(item); }}
+              className="p-1.5 rounded-lg hover:bg-primary/10 text-primary transition-colors ml-auto"
+              title="Post to Community"
+            >
+              <Share2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

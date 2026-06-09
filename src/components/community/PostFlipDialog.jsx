@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Loader2, Crown, Sparkles } from 'lucide-react';
+import { Upload, Loader2, Crown, Sparkles, CheckCircle2, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import AIImageSearch from '@/components/community/AIImageSearch';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
@@ -30,20 +31,15 @@ const CATEGORIES = [
 ];
 
 export default function PostFlipDialog({ open, onClose, prefillData = null }) {
+  const navigate = useNavigate();
   const [itemName, setItemName] = useState('');
   const [category, setCategory] = useState('other');
   const [aiCategory, setAiCategory] = useState(null);
-
-  useEffect(() => {
-    if (open && prefillData) {
-      if (prefillData.item_name) setItemName(prefillData.item_name);
-      if (prefillData.category) setCategory(prefillData.category);
-    }
-  }, [open]);
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [location, setLocation] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const [prefillImageUrl, setPrefillImageUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [isGraded, setIsGraded] = useState(false);
   const [gradingCompany, setGradingCompany] = useState('PSA');
@@ -51,7 +47,22 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
   const [aiImageUrl, setAiImageUrl] = useState(null);
+  const [postedFlipId, setPostedFlipId] = useState(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (open && prefillData) {
+      setItemName(prefillData.item_name || '');
+      setCategory(prefillData.category || 'other');
+      setPrice(prefillData.price ? String(prefillData.price) : '');
+      setDescription(prefillData.notes || '');
+      setPrefillImageUrl(prefillData.image_url || null);
+      setIsGraded(!!prefillData.is_graded);
+      setGradingCompany(prefillData.grading_company || 'PSA');
+      setGrade(prefillData.grade || '');
+      setCertNumber(prefillData.cert_number || '');
+    }
+  }, [open, prefillData]);
 
   const { data: user } = useQuery({
     queryKey: ['me'],
@@ -101,6 +112,8 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
         imageUrl = aiImageUrl;
       } else if (certImageUrl && !imageFile) {
         imageUrl = certImageUrl;
+      } else if (prefillImageUrl && !imageFile) {
+        imageUrl = prefillImageUrl;
       }
 
       if (imageFile) {
@@ -124,7 +137,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       // Use display_name from profile for consistency, fallback to username
       const posterName = myProfile?.display_name || myProfile?.username || user.full_name || user.email.split('@')[0];
 
-      await base44.entities.CommunityFlip.create({
+      const created = await base44.entities.CommunityFlip.create({
         ...data,
         image_url: imageUrl,
         posted_by: user.email,
@@ -132,11 +145,11 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
         is_poster_pro: !!user.is_pro,
         interested_users: [],
       });
+      return created;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
-      toast.success('Flip posted to community');
-      handleClose();
+      setPostedFlipId(created?.id || true);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to post flip');
@@ -173,6 +186,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     setPrice('');
     setLocation('');
     setImageFile(null);
+    setPrefillImageUrl(null);
     setIsGraded(false);
     setGradingCompany('PSA');
     setGrade('');
@@ -180,6 +194,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     setCertImageUrl(null);
     setAiImageUrl(null);
     setAiCategory(null);
+    setPostedFlipId(null);
     onClose();
   };
 
@@ -187,9 +202,38 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md mx-auto bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-lg">Post Flip Opportunity</DialogTitle>
+          <DialogTitle className="text-lg">{postedFlipId ? 'Posted!' : 'Post to Community'}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+
+        {/* ── Success screen ─────────────────────────── */}
+        {postedFlipId && (
+          <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-base">Your listing is live!</p>
+              <p className="text-sm text-muted-foreground mt-1">The community can now see and interact with your flip.</p>
+            </div>
+            <div className="flex gap-2 w-full">
+              <button
+                onClick={handleClose}
+                className="flex-1 h-10 rounded-xl border border-border text-sm font-medium hover:bg-secondary transition-colors"
+              >
+                Done
+              </button>
+              <button
+                onClick={() => { handleClose(); navigate('/community'); }}
+                className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                View in Community
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!postedFlipId && <div className="space-y-4 py-2">
           {/* Free tier warning */}
           {!user?.is_pro && (
             <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
@@ -340,6 +384,17 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                   </button>
                 </div>
               </div>
+            ) : prefillImageUrl && !imageFile && !certImageUrl ? (
+              <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
+                <img src={prefillImageUrl} alt="Item" className="w-12 h-12 object-cover rounded-lg border border-border bg-background" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary mb-1">From inventory</p>
+                  <div className="relative">
+                    <input type="file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }} className="hidden" id="flip-image" />
+                    <label htmlFor="flip-image" className="text-xs text-muted-foreground underline cursor-pointer">Replace with your own</label>
+                  </div>
+                </div>
+              </div>
             ) : certImageUrl && !imageFile ? (
               <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
                 <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
@@ -409,10 +464,12 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                 {uploading ? 'Uploading...' : 'Checking...'}
               </>
             ) : (
-              'Post Flip'
+              'Post to Community'
             )}
           </Button>
         </div>
+        </div>
+        }
       </DialogContent>
     </Dialog>
   );

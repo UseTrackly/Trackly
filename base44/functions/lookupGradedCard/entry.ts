@@ -169,12 +169,17 @@ Deno.serve(async (req) => {
     const company = (grading_company || 'PSA').toUpperCase().trim();
     const cert = cert_number.trim();
 
-    // Try company-specific lookup first, then LLM fallback
+    // Try company-specific direct API lookup ONLY.
+    // NEVER fall back to LLM/search for PSA, BGS, SGC, or CGC — a wrong result
+    // is worse than no result. LLM fallback is only used for companies with no
+    // known direct API (GMA, HGA, CSG, AGS, other).
     let cardData = null;
     const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 
     try {
       if (company === 'PSA') {
+        // PSA only: use the official API. If it fails (rate limit, not found, etc.)
+        // return not_found — do NOT guess with LLM.
         cardData = await Promise.race([lookupPSA(cert), timeout(10000)]);
       } else if (company === 'BGS' || company === 'BECKETT') {
         cardData = await Promise.race([lookupBGS(cert), timeout(10000)]);
@@ -183,21 +188,13 @@ Deno.serve(async (req) => {
       } else if (company === 'CGC') {
         cardData = await Promise.race([lookupCGC(cert), timeout(10000)]);
       } else {
-        // GMA, HGA, CSG, AGS, other — use LLM with internet search
+        // GMA, HGA, CSG, AGS, other — no direct API available, use LLM with internet search
         cardData = await Promise.race([lookupViaLLM(cert, company, base44), timeout(20000)]);
       }
     } catch {
       cardData = null;
     }
-
-    // If primary lookup failed and it's PSA, try LLM as fallback
-    if (!cardData && company === 'PSA') {
-      try {
-        cardData = await Promise.race([lookupViaLLM(cert, 'PSA', base44), timeout(20000)]);
-      } catch {
-        cardData = null;
-      }
-    }
+    // No LLM fallback for PSA/BGS/SGC/CGC — accuracy over availability.
 
     if (!cardData) {
       return Response.json({ found: false });

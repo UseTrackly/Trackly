@@ -272,7 +272,7 @@ export default function CertImagePreview({
           <div className="flex items-center gap-2 min-w-0">
             <ImageOff className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
             <span className="text-xs text-muted-foreground">
-              No cert found on {gradingCompany} for #{certNumber} — upload image manually.
+              Cert details unavailable for {gradingCompany} #{certNumber}. Upload image manually.
             </span>
           </div>
           <button

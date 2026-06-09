@@ -186,7 +186,8 @@ export default function ViewProfilePage() {
     );
   }
 
-  const displayName = otherProfile.display_name || otherProfile.username || otherProfile.user_email.split('@')[0];
+  const displayName = otherProfile.display_name || otherProfile.username || 'User';
+  const handle = otherProfile.username || `user${(otherProfile.id || otherProfile.user_email || '').slice(-6)}`;
   const avatarUrl = otherProfile.avatar_url;
   const bannerUrl = otherProfile.banner_url;
   const locationVal = otherProfile.location;
@@ -276,9 +277,7 @@ export default function ViewProfilePage() {
         {/* Name & Username */}
         <div className="mt-3">
           <h1 className="text-xl font-bold text-foreground">{displayName}</h1>
-          {otherProfile.username && (
-            <p className="text-sm text-muted-foreground">@{otherProfile.username}</p>
-          )}
+          <p className="text-sm text-primary font-medium">@{handle}</p>
           {locationVal && (
             <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground">
               <MapPin className="w-3.5 h-3.5" />

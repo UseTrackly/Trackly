@@ -326,9 +326,9 @@ export default function ProfilePage() {
           <h2 className="text-lg font-bold leading-tight">
             {profile?.display_name || user?.full_name || 'Reseller'}
           </h2>
-          {profile?.username && (
-            <p className="text-sm text-primary font-medium">@{profile.username}</p>
-          )}
+          <p className="text-sm text-primary font-medium">
+            @{profile?.username || `user${(profile?.id || user?.id || '').slice(-6)}`}
+          </p>
           {profile?.location && (
             <div className="flex items-center gap-1 mt-1">
               <MapPin className="w-3 h-3 text-muted-foreground" />

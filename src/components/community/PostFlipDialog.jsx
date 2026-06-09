@@ -5,9 +5,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Loader2, Crown, X, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag } from 'lucide-react';
+import { Upload, Loader2, Crown, X, CreditCard, Shirt, Cpu, Trophy, Gamepad2, Watch, Tag, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CertImagePreview from '@/components/grading/CertImagePreview';
+import AIImageSearch from '@/components/community/AIImageSearch';
 import { toast } from 'sonner';
 import { canPostCommunity, FREE_LIMITS } from '@/lib/proGate';
 
@@ -39,6 +40,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
   const [grade, setGrade] = useState('');
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
+  const [aiSuggestedImageUrl, setAiSuggestedImageUrl] = useState(null);
   const [category, setCategory] = useState('other');
   const queryClient = useQueryClient();
 
@@ -56,6 +58,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       setCertNumber(prefillData.cert_number || '');
       setImageFile(null);
       setCertImageUrl(null);
+      setAiSuggestedImageUrl(null);
       setStep('edit');
     }
     if (!open) {
@@ -64,6 +67,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
       setLocation(''); setImageFile(null); setPrefillImageUrl(null);
       setIsGraded(false); setGradingCompany('PSA');
       setGrade(''); setCertNumber(''); setCertImageUrl(null);
+      setAiSuggestedImageUrl(null);
     }
   }, [open, prefillData]);
 
@@ -115,6 +119,8 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
         }
       } else if (certImageUrl) {
         imageUrl = certImageUrl;
+      } else if (aiSuggestedImageUrl) {
+        imageUrl = aiSuggestedImageUrl;
       } else if (prefillImageUrl) {
         imageUrl = prefillImageUrl;
       }
@@ -158,10 +164,10 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     });
   };
 
-  // Resolve the active image URL for display
+  // Resolve the active image URL for display (priority: upload > cert > AI > prefill)
   const activeImageUrl = imageFile
     ? URL.createObjectURL(imageFile)
-    : certImageUrl || prefillImageUrl || null;
+    : certImageUrl || aiSuggestedImageUrl || prefillImageUrl || null;
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -183,9 +189,16 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
 
             {/* Item summary row */}
             <div className="flex gap-3 items-center p-3 bg-secondary/50 rounded-xl border border-border">
-              <div className="w-14 h-14 rounded-lg border border-border bg-background flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-14 h-14 rounded-lg border border-border bg-background flex items-center justify-center shrink-0 overflow-hidden relative">
                 {activeImageUrl ? (
-                  <img src={activeImageUrl} alt="" className="w-full h-full object-cover" />
+                  <>
+                    <img src={activeImageUrl} alt="" className="w-full h-full object-cover" />
+                    {aiSuggestedImageUrl && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-white/90" />
+                      </div>
+                    )}
+                  </>
                 ) : (
                   (() => {
                     const meta = CATEGORY_META[category] || CATEGORY_META.other;
@@ -199,7 +212,14 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{itemName || 'Unnamed Item'}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-semibold truncate">{itemName || 'Unnamed Item'}</p>
+                  {aiSuggestedImageUrl && (
+                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium whitespace-nowrap">
+                      AI image
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground capitalize">{category}</p>
                 {prefillData?.condition && (
                   <p className="text-xs text-muted-foreground capitalize">{prefillData.condition.replace('_', ' ')}</p>
@@ -213,21 +233,58 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                  onChange={(e) => { setImageFile(e.target.files?.[0] || null); }}
+                  onChange={(e) => { setImageFile(e.target.files?.[0] || null); setAiSuggestedImageUrl(null); }}
                   className="hidden"
                   id="flip-image"
                 />
                 <label htmlFor="flip-image" className="flex flex-col items-center gap-0.5 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
                   <Upload className="w-4 h-4" />
-                  <span className="text-[9px]">{imageFile ? 'Replace' : prefillImageUrl ? 'Replace' : 'Add photo'}</span>
+                  <span className="text-[9px]">{imageFile ? 'Replace' : prefillImageUrl ? 'Replace' : aiSuggestedImageUrl ? 'Replace' : 'Add photo'}</span>
                 </label>
-                {imageFile && (
-                  <button type="button" onClick={() => setImageFile(null)} className="flex items-center justify-center mt-1">
+                {(imageFile || aiSuggestedImageUrl) && (
+                  <button
+                    type="button"
+                    onClick={() => { setImageFile(null); setAiSuggestedImageUrl(null); }}
+                    className="flex items-center justify-center mt-1"
+                  >
                     <X className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
                   </button>
                 )}
               </div>
             </div>
+
+            {/* AI Image Search - shown when no image exists */}
+            {!activeImageUrl && (
+              <div className="space-y-2">
+                <AIImageSearch
+                  itemName={itemName}
+                  category={category}
+                  onImageFound={(url) => {
+                    setAiSuggestedImageUrl(url);
+                    setImageFile(null); // Clear any manual upload
+                  }}
+                />
+              </div>
+            )}
+
+            {/* AI image disclaimer when shown */}
+            {aiSuggestedImageUrl && (
+              <div className="flex items-start gap-2 p-3 bg-primary/5 border border-primary/20 rounded-xl">
+                <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    <span className="font-medium text-primary">AI-suggested placeholder image.</span> This is a generic product image based on your item name, not an actual photo of your item's condition. Consider uploading a real photo for better buyer trust.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAiSuggestedImageUrl(null)}
+                    className="text-[10px] text-muted-foreground underline mt-1"
+                  >
+                    Remove suggested image
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Ask price + location */}
             <div className="grid grid-cols-2 gap-3">

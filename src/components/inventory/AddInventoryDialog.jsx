@@ -171,6 +171,77 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {/* ── Photo (hero, top of form) ── */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Photo
+            </label>
+            {certImageUrl && !imageFile ? (
+              <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
+                <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary mb-1">Auto-fetched from {gradingCompany}</p>
+                  <button
+                    type="button"
+                    onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
+                    disabled={isCameraUploading}
+                    className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
+                  >
+                    {isCameraUploading ? 'Loading...' : 'Replace with your own'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                  onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                  className="hidden"
+                  id="inventory-image"
+                />
+                {(imageFile || editingItem?.image_url) ? (
+                  <div className="relative rounded-xl overflow-hidden border border-border">
+                    <img
+                      src={imageFile ? URL.createObjectURL(imageFile) : editingItem.image_url}
+                      alt="Item"
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <button
+                      type="button"
+                      onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
+                      disabled={isCameraUploading}
+                      className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium hover:bg-black/80 transition-colors"
+                    >
+                      {isCameraUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      Change photo
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
+                    disabled={isCameraUploading}
+                    className="flex flex-col items-center justify-center gap-2 w-full h-28 border-2 border-dashed border-border rounded-xl bg-secondary/30 hover:bg-secondary/60 transition-colors disabled:opacity-50"
+                  >
+                    {isCameraUploading ? (
+                      <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                    ) : (
+                      <Upload className="w-6 h-6 text-muted-foreground" />
+                    )}
+                    <span className="text-sm text-muted-foreground font-medium">
+                      {isCameraUploading ? 'Loading...' : 'Tap to add photo'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/60">
+                      Carried automatically to community listings
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Item Name */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -418,53 +489,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
             />
           </div>
 
-          {/* Image */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Image
-            </label>
-            {certImageUrl && !imageFile ? (
-              <div className="flex items-center gap-3 p-3 border border-primary/30 rounded-xl bg-primary/5">
-                <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-primary mb-1">Auto-fetched from {gradingCompany}</p>
-                  <button
-                    type="button"
-                    onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
-                    disabled={isCameraUploading}
-                    className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
-                  >
-                    {isCameraUploading ? 'Loading...' : 'Replace with your own'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                  onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
-                  className="hidden"
-                  id="inventory-image"
-                />
-                <button
-                  type="button"
-                  onClick={() => openCameraPicker({ inputId: 'inventory-image' })}
-                  disabled={isCameraUploading}
-                  className="flex items-center gap-2 px-4 py-3 border border-border rounded-xl bg-background w-full hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  {isCameraUploading ? (
-                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4 text-muted-foreground" />
-                  )}
-                  <span className="text-sm text-muted-foreground">
-                    {imageFile ? imageFile.name : editingItem?.image_url ? 'Change image' : 'Upload image'}
-                  </span>
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="flex gap-2 pt-2">

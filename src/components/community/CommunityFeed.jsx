@@ -31,82 +31,113 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles }) {
   const meta = CATEGORY_META[flip.category] || CATEGORY_META.other;
   const CategoryIcon = meta.icon;
   const hasImage = !!flip.image_url;
-  const hasDescription = !!flip.description;
-  const hasLocation = !!flip.location;
   const hasGrade = !!(flip.grade && flip.grading_company);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-xl overflow-hidden flex gap-3"
-      onClick={() => onClick(flip)}
-    >
-      {/* Left: square thumbnail or category swatch */}
-      <div className="shrink-0 w-20 self-stretch relative">
-        {hasImage ? (
+  if (hasImage) {
+    // Photo listing — product is the hero
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer"
+        onClick={() => onClick(flip)}
+      >
+        {/* Full-bleed image with overlay */}
+        <div className="relative w-full aspect-square">
           <img src={flip.image_url} alt={flip.item_name} className="w-full h-full object-cover" />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${meta.gradient} flex items-center justify-center`}>
-            <CategoryIcon className="w-6 h-6 text-white/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          {/* Price pill — bottom left over image */}
+          <div className="absolute bottom-2 left-2">
+            <span className="px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-sm text-white text-xs font-bold">
+              ${flip.price?.toFixed(0)}
+            </span>
           </div>
-        )}
-        {priority && (
-          <span className="absolute top-1 left-1 px-1 py-0.5 rounded-full bg-orange-500/90 text-white text-[7px] font-bold uppercase leading-none">HOT</span>
-        )}
-      </div>
-
-      {/* Right: content */}
-      <div className="flex-1 min-w-0 py-2.5 pr-3 flex flex-col justify-between gap-1">
-        {/* Top row: seller + crown */}
-        <div className="flex items-center gap-1">
-          <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
-            <p className="text-[9px] text-muted-foreground truncate">{displayName}</p>
-          </ProfileLink>
-          {flip.is_poster_pro && <Crown className="w-2.5 h-2.5 text-primary shrink-0" />}
-          <span className="ml-auto text-[8px] text-muted-foreground/60 uppercase tracking-wide shrink-0">{flip.category}</span>
-        </div>
-
-        {/* Title */}
-        <h3 className="font-semibold text-sm leading-tight line-clamp-2 text-foreground">{flip.item_name}</h3>
-
-        {/* Description (1 line only) */}
-        {hasDescription && (
-          <p className="text-[10px] text-muted-foreground line-clamp-1">{flip.description}</p>
-        )}
-
-        {/* Bottom row: price, grade, location, actions */}
-        <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-sm font-bold text-foreground">${flip.price?.toFixed(0)}</p>
+          {/* HOT badge */}
+          {priority && (
+            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[8px] font-bold uppercase">HOT</span>
+          )}
+          {/* Grade badge */}
           {hasGrade && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium shrink-0">
+            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-primary/90 text-white text-[8px] font-medium">
               {flip.grading_company} {flip.grade}
             </span>
           )}
-          {hasLocation && (
-            <span className="flex items-center gap-0.5 text-[8px] text-muted-foreground truncate">
-              <MapPin className="w-2 h-2 shrink-0" />{flip.location}
-            </span>
-          )}
-          <div className="ml-auto flex gap-1 shrink-0">
+        </div>
+
+        {/* Below image: title, seller, actions */}
+        <div className="p-2.5 space-y-1.5">
+          <h3 className="font-semibold text-sm leading-tight line-clamp-2">{flip.item_name}</h3>
+          <div className="flex items-center justify-between">
+            <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
+              <p className="text-[9px] text-muted-foreground truncate max-w-[80px]">{displayName}</p>
+            </ProfileLink>
+            {flip.location && (
+              <span className="flex items-center gap-0.5 text-[8px] text-muted-foreground truncate">
+                <MapPin className="w-2 h-2 shrink-0" />{flip.location}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-1.5">
             <Button
               variant={isInterested ? "default" : "outline"}
               size="sm"
               onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
-              className="h-6 px-2 text-[10px]"
+              className="flex-1 h-7 text-[10px]"
             >
-              <Heart className={`w-3 h-3 ${isInterested ? 'fill-current' : ''}`} />
-              {interestCount > 0 && <span className="ml-0.5">{interestCount}</span>}
+              <Heart className={`w-3 h-3 mr-0.5 ${isInterested ? 'fill-current' : ''}`} />
+              {interestCount > 0 ? interestCount : 'Want'}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={(e) => { e.stopPropagation(); onClick(flip); }}
-              className="h-6 w-6 p-0"
+              className="h-7 w-7 p-0 shrink-0"
             >
               <MessageCircle className="w-3 h-3" />
             </Button>
           </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Text-only listing — compact, no wasted space
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer col-span-2"
+      onClick={() => onClick(flip)}
+    >
+      <div className={`w-full h-1 bg-gradient-to-r ${meta.gradient}`} />
+      <div className="px-3 py-2.5 flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${meta.gradient} flex items-center justify-center shrink-0`}>
+          <CategoryIcon className="w-4 h-4 text-white/60" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm leading-tight line-clamp-1">{flip.item_name}</h3>
+          <div className="flex items-center gap-2 mt-0.5">
+            <ProfileLink userEmail={flip.posted_by} username={username} userName={displayName}>
+              <p className="text-[9px] text-muted-foreground truncate">{displayName}</p>
+            </ProfileLink>
+            {flip.location && (
+              <span className="flex items-center gap-0.5 text-[8px] text-muted-foreground">
+                <MapPin className="w-2 h-2 shrink-0" />{flip.location}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <p className="text-base font-bold">${flip.price?.toFixed(0)}</p>
+          <Button
+            variant={isInterested ? "default" : "outline"}
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onInterest(flip.id); }}
+            className="h-7 px-2"
+          >
+            <Heart className={`w-3 h-3 ${isInterested ? 'fill-current' : ''}`} />
+            {interestCount > 0 && <span className="ml-0.5 text-[10px]">{interestCount}</span>}
+          </Button>
         </div>
       </div>
     </motion.div>
@@ -234,7 +265,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               }
             />
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip, i) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} priority={i < 3} profiles={profiles} />
               ))}
@@ -250,7 +281,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           ) : filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No flips from followed collectors" description="Your followed collectors haven't shared any flips yet." />
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}
@@ -264,7 +295,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
           {filteredFlips.length === 0 ? (
             <EmptyState icon={Package} title="No market activity" description="Check back later for market updates." />
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}
@@ -282,7 +313,7 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
               description="Express interest in flips to get updates."
             />
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
               {filteredFlips.map((flip) => (
                 <FlipCard key={flip.id} flip={flip} user={user} onInterest={onInterest} onClick={onFlipClick} profiles={profiles} />
               ))}

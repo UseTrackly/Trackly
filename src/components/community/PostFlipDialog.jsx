@@ -233,7 +233,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
           </div>
         )}
 
-        {!postedFlipId && <div className="space-y-4 py-2">
+        {!postedFlipId && <><div className="space-y-4 py-2">
           {/* Free tier warning */}
           {!user?.is_pro && (
             <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
@@ -468,8 +468,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
             )}
           </Button>
         </div>
-        </div>
-        }
+        </>}
       </DialogContent>
     </Dialog>
   );

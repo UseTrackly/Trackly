@@ -4,7 +4,6 @@ import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
 
 import PostFlipDialog from '@/components/community/PostFlipDialog';
 import FlipDetailsSheet from '@/components/community/FlipDetailsSheet';
@@ -69,22 +68,27 @@ export default function CommunityPage() {
 
   const interestMutation = useMutation({
     mutationFn: async (flipId) => {
-      const res = await base44.functions.invoke('toggleInterest', { flip_id: flipId });
-      return res.data;
+      const flip = communityFlips.find(f => f.id === flipId);
+      const interested = flip.interested_users || [];
+      const isInterested = interested.includes(user?.email);
+      const updated = isInterested
+        ? interested.filter(e => e !== user?.email)
+        : [...interested, user?.email];
+      await base44.entities.CommunityFlip.update(flipId, { interested_users: updated });
     },
     onMutate: async (flipId) => {
       await queryClient.cancelQueries({ queryKey: ['communityFlips'] });
       const previous = queryClient.getQueryData(['communityFlips']);
       queryClient.setQueryData(['communityFlips'], (old) =>
-        (Array.isArray(old) ? old : []).map(f => {
-          if (f.id !== flipId) return f;
-          const interested = f.interested_users || [];
-          const isInterested = interested.includes(user?.email);
+      (Array.isArray(old) ? old : []).map(f => {
+        if (f.id !== flipId) return f;
+        const interested = f.interested_users || [];
+        const isInterested = interested.includes(user?.email);
           return {
             ...f,
             interested_users: isInterested
-              ? interested.filter(e => e !== user?.email)
-              : [...interested, user?.email],
+            ? interested.filter(e => e !== user?.email)
+            : [...interested, user?.email],
           };
         })
       );
@@ -92,7 +96,6 @@ export default function CommunityPage() {
     },
     onError: (_err, _flipId, context) => {
       queryClient.setQueryData(['communityFlips'], context.previous);
-      toast.error('Failed to update interest');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });

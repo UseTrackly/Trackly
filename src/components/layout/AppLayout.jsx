@@ -6,7 +6,6 @@ import UnifiedHeader, { MessageProvider } from './UnifiedHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
 import { PageTabProvider, usePageTab } from '@/lib/PageTabContext';
 import PageTabBar from './PageTabBar';
-import BottomNav from './BottomNav';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const CalculatorPage = lazy(() => import('@/pages/CalculatorPage'));
@@ -121,7 +120,7 @@ function AppLayoutInner() {
           touchAction: 'pan-y',
         }}
       >
-        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '8px', paddingBottom: '24px' }}>
+        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '8px', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 0px) + 88px)' }}>
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;
@@ -152,8 +151,6 @@ function AppLayoutInner() {
         </div>
       </main>
 
-      {/* Bottom navigation — part of flex column, covers safe area */}
-      {!isFullscreen && <BottomNav />}
 
     </div>
   );

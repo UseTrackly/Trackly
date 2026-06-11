@@ -163,8 +163,17 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md mx-auto bg-card border-border max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
+      <DialogContent
+        className="max-w-md mx-auto bg-card border-border max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => {
+          // Prevent dialog from closing when file picker opens (browser blur)
+          const target = e.target;
+          if (target?.tagName === 'INPUT' && target?.type === 'file') {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="text-lg">
             {editingItem ? 'Edit Item' : 'Add to Inventory'}
@@ -196,9 +205,14 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-                  onChange={(e) => { try { setImageFile(e.target.files?.[0] || null); } catch(_) {} }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setImageFile(file);
+                    e.target.value = '';
+                  }}
                   className="hidden"
                   id="inventory-image"
+                  onClick={(e) => e.stopPropagation()}
                 />
                 {(imageFile || editingItem?.image_url) ? (
                   <div className="relative rounded-xl overflow-hidden border border-border">

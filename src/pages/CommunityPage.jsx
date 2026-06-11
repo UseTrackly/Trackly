@@ -18,6 +18,7 @@ export default function CommunityPage() {
   const [selectedFlip, setSelectedFlip] = useState(null);
   const [showInbox, setShowInbox] = useState(false);
   const [inboxContactEmail, setInboxContactEmail] = useState(null);
+  const [inboxFlipId, setInboxFlipId] = useState(null);
   const queryClient = useQueryClient();
   const location = useLocation();
 
@@ -25,6 +26,7 @@ export default function CommunityPage() {
   useEffect(() => {
     if (location.state?.openInbox) {
       setInboxContactEmail(location.state.contactEmail || null);
+      setInboxFlipId(location.state.flipId || null);
       setShowInbox(true);
       // Clear the state so back/forward nav doesn't re-trigger
       window.history.replaceState({}, '');
@@ -151,8 +153,9 @@ export default function CommunityPage() {
 
       <MessageInbox
         open={showInbox}
-        onClose={() => { setShowInbox(false); setInboxContactEmail(null); }}
+        onClose={() => { setShowInbox(false); setInboxContactEmail(null); setInboxFlipId(null); }}
         preselectRecipientEmail={inboxContactEmail}
+        preselectFlipId={inboxFlipId}
       />
     </div>
   );

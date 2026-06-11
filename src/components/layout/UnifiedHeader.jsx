@@ -87,7 +87,7 @@ export default function UnifiedHeader() {
       <header
         className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0"
         style={{
-          paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
       >
         <div className="flex items-center justify-between px-4 py-3">

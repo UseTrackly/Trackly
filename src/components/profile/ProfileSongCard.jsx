@@ -42,15 +42,20 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     if (audioRef.current) { audioRef.current.pause(); setPlaying(false); }
   }, [previewUrl]);
 
-  const togglePlay = (e) => {
+  const togglePlay = async (e) => {
     e.stopPropagation();
     if (!audioRef.current || !previewUrl) return;
     if (playing) {
       audioRef.current.pause();
       setPlaying(false);
     } else {
-      audioRef.current.play();
-      setPlaying(true);
+      try {
+        await audioRef.current.play();
+        setPlaying(true);
+      } catch (err) {
+        // Autoplay policy or network error — don't show playing state
+        console.warn('[ProfileSongCard] play() failed:', err?.message);
+      }
     }
   };
 

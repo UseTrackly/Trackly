@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Send, MessageCircle, Image, Loader2, X, Search, Package } from 'lucide-react';
@@ -160,7 +159,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
   });
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col bg-background" style={{ height: '100%', minHeight: 0 }}>
       {/* Header */}
       <div 
         className="flex items-center gap-3 px-4 border-b border-border shrink-0 bg-background/80 backdrop-blur-sm"
@@ -203,9 +202,12 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
         </div>
       )}
 
-      {/* Messages */}
-      <ScrollArea className="flex-1">
-        <div className="px-4 py-4 space-y-3">
+      {/* Messages — native scroll for iOS compatibility */}
+      <div
+        ref={(el) => { if (el) el._scrollEl = el; }}
+        className="flex-1 px-4 py-4 space-y-3 overflow-y-auto"
+        style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', minHeight: 0 }}
+      >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-4">
@@ -240,14 +242,13 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
             })
           )}
           <div ref={bottomRef} />
-        </div>
-      </ScrollArea>
+      </div>
 
       {/* Input */}
       {!isBlocked && (
         <div 
           className="flex items-center gap-2 px-4 border-t border-border bg-background shrink-0"
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)', paddingTop: '12px' }}
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)', paddingTop: '12px' }}
         >
           <Button 
             type="button" 
@@ -283,7 +284,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
   );
 }
 
-export default function MessageInbox({ open, onClose, preselectRecipientEmail }) {
+export default function MessageInbox({ open, onClose, preselectRecipientEmail, preselectFlipId }) {
   const [selectedThread, setSelectedThread] = useState(null);
   const [blockDialog, setBlockDialog] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -350,28 +351,36 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail })
 
   // Auto-select conversation when preselectRecipientEmail is provided
   useEffect(() => {
-    if (preselectRecipientEmail && open && user && threads.length >= 0 && !selectedThread) {
+    if (preselectRecipientEmail && open && user && !selectedThread) {
       const recipientEmail = preselectRecipientEmail;
-      // Find existing thread with this user
-      const existingThread = threads.find(t => t.otherEmail === recipientEmail);
+      // Find existing thread with this user for this flip (or any thread with this user)
+      const existingThread = preselectFlipId
+        ? threads.find(t => t.otherEmail === recipientEmail && t.flipId === preselectFlipId)
+          || threads.find(t => t.otherEmail === recipientEmail)
+        : threads.find(t => t.otherEmail === recipientEmail);
+
       if (existingThread) {
         setSelectedThread(existingThread);
       } else {
-        // No existing thread - create a placeholder thread for new conversation
+        // No existing thread — create a placeholder thread for new conversation
         const recipientProfile = allProfiles.find(p => p.user_email === recipientEmail);
+        const flip = preselectFlipId ? flips.find(f => f.id === preselectFlipId) : null;
         const newThread = {
           otherEmail: recipientEmail,
           otherName: recipientProfile?.display_name || recipientProfile?.username || 'User',
           otherUsername: recipientProfile?.username,
-          flipId: null,
+          flipId: preselectFlipId || null,
+          flipName: flip?.item_name,
+          flipPrice: flip?.price,
+          flipImage: flip?.image_url,
           messages: [],
           currentUserEmail: user.email,
-          avatarUrl: recipientProfile?.avatar_url
+          avatarUrl: recipientProfile?.avatar_url,
         };
         setSelectedThread(newThread);
       }
     }
-  }, [preselectRecipientEmail, open, user, threads.length, allProfiles]);
+  }, [preselectRecipientEmail, preselectFlipId, open, user, threads.length, allProfiles]);
 
   const confirmBlock = async () => {
     try {
@@ -387,7 +396,7 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail })
   return (
     <>
       <Sheet open={open} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-full max-w-md p-0 bg-background border-l border-border flex flex-col" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0px)' }}>
+        <SheetContent side="right" className="w-full max-w-md p-0 bg-background border-l border-border flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh' }}>
           <SheetHeader className="px-4 border-b border-border shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)', paddingBottom: '12px' }}>
             <div className="flex items-center justify-between mb-3">
               <SheetTitle className="text-2xl font-bold text-foreground">Messages</SheetTitle>

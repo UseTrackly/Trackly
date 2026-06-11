@@ -77,12 +77,24 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
 
   const interestMutation = useMutation({
     mutationFn: async () => {
-      const interested = flip.interested_users || [];
+      // Always fetch fresh data to avoid stale snapshot overwriting other users' interest
+      const freshFlips = queryClient.getQueryData(['communityFlips']) || [];
+      const freshFlip = freshFlips.find(f => f.id === flip.id) || flip;
+      const interested = freshFlip.interested_users || [];
       const isInterested = interested.includes(user?.email);
       const updated = isInterested
         ? interested.filter(e => e !== user?.email)
         : [...interested, user?.email];
       await base44.entities.CommunityFlip.update(flip.id, { interested_users: updated });
+      // Notify seller when adding interest (fire-and-forget)
+      if (!isInterested) {
+        base44.functions.invoke('notifyNewFlip', {
+          flip_id: flip.id,
+          interested_user_email: user?.email,
+          interested_user_name: user?.full_name || 'Someone',
+        }).catch(() => {});
+      }
+      return { wasInterested: isInterested };
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['communityFlips'] }),
   });

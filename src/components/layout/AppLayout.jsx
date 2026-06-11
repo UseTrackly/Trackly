@@ -73,7 +73,9 @@ function AppLayoutInner() {
         flexDirection: 'column',
         overflow: 'hidden',
         width: '100%',
-        height: '100%',
+        height: '100dvh',
+        // Ensure background fills the safe-area inset on notched iPhones
+        backgroundColor: 'hsl(var(--background))',
       }}
     >
       {/* Skip to content */}
@@ -118,7 +120,7 @@ function AppLayoutInner() {
           touchAction: 'pan-y',
         }}
       >
-        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '8px', paddingBottom: 'max(env(safe-area-inset-bottom, 24px), 24px)' }}>
+        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '8px', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 0px) + 88px)' }}>
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;

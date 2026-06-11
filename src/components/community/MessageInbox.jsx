@@ -159,7 +159,7 @@ function Conversation({ thread, currentUser, onBack, onBlock, blockedUsers, navi
   });
 
   return (
-    <div className="flex flex-col bg-background" style={{ height: '100%', minHeight: 0 }}>
+    <div className="flex flex-col bg-background" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Header */}
       <div 
         className="flex items-center gap-3 px-4 border-b border-border shrink-0 bg-background/80 backdrop-blur-sm"
@@ -457,6 +457,7 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
                 animate={{ opacity: 1, x: 0 }} 
                 exit={{ opacity: 0, x: 20 }} 
                 className="flex-1 flex flex-col"
+                style={{ minHeight: 0, overflow: 'hidden' }}
               >
                 <Conversation thread={selectedThread} currentUser={user} onBack={() => setSelectedThread(null)} onBlock={(email, name) => setBlockDialog({ email, name })} blockedUsers={blockedUsers} navigate={navigate} onClose={onClose} />
               </motion.div>

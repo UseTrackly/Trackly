@@ -221,11 +221,11 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="pt-3 pb-24">
+    <div className="pb-24">
       {/* Banner */}
       <div
         className="relative w-full"
-        style={{ height: 160 }}
+        style={{ height: 130 }}
       >
         {bannerUrl ? (
           <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />

@@ -19,14 +19,14 @@ const PAGE_TITLES = {
 export const MessageContext = createContext(null);
 
 export function MessageProvider({ children }) {
-  const [messageState, setMessageState] = useState({ open: false, recipientEmail: null });
+  const [messageState, setMessageState] = useState({ open: false, recipientEmail: null, flipId: null });
   
-  const openMessagesWithUser = (recipientEmail) => {
-    setMessageState({ open: true, recipientEmail });
+  const openMessagesWithUser = (recipientEmail, flipId = null) => {
+    setMessageState({ open: true, recipientEmail, flipId });
   };
   
   const closeMessages = () => {
-    setMessageState({ open: false, recipientEmail: null });
+    setMessageState({ open: false, recipientEmail: null, flipId: null });
   };
   
   return (
@@ -66,10 +66,7 @@ export default function UnifiedHeader() {
   // Handle navigation state from profile pages
   useEffect(() => {
     if (location.state?.openMessages && location.state?.prefillRecipient) {
-      console.log('[UnifiedHeader] Opening messages with prefill:', location.state.prefillRecipient);
-      setInboxPrefillUser(location.state.prefillRecipient);
-      openMessagesWithUser(location.state.prefillRecipient);
-      // Clear the state
+      openMessagesWithUser(location.state.prefillRecipient, location.state.flipId || null);
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state]);
@@ -137,7 +134,8 @@ export default function UnifiedHeader() {
       <MessageInbox 
         open={messageState.open} 
         onClose={closeMessages} 
-        preselectRecipientEmail={messageState.recipientEmail} 
+        preselectRecipientEmail={messageState.recipientEmail}
+        preselectFlipId={messageState.flipId}
       />
 
       <SideDrawer

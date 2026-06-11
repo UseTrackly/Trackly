@@ -77,26 +77,32 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
 
   const interestMutation = useMutation({
     mutationFn: async () => {
-      // Always fetch fresh data to avoid stale snapshot overwriting other users' interest
-      const freshFlips = queryClient.getQueryData(['communityFlips']) || [];
-      const freshFlip = freshFlips.find(f => f.id === flip.id) || flip;
-      const interested = freshFlip.interested_users || [];
-      const isInterested = interested.includes(user?.email);
-      const updated = isInterested
-        ? interested.filter(e => e !== user?.email)
-        : [...interested, user?.email];
-      await base44.entities.CommunityFlip.update(flip.id, { interested_users: updated });
-      // Notify seller when adding interest (fire-and-forget)
-      if (!isInterested) {
-        base44.functions.invoke('notifyNewFlip', {
-          flip_id: flip.id,
-          interested_user_email: user?.email,
-          interested_user_name: user?.full_name || 'Someone',
-        }).catch(() => {});
-      }
-      return { wasInterested: isInterested };
+      const res = await base44.functions.invoke('toggleInterest', { flip_id: flip.id });
+      return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['communityFlips'] }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['communityFlips'] });
+      const previous = queryClient.getQueryData(['communityFlips']);
+      queryClient.setQueryData(['communityFlips'], (old) =>
+        (Array.isArray(old) ? old : []).map(f => {
+          if (f.id !== flip.id) return f;
+          const interested = f.interested_users || [];
+          const isInterested = interested.includes(user?.email);
+          return {
+            ...f,
+            interested_users: isInterested
+              ? interested.filter(e => e !== user?.email)
+              : [...interested, user?.email],
+          };
+        })
+      );
+      return { previous };
+    },
+    onError: (_err, _v, context) => {
+      queryClient.setQueryData(['communityFlips'], context.previous);
+      toast.error('Failed to update interest');
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['communityFlips'] }),
   });
 
   const handleContactSeller = () => {
@@ -153,9 +159,13 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
 
   if (!flip) return null;
 
+  // Always read interest state from the live query cache, not the stale prop
+  const communityFlipsCache = queryClient.getQueryData(['communityFlips']) || [];
+  const liveFlip = communityFlipsCache.find(f => f.id === flip.id) || flip;
+
   const isMyPost = flip.posted_by === user?.email;
-  const isInterested = flip.interested_users?.includes(user?.email);
-  const interestCount = flip.interested_users?.length || 0;
+  const isInterested = liveFlip.interested_users?.includes(user?.email);
+  const interestCount = liveFlip.interested_users?.length || 0;
   const meta = CATEGORY_META[flip.category] || CATEGORY_META.other;
   const CategoryIcon = meta.icon;
 

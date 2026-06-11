@@ -1,27 +1,29 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * Proxies Deezer/iTunes audio preview URLs to bypass CORS.
- * Returns raw audio bytes with correct Content-Type so the browser
- * can use the response URL as an audio src directly.
+ * Proxies audio preview URLs to bypass CORS.
+ * Returns base64-encoded audio data as JSON so it works through the SDK invoke wrapper.
  */
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me();
-  if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  if (!user) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   let body;
-  try { body = await req.json(); } catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: { 'Content-Type': 'application/json' } }); }
+  try { body = await req.json(); } catch {
+    return Response.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
 
   const { url } = body;
   if (!url || typeof url !== 'string') {
-    return new Response(JSON.stringify({ error: 'url is required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    return Response.json({ error: 'url is required' }, { status: 400 });
   }
 
   const allowed = ['dzcdn.net', 'audio-ssl.itunes.apple.com', 'apreview.itunes.apple.com', 'deezer.com', 'cdnt-preview'];
-  const isAllowed = allowed.some(d => url.includes(d));
-  if (!isAllowed) {
-    return new Response(JSON.stringify({ error: 'Domain not allowed' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  if (!allowed.some(d => url.includes(d))) {
+    return Response.json({ error: 'Domain not allowed' }, { status: 403 });
   }
 
   const audioRes = await fetch(url, {
@@ -29,18 +31,19 @@ Deno.serve(async (req) => {
   });
 
   if (!audioRes.ok) {
-    return new Response(JSON.stringify({ error: `Failed to fetch audio: ${audioRes.status}` }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    return Response.json({ error: `Upstream fetch failed: ${audioRes.status}` }, { status: 502 });
   }
 
   const buffer = await audioRes.arrayBuffer();
   const contentType = audioRes.headers.get('content-type') || 'audio/mpeg';
 
-  return new Response(buffer, {
-    status: 200,
-    headers: {
-      'Content-Type': contentType,
-      'Content-Length': buffer.byteLength.toString(),
-      'Cache-Control': 'private, max-age=300',
-    },
-  });
+  // Convert to base64 using Deno-compatible approach
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+
+  return Response.json({ base64, contentType });
 });

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Music2, Play, Pause, Pencil, Lock, Loader2 } from 'lucide-react';
-import { base44, nativeStorage } from '@/api/base44Client';
+import { base44 } from '@/api/base44Client';
 
 // Equalizer bars animation (CSS-driven)
 function EqualizerBars() {
@@ -36,7 +36,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
   const displayTitle = songName?.includes(' – ') ? songName.split(' – ')[0] : songName;
   const displayArtist = songArtist || (songName?.includes(' – ') ? songName.split(' – ')[1] : null);
 
-  // Fetch proxied blob URL when previewUrl changes (bypasses CORS on Deezer CDN)
+  // Fetch a fresh preview URL (Deezer URLs expire), then proxy it to bypass CORS
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) { audio.pause(); }
@@ -45,61 +45,60 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     setProxyUrl(null);
     setDebugMsg(null);
 
-    if (!previewUrl) {
-      setDebugMsg('No preview URL');
+    // Need at least a song name to search
+    const searchQuery = songName || null;
+    if (!searchQuery) {
+      setDebugMsg('No song name');
       return;
     }
 
-    setDebugMsg('Fetching audio…');
+    setDebugMsg('Loading…');
     let cancelled = false;
     let objectUrl = null;
 
     (async () => {
       try {
-        // Get function base URL from the SDK and call proxy directly with fetch
-        // so we receive raw bytes instead of base64 JSON
-        const token = await nativeStorage.get();
-        const appId = '69bfd92e3db7d48eec6c8062';
-        const fnUrl = `https://appfunctions.base44.com/api/v3/apps/${appId}/functions/proxyAudio`;
+        // Step 1: get a fresh signed preview URL from Deezer
+        let freshUrl = previewUrl; // try stored URL first
+        const searchRes = await base44.functions.invoke('findSongPreview', { query: searchQuery });
+        if (!cancelled) {
+          const freshResult = searchRes.data?.results?.[0];
+          if (freshResult?.preview_url) {
+            freshUrl = freshResult.preview_url;
+          }
+        }
+        if (cancelled) return;
+        if (!freshUrl) { setDebugMsg('No preview available'); return; }
 
-        const res = await fetch(fnUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ url: previewUrl }),
-        });
-
+        // Step 2: proxy the audio to bypass CORS
+        const proxyRes = await base44.functions.invoke('proxyAudio', { url: freshUrl });
         if (cancelled) return;
 
-        if (!res.ok) {
-          const text = await res.text();
-          setDebugMsg(`Proxy HTTP ${res.status}: ${text.slice(0, 80)}`);
+        const { base64, contentType, error } = proxyRes.data || {};
+        if (error || !base64) {
+          setDebugMsg(`Proxy error: ${error || 'no audio data'}`);
           return;
         }
 
-        const contentType = res.headers.get('content-type') || 'audio/mpeg';
-        setDebugMsg(`Proxy OK — ${contentType} — reading bytes…`);
-
-        const buffer = await res.arrayBuffer();
-        if (cancelled) return;
-
-        const blob = new Blob([buffer], { type: contentType });
+        // Step 3: decode base64 → Blob → Object URL
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: contentType || 'audio/mpeg' });
         objectUrl = URL.createObjectURL(blob);
+
+        if (cancelled) { URL.revokeObjectURL(objectUrl); return; }
+
         setProxyUrl(objectUrl);
-        setDebugMsg(`Blob URL ready (${Math.round(buffer.byteLength / 1024)}KB) — setting src…`);
+        setDebugMsg(`Ready`);
 
         if (audioRef.current) {
           audioRef.current.src = objectUrl;
           audioRef.current.load();
-          setDebugMsg(`src set — ready to play`);
-        } else {
-          setDebugMsg('audioRef is null after blob!');
         }
       } catch (err) {
         if (cancelled) return;
-        setDebugMsg(`Fetch failed: ${err?.message || 'unknown'}`);
+        setDebugMsg(`Failed: ${err?.message || 'unknown'}`);
       }
     })();
 
@@ -107,7 +106,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [previewUrl]);
+  }, [songName]);
 
   useEffect(() => {
     return () => {

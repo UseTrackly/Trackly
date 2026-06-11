@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Music2, Play, Pause, Pencil, Lock, Loader2 } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 // Equalizer bars animation (CSS-driven)
 function EqualizerBars() {
@@ -28,31 +29,59 @@ function EqualizerBars() {
 export default function ProfileSongCard({ songName, songArtist, previewUrl, artworkUrl, isPro = false, onEdit }) {
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [proxyUrl, setProxyUrl] = useState(null);
   const audioRef = useRef(null);
 
   const displayTitle = songName?.includes(' – ') ? songName.split(' – ')[0] : songName;
   const displayArtist = songArtist || (songName?.includes(' – ') ? songName.split(' – ')[1] : null);
 
-  // Keep audio src in sync with previewUrl
+  // Fetch proxied blob URL when previewUrl changes (bypasses CORS on Deezer CDN)
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
+    if (audio) { audio.pause(); }
     setPlaying(false);
     setLoading(false);
-    if (previewUrl) {
-      audio.src = previewUrl;
-      audio.load();
-    } else {
-      audio.src = '';
-    }
+    setProxyUrl(null);
+
+    if (!previewUrl) return;
+
+    let cancelled = false;
+    base44.functions.invoke('proxyAudio', { url: previewUrl })
+      .then((res) => {
+        if (cancelled) return;
+        const { base64, contentType } = res.data || {};
+        if (!base64) { console.warn('[ProfileSongCard] no base64 in response'); return; }
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const blob = new Blob([bytes], { type: contentType || 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+        setProxyUrl(url);
+        if (audioRef.current) {
+          audioRef.current.src = url;
+          audioRef.current.load();
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn('[ProfileSongCard] proxy fetch failed:', err?.message);
+        // Fallback: try direct URL
+        setProxyUrl(previewUrl);
+        if (audioRef.current) {
+          audioRef.current.src = previewUrl;
+          audioRef.current.load();
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [previewUrl]);
 
-  // Cleanup on unmount
+  // Cleanup blob URLs and audio on unmount
   useEffect(() => {
     return () => {
       const audio = audioRef.current;
       if (audio) { audio.pause(); audio.src = ''; }
+      if (proxyUrl && proxyUrl.startsWith('blob:')) URL.revokeObjectURL(proxyUrl);
     };
   }, []);
 
@@ -62,16 +91,10 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     const audio = audioRef.current;
     if (!audio) return;
 
-    console.log('[ProfileSongCard] togglePlay — playing:', playing, 'src:', audio.src, 'previewUrl:', previewUrl);
-
     if (playing) {
       audio.pause();
       setPlaying(false);
     } else {
-      // Ensure src is set (iOS: must be synchronous before play())
-      if (!audio.src || audio.src === window.location.href) {
-        audio.src = previewUrl;
-      }
       setLoading(true);
       const promise = audio.play();
       if (promise !== undefined) {
@@ -156,9 +179,10 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         {previewUrl && (
           <button
             onClick={togglePlay}
-            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-secondary hover:bg-secondary/80 transition-colors active:scale-95"
+            disabled={!proxyUrl && !playing}
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-secondary hover:bg-secondary/80 transition-colors active:scale-95 disabled:opacity-40"
           >
-            {loading
+            {(!proxyUrl && !playing) || loading
               ? <Loader2 className="w-3.5 h-3.5 text-foreground animate-spin" />
               : playing
                 ? <Pause className="w-3.5 h-3.5 text-foreground" />

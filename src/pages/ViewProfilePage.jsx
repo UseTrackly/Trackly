@@ -206,14 +206,14 @@ export default function ViewProfilePage() {
   return (
     <div className="pb-24">
       {/* Banner */}
-      <div className="relative w-full" style={{ height: 160 }}>
+      <div className="relative w-full" style={{ height: bannerUrl ? 100 : 56 }}>
         {bannerUrl ? (
           <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
         ) : (
           <div
             className="w-full h-full"
             style={{
-              background: 'linear-gradient(135deg, hsl(var(--primary) / 0.25) 0%, hsl(var(--primary) / 0.05) 100%)',
+              background: 'linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.03) 100%)',
             }}
           />
         )}

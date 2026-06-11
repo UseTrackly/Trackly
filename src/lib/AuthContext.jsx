@@ -1,8 +1,23 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import { base44, reinitializeBase44Token, ensureTokenSynced, nativeStorage } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { initRevenueCat } from '@/lib/iap';
+
+const isCapacitorNative = () => !!(window?.Capacitor?.isNativePlatform?.());
+
+// Extract access_token from a URL string (query param or hash fragment)
+const extractToken = (url) => {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    const qToken = urlObj.searchParams.get('access_token');
+    if (qToken) return qToken;
+    const hash = urlObj.hash.startsWith('#') ? urlObj.hash.slice(1) : urlObj.hash;
+    return new URLSearchParams(hash).get('access_token') || null;
+  } catch {
+    return null;
+  }
+};
 
 const AuthContext = createContext();
 
@@ -10,136 +25,121 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [showNativeAuth, setShowNativeAuth] = useState(false);
+  const checkingRef = useRef(false);
 
   useEffect(() => {
     checkAppState();
   }, []);
 
+  // Web-only: re-check on tab visibility change (OAuth redirect flow)
+  useEffect(() => {
+    if (isCapacitorNative()) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && !isAuthenticated) {
+        checkAppState();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isAuthenticated]);
+
   const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
-      try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            console.log('Auth required - redirecting to login');
-            base44.auth.redirectToLogin(window.location.href);
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else if (appError.status === 401) {
-          console.log('Unauthorized - redirecting to login');
-          base44.auth.redirectToLogin(window.location.href);
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
+    if (checkingRef.current) return;
+    checkingRef.current = true;
+    setIsLoadingAuth(true);
+    setAuthError(null);
+
+    const safetyTimer = setTimeout(() => {
+      if (checkingRef.current) {
         setIsLoadingAuth(false);
+        setIsAuthenticated(false);
+        setUser(null);
+        checkingRef.current = false;
       }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
+    }, 2500);
 
-  const checkUserAuth = async () => {
     try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      // Initialize RevenueCat with the authenticated user's ID
-      await initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
-      setIsLoadingAuth(false);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      
-      // If user auth fails, redirect to login
-      if (error.status === 401 || error.status === 403) {
-        base44.auth.redirectToLogin(window.location.href);
+      // Pick up token from URL (web redirect flow)
+      const urlToken = extractToken(window.location.href);
+      if (urlToken) {
+        await reinitializeBase44Token(urlToken);
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
+
+      // Read from native storage (falls back to localStorage on web)
+      const token = await nativeStorage.get();
+      if (!token) {
+        setIsAuthenticated(false);
+        setUser(null);
+        if (isCapacitorNative()) {
+          setShowNativeAuth(true);
+        }
+        return;
+      }
+
+      await ensureTokenSynced();
+
+      try {
+        const currentUser = await base44.auth.me();
+        setUser(currentUser);
+        setIsAuthenticated(true);
+        setShowNativeAuth(false);
+        // RC_PUBLIC_KEY is the publishable (client) SDK key — not a secret.
+      initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', currentUser.id);
+      } catch {
+        setIsAuthenticated(false);
+        setUser(null);
+        await nativeStorage.remove();
+      }
+    } finally {
+      clearTimeout(safetyTimer);
+      setIsLoadingAuth(false);
+      checkingRef.current = false;
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const logout = async () => {
     setUser(null);
     setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
+    await nativeStorage.remove();
+    if (!isCapacitorNative()) {
+      base44.auth.logout('/');
     }
   };
 
-  const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+  const onNativeAuthSuccess = async ({ token, user: loggedInUser }) => {
+    await reinitializeBase44Token(token);
+    setUser(loggedInUser);
+    setIsAuthenticated(true);
+    setShowNativeAuth(false);
+    setAuthError(null);
+    initRevenueCat('appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ', loggedInUser.id);
+  };
+
+  const navigateToLogin = async () => {
+    if (isCapacitorNative()) {
+      setShowNativeAuth(true);
+    } else {
+      const callbackUrl = appParams.appBaseUrl || import.meta.env.VITE_BASE44_APP_BASE_URL || window.location.origin;
+      base44.auth.redirectToLogin(callbackUrl);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
       isLoadingAuth,
-      isLoadingPublicSettings,
+      isLoadingPublicSettings: false,
       authError,
-      appPublicSettings,
+      showNativeAuth,
+      setShowNativeAuth,
+      onNativeAuthSuccess,
       logout,
       navigateToLogin,
-      checkAppState
+      checkAppState,
     }}>
       {children}
     </AuthContext.Provider>
@@ -148,8 +148,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

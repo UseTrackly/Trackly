@@ -1,0 +1,91 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user (unique key)"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "User's chosen display name"
+    },
+    "username": {
+      "type": "string",
+      "description": "User's chosen username"
+    },
+    "bio": {
+      "type": "string",
+      "description": "User bio"
+    },
+    "location": {
+      "type": "string",
+      "description": "User location"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Profile picture URL"
+    },
+    "banner_url": {
+      "type": "string",
+      "description": "Profile header/banner image URL"
+    },
+    "song_name": {
+      "type": "string",
+      "description": "Song title displayed on profile"
+    },
+    "song_artist": {
+      "type": "string",
+      "description": "Artist name for profile song"
+    },
+    "song_preview_url": {
+      "type": "string",
+      "description": "30-second audio preview URL (from iTunes API)"
+    },
+    "song_artwork_url": {
+      "type": "string",
+      "description": "Album artwork URL for profile song"
+    },
+    "followers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of followers"
+    },
+    "following": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails this user follows"
+    },
+    "blocked_users": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Blocked user emails"
+    },
+    "profit_visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private"
+      ],
+      "default": "public",
+      "description": "Who can see the user's net profit"
+    }
+  },
+  "required": [
+    "user_email"
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": {
+      "data.user_email": "{{user.email}}"
+    }
+  }
+}

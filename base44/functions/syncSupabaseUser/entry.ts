@@ -3,7 +3,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
+
+    // Validate shared secret so only Supabase can trigger this webhook.
+    // Set SUPABASE_WEBHOOK_SECRET in your environment variables and configure
+    // the same value in your Supabase Auth webhook headers.
+    const webhookSecret = Deno.env.get('SUPABASE_WEBHOOK_SECRET');
+    if (webhookSecret) {
+      const providedSecret = req.headers.get('x-webhook-secret') || req.headers.get('authorization')?.replace('Bearer ', '');
+      if (providedSecret !== webhookSecret) {
+        return Response.json({ error: 'Unauthorized webhook' }, { status: 401 });
+      }
+    } else {
+      // If secret not configured yet, log a warning but do not hard-block
+      // (allows existing deploys to keep working while secret is being set).
+      console.warn('[syncSupabaseUser] SUPABASE_WEBHOOK_SECRET not set — webhook is unprotected!');
+    }
+
     // Parse webhook payload from Supabase
     const payload = await req.json();
     

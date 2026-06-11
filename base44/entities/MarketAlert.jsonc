@@ -1,0 +1,71 @@
+{
+  "name": "MarketAlert",
+  "type": "object",
+  "properties": {
+    "item_name": {
+      "type": "string",
+      "description": "Item being tracked"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "cards",
+        "sneakers",
+        "clothing",
+        "electronics",
+        "collectibles",
+        "games",
+        "technology",
+        "vintage",
+        "other"
+      ],
+      "description": "Item category"
+    },
+    "target_price": {
+      "type": "number",
+      "description": "Alert when price drops below this"
+    },
+    "current_market_price": {
+      "type": "number",
+      "description": "Latest market price from AI scan"
+    },
+    "last_scanned": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last AI scan timestamp"
+    },
+    "platform": {
+      "type": "string",
+      "description": "Platform where price was found"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "User who set the alert"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Alert active status"
+    }
+  },
+  "required": [
+    "item_name",
+    "category",
+    "target_price",
+    "user_email"
+  ],
+  "rls": {
+    "create": {
+      "data.user_email": "{{user.email}}"
+    },
+    "read": {
+      "data.user_email": "{{user.email}}"
+    },
+    "update": {
+      "data.user_email": "{{user.email}}"
+    },
+    "delete": {
+      "data.user_email": "{{user.email}}"
+    }
+  }
+}

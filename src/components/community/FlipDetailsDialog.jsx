@@ -10,9 +10,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, MapPin, Sparkles, Loader2 } from 'lucide-react';
+import { Send, MapPin, Sparkles, Loader2, Ban } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import ProfileLink from '@/components/shared/ProfileLink';
 
 export default function FlipDetailsDialog({ flip, open, onClose }) {
   const [messageText, setMessageText] = useState('');
@@ -24,6 +25,24 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
     queryKey: ['me'],
     queryFn: () => base44.auth.me(),
   });
+
+  // Fetch poster's profile for display name
+  const { data: posterProfile } = useQuery({
+    queryKey: ['posterProfile', flip?.posted_by],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: flip?.posted_by }, '-created_date', 1).then(r => r?.[0] ?? null),
+    enabled: !!flip?.posted_by && open,
+  });
+  const posterDisplayName = posterProfile?.display_name || posterProfile?.username || flip.posted_by_name;
+  const posterUsername = posterProfile?.username;
+
+  // Check if poster has blocked the current user (or current user blocked poster)
+  const { data: myProfileRaw = [] } = useQuery({
+    queryKey: ['myProfile'],
+    queryFn: () => base44.entities.UserProfile.filter({ user_email: user?.email }, '-created_date', 1),
+    enabled: !!user && open,
+  });
+  const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
+  const isBlocked = blockedUsers.includes(flip.posted_by);
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', flip.id],
@@ -95,7 +114,12 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-2xl font-bold text-primary">${flip.price?.toFixed(2)}</p>
-                <p className="text-sm text-muted-foreground">Posted by {flip.posted_by_name}</p>
+                <ProfileLink
+                  userEmail={flip.posted_by}
+                  username={posterUsername}
+                  userName={posterDisplayName}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                />
               </div>
               <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
                 {flip.category}
@@ -115,7 +139,15 @@ export default function FlipDetailsDialog({ flip, open, onClose }) {
             </div>
 
             {/* Messages */}
-            {!isMyPost && (
+            {!isMyPost && isBlocked && (
+              <div className="border-t border-border pt-3">
+                <div className="flex items-center gap-2 py-4 text-muted-foreground text-sm">
+                  <Ban className="w-4 h-4 text-destructive" />
+                  You have blocked this user.
+                </div>
+              </div>
+            )}
+            {!isMyPost && !isBlocked && (
               <>
                 <div className="border-t border-border pt-3">
                   <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">

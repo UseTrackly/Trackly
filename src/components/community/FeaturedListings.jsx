@@ -40,7 +40,8 @@ export default function FeaturedListings() {
     },
   });
 
-  const filteredListings = listings
+  const safeListings = Array.isArray(listings) ? listings : [];
+  const filteredListings = safeListings
     .filter(l => categoryFilter === 'all' || l.category === categoryFilter)
     .sort((a, b) => (b.interested_users?.length || 0) - (a.interested_users?.length || 0));
 

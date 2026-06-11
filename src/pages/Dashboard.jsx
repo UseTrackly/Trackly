@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, TrendingUp, Hash, AlertTriangle, Calculator, ArrowRight, MessageSquare, Users, User as UserIcon } from 'lucide-react';
+import { DollarSign, TrendingUp, Hash, AlertTriangle, Calculator, ArrowRight, MessageSquare, Users, User as UserIcon, ImageIcon } from 'lucide-react';
 import { formatCurrency } from '@/lib/currencyFormatter';
 import StatCard from '@/components/shared/StatCard';
 import EmptyState from '@/components/shared/EmptyState';
 import FlipCard from '@/components/history/FlipCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, isToday, subDays, isAfter } from 'date-fns';
+import { format, isToday, startOfWeek, isAfter, parseISO } from 'date-fns';
 import AIAssistant from '@/components/ai/AIAssistant';
 import usePullToRefresh from '@/hooks/usePullToRefresh';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,37 +21,73 @@ import ProUpgradeCard from '@/components/upgrade/ProUpgradeCard';
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('today');
   const queryClient = useQueryClient();
-  const handleRefresh = useCallback(() => queryClient.invalidateQueries(), [queryClient]);
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries();
+    await queryClient.refetchQueries({ queryKey: ['flips'] });
+  }, [queryClient]);
   const { pullDistance, isRefreshing, onTouchStart, onTouchMove, onTouchEnd } = usePullToRefresh(handleRefresh);
   const navigate = useNavigate();
 
-  const { data: allFlips = [], isLoading } = useQuery({
+  const { isAuthenticated } = useAuth();
+
+  const { data: allFlipsRaw, isLoading } = useQuery({
     queryKey: ['flips'],
     queryFn: () => base44.entities.Flip.list('-created_date', 500),
+    enabled: isAuthenticated,
+    initialData: [],
   });
+  const allFlips = Array.isArray(allFlipsRaw) ? allFlipsRaw : [];
 
   const { data: user } = useQuery({
     queryKey: ['me'],
     queryFn: () => base44.auth.me(),
+    enabled: isAuthenticated,
   });
 
-  const { data: communityFlips = [] } = useQuery({
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', user?.email],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('profileManager', { action: 'get' });
+      return res.data?.profile ?? null;
+    },
+    enabled: !!user?.email,
+    staleTime: 30000,
+  });
+
+  const { data: communityFlipsRaw } = useQuery({
     queryKey: ['communityFlips'],
     queryFn: () => base44.entities.CommunityFlip.list('-created_date', 10),
+    initialData: [],
+  });
+  const communityFlips = Array.isArray(communityFlipsRaw) ? communityFlipsRaw : [];
+
+  const { data: communityProfiles = [] } = useQuery({
+    queryKey: ['allProfiles'],
+    queryFn: () => base44.entities.UserProfile.list('-created_date', 500),
+    initialData: [],
+    enabled: communityFlips.length > 0,
   });
 
   const todayFlips = useMemo(() => {
     return allFlips.filter(f => {
-      const date = f.date_sold || f.created_date;
-      return date && isToday(new Date(date));
+      // date_sold is a YYYY-MM-DD string; created_date is an ISO timestamp
+      // Use date_sold when available so the flip appears on the day the user sold it
+      const raw = f.date_sold || f.created_date;
+      if (!raw) return false;
+      // Parse YYYY-MM-DD as local date to avoid UTC-offset shifting the day
+      const date = raw.includes('T') ? new Date(raw) : parseISO(raw);
+      return isToday(date);
     });
   }, [allFlips]);
 
-  const last7DaysFlips = useMemo(() => {
-    const cutoff = subDays(new Date(), 7);
+  // Week = current Mon 00:00 device time → now (resets every Monday midnight)
+  const thisWeekFlips = useMemo(() => {
+    const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // 1 = Monday
     return allFlips.filter(f => {
-      const date = f.date_sold || f.created_date;
-      return date && isAfter(new Date(date), cutoff);
+      const raw = f.date_sold || f.created_date;
+      if (!raw) return false;
+      const date = raw.includes('T') ? new Date(raw) : parseISO(raw);
+      return isAfter(date, weekStart) || date.getTime() === weekStart.getTime();
     });
   }, [allFlips]);
 
@@ -70,23 +107,24 @@ export default function Dashboard() {
   }, [todayFlips]);
 
   const weekStats = useMemo(() => {
-    const totalProfit = last7DaysFlips.reduce((s, f) => s + (f.net_profit || 0), 0);
-    const avgRoi = last7DaysFlips.length > 0
-      ? last7DaysFlips.reduce((s, f) => s + (f.roi || 0), 0) / last7DaysFlips.length
+    const totalProfit = thisWeekFlips.reduce((s, f) => s + (f.net_profit || 0), 0);
+    const avgRoi = thisWeekFlips.length > 0
+      ? thisWeekFlips.reduce((s, f) => s + (f.roi || 0), 0) / thisWeekFlips.length
       : 0;
 
     return {
-      totalFlips: last7DaysFlips.length,
+      totalFlips: thisWeekFlips.length,
       totalProfit: Math.round(totalProfit * 100) / 100,
       avgRoi: Math.round(avgRoi * 10) / 10,
     };
-  }, [last7DaysFlips]);
+  }, [thisWeekFlips]);
 
-  const firstName = user?.full_name?.split(' ')[0] || 'Reseller';
+  const displayName = userProfile?.display_name || user?.full_name || '';
+  const firstName = displayName.split(' ')[0] || 'Reseller';
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -94,7 +132,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="px-3 py-4 space-y-4"
+      className="px-3 pt-3 pb-24 space-y-4"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -147,8 +185,8 @@ export default function Dashboard() {
             allFlips.length === 0 ? (
               <EmptyState
                 icon={Calculator}
-                title="No flips yet"
-                description="Run your first calculation and save it to start tracking your profit."
+                title="Start tracking your first flip"
+                description="Track profits from cards, clothing, electronics, collectibles, and more."
                 action={
                   <Button onClick={() => navigate('/calculator')} className="bg-primary hover:bg-primary/90">
                     Open Calculator <ArrowRight className="w-4 h-4 ml-2" />
@@ -213,7 +251,7 @@ export default function Dashboard() {
 
         {/* Week Tab */}
         <TabsContent value="week" className="space-y-4">
-          {last7DaysFlips.length === 0 ? (
+          {thisWeekFlips.length === 0 ? (
             <EmptyState
               icon={TrendingUp}
               title="No activity this week"
@@ -238,9 +276,9 @@ export default function Dashboard() {
 
               <div className="space-y-3">
                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Last 7 Days
+                  This Week (Mon–Today)
                 </h3>
-                {last7DaysFlips.map((flip, i) => (
+                {thisWeekFlips.map((flip, i) => (
                   <FlipCard key={flip.id} flip={flip} index={i} currency={user?.currency} />
                 ))}
               </div>
@@ -254,7 +292,7 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Community Listings Scroll */}
+      {/* Community Recent Flips */}
       {communityFlips.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -264,7 +302,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">Community Flips</h3>
+              <h3 className="text-sm font-semibold">Community Recent Flips</h3>
             </div>
             <Button
               variant="ghost"
@@ -277,29 +315,40 @@ export default function Dashboard() {
           </div>
           <ScrollArea className="w-full">
             <div className="flex gap-3 pb-2">
-              {communityFlips.map((flip) => (
-                <div
-                  key={flip.id}
-                  onClick={() => navigate('/community')}
-                  className="flex-shrink-0 w-48 bg-card border border-border rounded-xl p-3 cursor-pointer hover:border-primary/50 transition-colors"
-                >
-                  {flip.image_url && (
-                    <img
-                      src={flip.image_url}
-                      alt={flip.item_name}
-                      className="w-full h-28 object-cover rounded-lg mb-2"
-                    />
-                  )}
-                  <h4 className="font-semibold text-sm line-clamp-1 mb-1">{flip.item_name}</h4>
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{flip.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary capitalize">
-                      {flip.category}
-                    </span>
-                    <span className="text-sm font-bold text-primary">${flip.price}</span>
+              {communityFlips.map((flip) => {
+                const posterProfile = communityProfiles.find(p => p.user_email === flip.posted_by);
+                const posterName = posterProfile?.display_name || posterProfile?.username || 'User';
+                return (
+                  <div
+                    key={flip.id}
+                    onClick={() => navigate('/community')}
+                    className="flex-shrink-0 w-44 bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
+                  >
+                    {/* Thumbnail — always shown */}
+                    {flip.image_url ? (
+                      <img
+                        src={flip.image_url}
+                        alt={flip.item_name}
+                        className="w-full h-28 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-28 bg-secondary flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <div className="p-2.5">
+                      <h4 className="font-semibold text-xs line-clamp-1 mb-1">{flip.item_name}</h4>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary capitalize">
+                          {flip.category}
+                        </span>
+                        <span className="text-xs font-bold text-primary">${flip.price}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">by {posterName}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         </motion.div>

@@ -1,0 +1,118 @@
+{
+  "name": "SportsBet",
+  "type": "object",
+  "properties": {
+    "sport": {
+      "type": "string",
+      "enum": [
+        "football",
+        "basketball",
+        "baseball",
+        "hockey",
+        "soccer",
+        "golf",
+        "mma",
+        "boxing",
+        "tennis",
+        "other"
+      ],
+      "description": "Sport being bet on"
+    },
+    "bet_type": {
+      "type": "string",
+      "enum": [
+        "moneyline",
+        "spread",
+        "over_under",
+        "parlay",
+        "prop",
+        "futures",
+        "live",
+        "other"
+      ],
+      "description": "Type of bet"
+    },
+    "description": {
+      "type": "string",
+      "description": "What the bet is on (teams, player, etc.)"
+    },
+    "sportsbook": {
+      "type": "string",
+      "enum": [
+        "hardrock",
+        "prizepicks",
+        "draftkings",
+        "fanduel",
+        "betmgm",
+        "caesars",
+        "pointsbet",
+        "barstool",
+        "bet365",
+        "bovada",
+        "other"
+      ],
+      "description": "Sportsbook used"
+    },
+    "wager": {
+      "type": "number",
+      "description": "Amount wagered"
+    },
+    "odds": {
+      "type": "string",
+      "description": "Odds (e.g. -110, +250)"
+    },
+    "potential_payout": {
+      "type": "number",
+      "description": "Potential payout if bet wins"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "win",
+        "loss",
+        "push",
+        "pending"
+      ],
+      "default": "pending",
+      "description": "Outcome of the bet"
+    },
+    "payout": {
+      "type": "number",
+      "description": "Actual payout received (0 if lost)"
+    },
+    "net_profit": {
+      "type": "number",
+      "description": "Net profit or loss"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the bet"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "sport",
+    "bet_type",
+    "wager",
+    "date",
+    "result"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

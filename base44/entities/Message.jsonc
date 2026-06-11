@@ -1,0 +1,76 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "community_flip_id": {
+      "type": "string",
+      "description": "ID of the community flip being discussed"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of message sender"
+    },
+    "sender_name": {
+      "type": "string",
+      "description": "Name of message sender"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Email of message recipient"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Optional image attachment URL"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether message has been read"
+    }
+  },
+  "required": [
+    "community_flip_id",
+    "sender_email",
+    "sender_name",
+    "recipient_email"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "data.sender_email": "{{user.email}}"
+        },
+        {
+          "data.recipient_email": "{{user.email}}"
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.sender_email": "{{user.email}}"
+        },
+        {
+          "data.recipient_email": "{{user.email}}"
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.sender_email": "{{user.email}}"
+        },
+        {
+          "data.recipient_email": "{{user.email}}"
+        }
+      ]
+    }
+  }
+}

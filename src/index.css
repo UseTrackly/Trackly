@@ -91,8 +91,14 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;
     touch-action: pan-y;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    /* Extend background color into safe-area insets to eliminate black bars */
+    background-color: hsl(var(--background));
   }
 }
 
@@ -109,13 +115,6 @@
   li:hover {
     background-color: inherit !important;
     background: inherit !important;
-  }
-  /* Re-enable for actual buttons and links */
-  button:active,
-  a:active,
-  [role="button"]:active {
-    background-color: unset !important;
-    background: unset !important;
   }
 }
 

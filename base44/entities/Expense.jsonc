@@ -1,0 +1,61 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "What the expense was for"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "shipping_supplies",
+        "gas_sourcing",
+        "subscriptions",
+        "storage",
+        "tools_equipment",
+        "marketing",
+        "packaging",
+        "other"
+      ],
+      "description": "Type of overhead expense"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Expense amount"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the expense occurred"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional details"
+    },
+    "receipt_url": {
+      "type": "string",
+      "description": "Receipt or proof image"
+    }
+  },
+  "required": [
+    "description",
+    "category",
+    "amount",
+    "date"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

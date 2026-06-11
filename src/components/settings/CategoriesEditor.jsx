@@ -24,7 +24,7 @@ export default function CategoriesEditor({ user }) {
 
   useEffect(() => {
     if (user?.selected_categories) {
-      setSelected(user.selected_categories);
+      setSelected(Array.isArray(user.selected_categories) ? user.selected_categories : []);
     }
   }, [user]);
 

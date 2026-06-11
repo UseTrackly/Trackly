@@ -2,18 +2,27 @@ import { useState, useRef, useCallback } from 'react';
 
 const THRESHOLD = 70;
 
-export default function usePullToRefresh(onRefresh) {
+/**
+ * Pass scrollContainerRef pointing to the scrollable element (not window).
+ * Falls back to window.scrollY if no ref provided.
+ */
+export default function usePullToRefresh(onRefresh, scrollContainerRef) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const startY = useRef(null);
   const pulling = useRef(false);
 
+  const getScrollTop = useCallback(() => {
+    if (scrollContainerRef?.current) return scrollContainerRef.current.scrollTop;
+    return window.scrollY;
+  }, [scrollContainerRef]);
+
   const onTouchStart = useCallback((e) => {
-    if (window.scrollY === 0) {
+    if (getScrollTop() === 0) {
       startY.current = e.touches[0].clientY;
       pulling.current = true;
     }
-  }, []);
+  }, [getScrollTop]);
 
   const onTouchMove = useCallback((e) => {
     if (!pulling.current || startY.current === null) return;

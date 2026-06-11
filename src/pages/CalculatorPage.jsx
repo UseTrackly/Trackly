@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { usePageTab } from '@/lib/PageTabContext';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,11 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SaveFlipDialog from '@/components/calculator/SaveFlipDialog';
 import AIAssistant from '@/components/ai/AIAssistant';
 import CustomExpenses from '@/components/calculator/CustomExpenses';
+import CasinoTracker from '@/components/calculator/CasinoTracker';
+import SportsBetTracker from '@/components/calculator/SportsBetTracker';
 import { calculateFlip, PLATFORMS } from '@/lib/platformFees';
 import { canSaveFlip, countTodayFlips, FREE_LIMITS } from '@/lib/proGate';
 
 export default function CalculatorPage() {
-  const [activeTab, setActiveTab] = useState('calculator');
+  const [activeTab, setActiveTab] = usePageTab('/calculator');
 
   const handleOpenCalculator = (flipData) => {
     setBuyPrice(flipData.buy_price || 0);
@@ -42,6 +45,8 @@ export default function CalculatorPage() {
   const [shippingCost, setShippingCost] = useState(aiData?.shipping_cost || 0);
   const [customExpenses, setCustomExpenses] = useState([]);
   const [showSave, setShowSave] = useState(false);
+  const [casinoResetKey, setCasinoResetKey] = useState(0);
+  const [sportsResetKey, setSportsResetKey] = useState(0);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -49,10 +54,12 @@ export default function CalculatorPage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: flips = [] } = useQuery({
+  const { data: flipsRaw } = useQuery({
     queryKey: ['flips'],
     queryFn: () => base44.entities.Flip.list('-created_date', 500),
+    initialData: [],
   });
+  const flips = Array.isArray(flipsRaw) ? flipsRaw : [];
 
   const todayCount = countTodayFlips(flips);
   const flipAllowed = canSaveFlip(user, flips);
@@ -71,10 +78,16 @@ export default function CalculatorPage() {
   }, [buyPrice, salePrice, platform, shippingCost, customExpenses]);
 
   const handleReset = () => {
-    setBuyPrice(0);
-    setSalePrice(0);
-    setShippingCost(0);
-    setCustomExpenses([]);
+    if (activeTab === 'calculator') {
+      setBuyPrice(0);
+      setSalePrice(0);
+      setShippingCost(0);
+      setCustomExpenses([]);
+    } else if (activeTab === 'casino') {
+      setCasinoResetKey(k => k + 1);
+    } else if (activeTab === 'sports') {
+      setSportsResetKey(k => k + 1);
+    }
   };
 
   const handleSaveFlip = async (flipData) => {
@@ -86,34 +99,28 @@ export default function CalculatorPage() {
   const isProfitable = calculation?.netProfit > 0;
 
   return (
-    <div className="px-3 py-4 space-y-3">
+    <div>
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="pl-32"
+        className="px-3 pt-3 pb-3"
       >
-        <h1 className="text-lg font-bold tracking-tight">Calculator</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold tracking-tight">Calculator</h1>
+          <button
+            onClick={handleReset}
+            className="p-2.5 rounded-xl hover:bg-card border border-border transition-colors"
+          >
+            <RotateCcw className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
       </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-card border border-border">
-          <TabsTrigger value="calculator">Calculate</TabsTrigger>
-          <TabsTrigger value="ai">
-            <MessageSquare className="w-4 h-4 mr-1.5" />
-            AI
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="hidden" />
 
-        <TabsContent value="calculator" className="space-y-5">
-          <div className="flex items-center justify-end">
-            <button
-              onClick={handleReset}
-              className="p-2.5 rounded-xl hover:bg-card border border-border transition-colors"
-            >
-              <RotateCcw className="w-4 h-4 text-muted-foreground" />
-            </button>
-          </div>
+        <TabsContent value="calculator" className="space-y-5 px-3 pb-24">
 
       {/* Main Card */}
       <motion.div
@@ -128,12 +135,10 @@ export default function CalculatorPage() {
           </label>
           <Select value={platform} onValueChange={setPlatform}>
             <SelectTrigger className="h-12 text-base bg-background">
-              <SelectValue>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{PLATFORMS[platform]?.icon}</span>
-                  <span className="font-medium">{PLATFORMS[platform]?.name}</span>
-                </div>
-              </SelectValue>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{PLATFORMS[platform]?.icon}</span>
+                <span className="font-medium">{PLATFORMS[platform]?.name}</span>
+              </div>
             </SelectTrigger>
             <SelectContent>
               {Object.entries(PLATFORMS).map(([key, p]) => (
@@ -162,6 +167,7 @@ export default function CalculatorPage() {
                 onChange={(e) => setBuyPrice(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
                 className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                style={{ fontSize: 16 }}
               />
             </div>
           </div>
@@ -178,6 +184,7 @@ export default function CalculatorPage() {
                 onChange={(e) => setSalePrice(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
                 className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                style={{ fontSize: 16 }}
               />
             </div>
           </div>
@@ -191,11 +198,12 @@ export default function CalculatorPage() {
           <div className="relative">
             <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
-              type="number"
-              value={shippingCost || ''}
-              onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
-              placeholder="0.00"
-              className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            type="number"
+            value={shippingCost || ''}
+            onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+            placeholder="0.00"
+            className="w-full h-12 bg-background border border-border rounded-xl pl-10 pr-4 text-base font-semibold placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+            style={{ fontSize: 16 }}
             />
           </div>
         </div>
@@ -311,7 +319,15 @@ export default function CalculatorPage() {
 
         </TabsContent>
 
-        <TabsContent value="ai">
+        <TabsContent value="casino" className="px-3 pb-24">
+          <CasinoTracker key={casinoResetKey} user={user} />
+        </TabsContent>
+
+        <TabsContent value="sports" className="px-3 pb-24">
+          <SportsBetTracker key={sportsResetKey} user={user} />
+        </TabsContent>
+
+        <TabsContent value="ai" className="px-3 pb-24">
           <AIAssistant onOpenCalculator={handleOpenCalculator} />
         </TabsContent>
       </Tabs>

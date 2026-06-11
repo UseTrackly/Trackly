@@ -37,6 +37,21 @@
       "type": "string",
       "description": "Image of the item"
     },
+    "is_ai_generated_image": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the image is AI-generated"
+    },
+    "is_reference_image": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the image is a reference image from official sources"
+    },
+    "is_sold": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the listing is marked as sold"
+    },
     "posted_by": {
       "type": "string",
       "description": "Email of user who posted"
@@ -56,6 +71,34 @@
         "type": "string"
       },
       "description": "Array of user emails who are interested"
+    },
+    "is_graded": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the card is graded"
+    },
+    "grading_company": {
+      "type": "string",
+      "enum": [
+        "PSA",
+        "BGS",
+        "CGC",
+        "SGC",
+        "GMA",
+        "HGA",
+        "CSG",
+        "AGS",
+        "other"
+      ],
+      "description": "Grading company"
+    },
+    "grade": {
+      "type": "string",
+      "description": "Grade value (e.g. 9, 9.5, 10, Gem Mint)"
+    },
+    "cert_number": {
+      "type": "string",
+      "description": "Grading certificate/serial number"
     }
   },
   "required": [
@@ -64,5 +107,17 @@
     "price",
     "posted_by",
     "posted_by_name"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": true,
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
 }

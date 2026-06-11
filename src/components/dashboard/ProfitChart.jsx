@@ -2,7 +2,8 @@ import React from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { format } from 'date-fns';
 
-export default function ProfitChart({ flips }) {
+export default function ProfitChart({ flips: flipsProp }) {
+  const flips = Array.isArray(flipsProp) ? flipsProp : [];
   // Group flips by date and sum profit
   const dataMap = {};
   flips.forEach(flip => {

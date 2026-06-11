@@ -1,0 +1,53 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "assistant"
+      ],
+      "description": "Message sender role"
+    },
+    "content": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "flip_data": {
+      "type": "object",
+      "description": "Extracted flip calculation data"
+    },
+    "flip_ready": {
+      "type": "boolean",
+      "description": "Whether enough data exists to save a flip to history"
+    },
+    "inventory_ready": {
+      "type": "boolean",
+      "description": "Whether enough data exists to save to inventory"
+    }
+  },
+  "required": [
+    "user_email",
+    "role",
+    "content"
+  ],
+  "rls": {
+    "create": {
+      "data.user_email": "{{user.email}}"
+    },
+    "read": {
+      "data.user_email": "{{user.email}}"
+    },
+    "update": {
+      "data.user_email": "{{user.email}}"
+    },
+    "delete": {
+      "data.user_email": "{{user.email}}"
+    }
+  }
+}

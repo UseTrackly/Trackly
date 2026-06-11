@@ -54,6 +54,7 @@ export default function CustomExpenses({ expenses = [], onChange }) {
               onChange={(e) => updateExpense(index, 'label', e.target.value)}
               className="h-9 text-sm bg-background"
               list={`expense-labels-${index}`}
+              style={{ fontSize: 16 }}
             />
             <datalist id={`expense-labels-${index}`}>
               {PRESET_LABELS.map(label => (
@@ -66,6 +67,7 @@ export default function CustomExpenses({ expenses = [], onChange }) {
               value={expense.amount || ''}
               onChange={(e) => updateExpense(index, 'amount', parseFloat(e.target.value) || 0)}
               className="h-9 text-sm bg-background"
+              style={{ fontSize: 16 }}
             />
             <Button
               type="button"

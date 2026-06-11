@@ -1,7 +1,13 @@
 /**
  * In-App Purchase bridge using @revenuecat/purchases-capacitor
- * Falls back gracefully if the plugin isn't available (web).
+ *
+ * The error "Purchases plugin is not implemented on iOS" means the native
+ * plugin wasn't linked into the Xcode build. We guard every call with
+ * isPluginAvailable() so the app never crashes — it throws a clear message
+ * instead. After running `npx cap sync ios` and rebuilding the Xcode project
+ * the plugin will be available and these calls will work.
  */
+import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 
 export const PRODUCT_IDS = {
   monthly: 'trackly.pro.monthly',
@@ -9,105 +15,187 @@ export const PRODUCT_IDS = {
   lifetime: 'trackly.pro.lifetime',
 };
 
-function getPlugin() {
-  const plugins = window?.Capacitor?.Plugins ?? {};
-  // Try all known RevenueCat plugin registration names
-  const plugin = plugins.PurchasesPlugin ?? plugins.Purchases ?? plugins.RevenueCat ?? null;
-  if (!plugin) {
-    console.warn('[IAP] RevenueCat plugin not found. Available plugins:', Object.keys(plugins));
-  }
-  return plugin;
-}
-
-/**
- * Initialize RevenueCat — call this once on app start (inside native only)
- */
-export async function initRevenueCat(apiKey, userId) {
-  const plugin = getPlugin();
-  if (!plugin) return;
-  await plugin.configure({ apiKey, appUserID: userId });
-}
-
-/**
- * Load offerings from RevenueCat
- */
-export async function loadProducts() {
-  const plugin = getPlugin();
-  if (!plugin) throw new Error('IAP plugin not available');
-  const { offerings } = await plugin.getOfferings();
-  return offerings?.current?.availablePackages ?? [];
-}
-
-// RevenueCat package type identifiers
 const PACKAGE_TYPES = {
   monthly: '$rc_monthly',
   yearly: '$rc_annual',
   lifetime: '$rc_lifetime',
 };
 
+let _rcConfigured = false;
+let _rcUserId = null;
+
+const isNative = () => !!(window?.Capacitor?.isNativePlatform?.());
+
 /**
- * Initiate a purchase for a given plan ('monthly' | 'yearly' | 'lifetime')
- * Returns the appUserID so the backend can verify via RevenueCat REST API
+ * Returns true only if the RevenueCat native plugin is actually registered.
  */
-export async function purchasePlan(plan) {
-  const plugin = getPlugin();
-  if (!plugin) throw new Error('IAP plugin not available');
+const isPluginAvailable = () => {
+  if (!isNative()) return false;
+  return !!(window?.Capacitor?.Plugins?.Purchases);
+};
 
-  // Get current offerings
-  const { offerings } = await plugin.getOfferings();
+/**
+ * Initialize RevenueCat — call once on app start (native only).
+ * Re-configures if called with a new userId (e.g. after login).
+ */
+export async function initRevenueCat(apiKey, userId) {
+  if (!isPluginAvailable()) {
+    console.warn('[IAP] RevenueCat plugin not available — skipping init. Run `npx cap sync ios` and rebuild.');
+    return;
+  }
+  // Re-configure if we now have a real userId and previously didn't (or it changed)
+  if (_rcConfigured && _rcUserId === userId) return;
+  try {
+    await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+    await Purchases.configure({ apiKey, appUserID: userId || undefined });
+    _rcConfigured = true;
+    _rcUserId = userId;
+    console.log('[IAP] RevenueCat configured for user:', userId);
+  } catch (e) {
+    console.warn('[IAP] initRevenueCat failed:', e?.message);
+  }
+}
 
-  // Log raw offerings for debugging
-  console.log('[IAP] Raw offerings keys:', JSON.stringify(Object.keys(offerings ?? {})));
-  console.log('[IAP] Current offering:', JSON.stringify(offerings?.current));
-
-  // The RC Capacitor plugin may return packages nested differently
-  // Try current.availablePackages first, then flatten all offerings
-  let packages = offerings?.current?.availablePackages ?? [];
-  if (packages.length === 0 && offerings?.all) {
-    packages = Object.values(offerings.all).flatMap(o =>
-      Object.values(o).filter(p => p && typeof p === 'object' && p.packageType)
+/**
+ * Ensure the plugin is available and configured. Throws with actionable messages.
+ * Waits up to 3s for initRevenueCat to be called by AuthContext first.
+ */
+async function ensureReady() {
+  if (!isNative()) {
+    throw new Error('In-App Purchases are only available on iOS.');
+  }
+  if (!isPluginAvailable()) {
+    throw new Error(
+      'The RevenueCat plugin is not linked in this build.\n' +
+      'Run: npx cap sync ios\n' +
+      'Then rebuild in Xcode.'
     );
   }
+  // Wait for initRevenueCat to be called by AuthContext (with a real userId)
+  if (!_rcConfigured) {
+    console.log('[IAP] Waiting for RC to be configured by AuthContext...');
+    await new Promise((resolve) => {
+      const start = Date.now();
+      const check = setInterval(() => {
+        if (_rcConfigured || Date.now() - start > 3000) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 100);
+    });
+  }
+  // Fallback: if still not configured after wait, configure anonymously
+  if (!_rcConfigured) {
+    const apiKey = 'appl_LvOdjdFZAxsdbnWOzMlhPVyCOyZ';
+    console.log('[IAP] Fallback: configuring RC anonymously');
+    await Purchases.configure({ apiKey });
+    _rcConfigured = true;
+  }
+}
 
-  // Log available packages for debugging
-  console.log('[IAP] Available packages:', JSON.stringify(packages.map(p => ({
-    id: p.packageType ?? p.identifier,
-    productId: p.product?.productIdentifier,
-  }))));
+/**
+ * Load available packages from RevenueCat offerings.
+ */
+export async function loadProducts() {
+  await ensureReady();
+  console.log('[IAP] Fetching offerings from RevenueCat...');
+  const { offerings } = await Purchases.getOfferings();
+  console.log('[IAP] Offerings received:', JSON.stringify(offerings, null, 2));
 
-  // Try matching by package type first, then by product identifier
-  const productIdentifier = PRODUCT_IDS[plan];
+  // Try current first, then explicit 'default', then all offerings
+  let packages = offerings?.current?.availablePackages ?? [];
+
+  if (packages.length === 0 && offerings?.all?.default) {
+    console.log('[IAP] current is empty, using default offering');
+    packages = offerings.all.default.availablePackages ?? [];
+  }
+
+  if (packages.length === 0 && offerings?.all) {
+    const allKeys = Object.keys(offerings.all);
+    console.log('[IAP] Falling back to all offerings:', allKeys);
+    packages = allKeys.flatMap(key => offerings.all[key].availablePackages ?? []);
+  }
+
+  console.log('[IAP] Total packages found:', packages.length);
+  packages.forEach((pkg, i) => {
+    console.log(`[IAP] Package[${i}]:`, {
+      type: pkg.packageType,
+      identifier: pkg.identifier,
+      productId: pkg.product?.productIdentifier,
+      title: pkg.product?.title,
+      price: pkg.product?.priceString,
+    });
+  });
+
+  return packages;
+}
+
+/**
+ * Purchase a plan ('monthly' | 'yearly' | 'lifetime').
+ * Returns the RevenueCat appUserID for server-side verification.
+ */
+export async function purchasePlan(plan) {
+  await ensureReady();
+
+  const { offerings } = await Purchases.getOfferings();
+  let packages = offerings?.current?.availablePackages ?? [];
+
+  if (packages.length === 0 && offerings?.all?.default) {
+    packages = offerings.all.default.availablePackages ?? [];
+  }
+
+  if (packages.length === 0 && offerings?.all) {
+    packages = Object.values(offerings.all).flatMap(o => o.availablePackages ?? []);
+  }
+
+  if (packages.length === 0) {
+    throw new Error('No products available. Make sure you are signed into the App Store.');
+  }
+
+  console.log('[IAP] Available packages:', packages.map(p => ({
+    type: p.packageType,
+    id: p.product?.productIdentifier,
+  })));
+
   const packageType = PACKAGE_TYPES[plan];
+  const productId = PRODUCT_IDS[plan];
 
-  let pkg = packages.find(p =>
-    p.packageType === packageType || p.identifier === packageType
-  );
-
-  // Fallback: match by product identifier (full or suffix)
+  let pkg = packages.find(p => p.packageType === packageType || p.identifier === packageType);
   if (!pkg) {
     pkg = packages.find(p =>
-      p.product?.productIdentifier === productIdentifier ||
+      p.product?.productIdentifier === productId ||
       p.product?.productIdentifier?.endsWith(`.${plan}`)
     );
   }
 
-  if (!pkg) throw new Error(`Product not found in offerings: ${productIdentifier}. Available: ${packages.map(p => p.product?.productIdentifier).join(', ')}`);
+  if (!pkg) {
+    throw new Error(
+      `Product "${productId}" not found.\n` +
+      `Available: ${packages.map(p => p.product?.productIdentifier).join(', ')}`
+    );
+  }
 
-  // Use purchasePackage (RevenueCat v11+ API)
-  const { customerInfo } = await plugin.purchasePackage({ aPackage: pkg });
+  const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+  if (!customerInfo) throw new Error('Purchase failed or was cancelled.');
 
-  if (!customerInfo) throw new Error('Purchase failed or was cancelled');
-
-  const { appUserID } = await plugin.getAppUserID();
+  const { appUserID } = await Purchases.getAppUserID();
   return appUserID;
 }
 
 /**
- * Restore previous purchases — returns customerInfo
+ * Restore previous purchases.
  */
 export async function restorePurchases() {
-  const plugin = getPlugin();
-  if (!plugin) throw new Error('IAP plugin not available');
-  const { customerInfo } = await plugin.restorePurchases();
+  await ensureReady();
+  const { customerInfo } = await Purchases.restorePurchases();
   return customerInfo;
+}
+
+/**
+ * Get the current RevenueCat app user ID.
+ */
+export async function getAppUserID() {
+  await ensureReady();
+  const { appUserID } = await Purchases.getAppUserID();
+  return appUserID;
 }

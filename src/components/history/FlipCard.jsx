@@ -55,20 +55,26 @@ export default function FlipCard({ flip, index, onDelete, onEdit, currency = 'US
           <span>Buy: {formatCurrency(flip.buy_price, currency)}</span>
           <span>Sell: {formatCurrency(flip.sale_price, currency)}</span>
         </div>
-        <div className="flex gap-1 opacity-100 transition-opacity">
-          <button
-            onClick={() => onEdit?.(flip)}
-            className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => onDelete?.(flip)}
-            className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        {(onEdit || onDelete) && (
+          <div className="flex gap-1 opacity-100 transition-opacity">
+            {onEdit && (
+              <button
+                onClick={() => onEdit(flip)}
+                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(flip)}
+                className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <ExpenseBreakdown flip={flip} currency={currency} />

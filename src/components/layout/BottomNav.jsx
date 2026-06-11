@@ -1,14 +1,12 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTabReset } from '@/lib/TabResetContext';
-import { Home, Calculator, History, Users, User, Package } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Home, Calculator, Users, Package, User } from 'lucide-react';
 
 const tabs = [
   { path: '/', icon: Home, label: 'Home' },
-  { path: '/calculator', icon: Calculator, label: 'Calculator' },
+  { path: '/calculator', icon: Calculator, label: 'Add Flip' },
   { path: '/inventory', icon: Package, label: 'Inventory' },
-  { path: '/history', icon: History, label: 'History' },
   { path: '/community', icon: Users, label: 'Community' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
@@ -18,49 +16,85 @@ export default function BottomNav() {
   const navigate = useNavigate();
   const { resetTab } = useTabReset();
 
-  if (location.pathname === '/onboarding' || location.pathname === '/onboarding-categories') return null;
+  if (
+    location.pathname === '/onboarding' ||
+    location.pathname === '/onboarding-categories' ||
+    location.pathname === '/upgrade'
+  ) return null;
 
   return (
     <nav
       role="navigation"
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="relative z-50 border-t border-white/[0.06] shrink-0 bg-background"
+      style={{
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 8px)',
+      }}
     >
-      <div className="flex items-center justify-around max-w-2xl mx-auto px-2 py-0.5">
+      {/* Subtle top shimmer */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, hsl(var(--primary) / 0.4), transparent)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      <div
+        className="flex items-center justify-center gap-1"
+        style={{ paddingTop: '8px', paddingBottom: '8px' }}
+      >
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           const Icon = tab.icon;
-          const handlePress = () => {
-            if (isActive) resetTab(tab.path);
-            else navigate(tab.path);
-          };
           return (
             <button
               key={tab.path}
-              onClick={handlePress}
+              onClick={() => (isActive ? resetTab(tab.path) : navigate(tab.path))}
               aria-label={tab.label}
               aria-current={isActive ? 'page' : undefined}
-              className="flex flex-col items-center gap-0.5 py-2 px-3 relative min-h-[44px] min-w-[44px] justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-lg"
+              className="relative flex flex-col items-center gap-1.5 px-4 py-2 min-h-[48px] min-w-[64px] justify-center focus-visible:outline-none"
             >
+              {/* Active background glow */}
               {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-primary rounded-full"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                <div
+                  className="absolute inset-0 rounded-lg"
+                  style={{
+                    background: 'hsl(var(--primary) / 0.08)',
+                    boxShadow: '0 2px 8px hsl(var(--primary) / 0.15)',
+                  }}
                 />
               )}
-              <Icon
-                className={`w-5 h-5 transition-colors duration-200 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
-                strokeWidth={isActive ? 2.5 : 1.5}
-                aria-hidden="true"
-              />
+              
+              {/* Active indicator dot */}
+              <div className="relative z-10">
+                <Icon
+                  className="transition-all duration-200"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.5)',
+                    strokeWidth: isActive ? 2.5 : 1.5,
+                    filter: isActive ? 'drop-shadow(0 0 6px hsl(var(--primary) / 0.4))' : 'none',
+                  }}
+                  aria-hidden="true"
+                />
+                {isActive && (
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
+                )}
+              </div>
+              
               <span
-                className={`text-xs font-medium transition-colors duration-200 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
+                className="relative z-10 text-[10px] font-semibold tracking-wide uppercase transition-all duration-200"
+                style={{
+                  color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground) / 0.5)',
+                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                }}
               >
                 {tab.label}
               </span>

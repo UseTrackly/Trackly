@@ -22,11 +22,13 @@ export default function AIAssistant({ onOpenCalculator }) {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: messages = [] } = useQuery({
+  const { data: messagesRaw } = useQuery({
     queryKey: ['chatMessages'],
     queryFn: () => base44.entities.ChatMessage.filter({ user_email: user.email }, 'created_date', 100),
     enabled: !!user,
+    initialData: [],
   });
+  const messages = Array.isArray(messagesRaw) ? messagesRaw : [];
 
   const sendMutation = useMutation({
     mutationFn: async (userMessage) => {
@@ -160,7 +162,7 @@ User: ${userMessage}`,
         date_sold: new Date().toISOString().split('T')[0],
         created_date: new Date().toISOString(),
       };
-      queryClient.setQueryData(['flips'], (old = []) => [optimistic, ...old]);
+      queryClient.setQueryData(['flips'], (old) => [optimistic, ...(Array.isArray(old) ? old : [])]);
       return { previous };
     },
     onSuccess: () => {

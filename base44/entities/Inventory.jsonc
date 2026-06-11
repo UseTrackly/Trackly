@@ -1,0 +1,115 @@
+{
+  "name": "Inventory",
+  "type": "object",
+  "properties": {
+    "item_name": {
+      "type": "string",
+      "description": "Name of the item"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "cards",
+        "sneakers",
+        "clothing",
+        "electronics",
+        "collectibles",
+        "games",
+        "technology",
+        "vintage",
+        "other"
+      ],
+      "description": "Category of the item"
+    },
+    "cost_basis": {
+      "type": "number",
+      "description": "Purchase price or cost of acquiring the item"
+    },
+    "date_acquired": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the item was acquired"
+    },
+    "condition": {
+      "type": "string",
+      "enum": [
+        "new",
+        "like_new",
+        "excellent",
+        "good",
+        "fair",
+        "poor"
+      ],
+      "default": "good",
+      "description": "Current condition of the item"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about condition, flaws, or details"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of units"
+    },
+    "location": {
+      "type": "string",
+      "description": "Storage location"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Image of the item"
+    },
+    "target_price": {
+      "type": "number",
+      "description": "Target selling price"
+    },
+    "is_graded": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the card is graded"
+    },
+    "grading_company": {
+      "type": "string",
+      "enum": [
+        "PSA",
+        "BGS",
+        "CGC",
+        "SGC",
+        "GMA",
+        "HGA",
+        "CSG",
+        "AGS",
+        "other"
+      ],
+      "description": "Grading company"
+    },
+    "grade": {
+      "type": "string",
+      "description": "Grade value (e.g. 9, 9.5, 10, Gem Mint)"
+    },
+    "cert_number": {
+      "type": "string",
+      "description": "Grading certificate/serial number"
+    }
+  },
+  "required": [
+    "item_name",
+    "cost_basis",
+    "date_acquired"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

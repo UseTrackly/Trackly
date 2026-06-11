@@ -2,8 +2,10 @@ import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
-import MobileHeader from './MobileHeader';
+import UnifiedHeader, { MessageProvider } from './UnifiedHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
+import { PageTabProvider, usePageTab } from '@/lib/PageTabContext';
+import PageTabBar from './PageTabBar';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const CalculatorPage = lazy(() => import('@/pages/CalculatorPage'));
@@ -11,6 +13,7 @@ const InventoryPage = lazy(() => import('@/pages/InventoryPage'));
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'));
 const CommunityPage = lazy(() => import('@/pages/CommunityPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 
 const TAB_ROUTES = [
   { path: '/', component: Dashboard },
@@ -19,9 +22,11 @@ const TAB_ROUTES = [
   { path: '/history', component: HistoryPage },
   { path: '/community', component: CommunityPage },
   { path: '/profile', component: ProfilePage },
+  { path: '/settings', component: SettingsPage },
 ];
 
 const TAB_PATHS = TAB_ROUTES.map(r => r.path);
+const FULLSCREEN_PATHS = ['/upgrade'];
 
 const TabSpinner = () => (
   <div className="flex items-center justify-center min-h-[40vh]">
@@ -32,7 +37,14 @@ const TabSpinner = () => (
 function AppLayoutInner() {
   const location = useLocation();
   const { tabKeys } = useTabReset();
+  const [calcTab, setCalcTab] = usePageTab('/calculator');
+  const [invTab, setInvTab] = usePageTab('/inventory');
+  const [commTab, setCommTab] = usePageTab('/community');
+
+  const activeTab = { '/calculator': calcTab, '/inventory': invTab, '/community': commTab }[location.pathname] ?? '';
+  const setActiveTab = { '/calculator': setCalcTab, '/inventory': setInvTab, '/community': setCommTab }[location.pathname] ?? (() => {});
   const isChildPage = !TAB_PATHS.includes(location.pathname);
+  const isFullscreen = FULLSCREEN_PATHS.includes(location.pathname);
 
   // Track which tabs have been visited so we only mount them once they're first accessed
   const [mountedTabs, setMountedTabs] = useState(() => new Set([location.pathname]));
@@ -49,14 +61,31 @@ function AppLayoutInner() {
   }, [location.pathname, isChildPage]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background relative text-sm">
-      {/* Skip to content — visible on focus for keyboard users */}
+    <div
+      className="bg-background text-sm"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        width: '100%',
+        height: '100dvh',
+        // Ensure background fills the safe-area inset on notched iPhones
+        backgroundColor: 'hsl(var(--background))',
+      }}
+    >
+      {/* Skip to content */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-medium"
       >
         Skip to content
       </a>
+
       {/* Grid background */}
       <div
         className="fixed inset-0 z-0 pointer-events-none"
@@ -70,12 +99,33 @@ function AppLayoutInner() {
         }}
       />
       <Suspense fallback={null}><GlowOrbs /></Suspense>
-      <MobileHeader />
+
+      {/* Header — fixed, floats above content */}
+      {!isFullscreen && <UnifiedHeader />}
+
+      {/* Spacer to push content below the fixed header (header ~56px + safe-area-top) */}
+      {!isFullscreen && (
+        <div style={{ flexShrink: 0, height: 'calc(56px + env(safe-area-inset-top, 0px))' }} />
+      )}
+
+      {/* Page tab bar — sits between header spacer and content, never scrolls */}
+      {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
+
+      {/* Scrollable content — flex-1, ONLY this scrolls */}
       <main
         id="main-content"
-        className="flex-1 overflow-y-auto overscroll-none max-w-2xl mx-auto w-full relative z-10"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="relative z-10"
+        style={{
+          flex: '1 1 0',
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'none',
+          touchAction: 'pan-y',
+        }}
       >
+        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '16px', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}>
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;
@@ -103,7 +153,9 @@ function AppLayoutInner() {
             </motion.div>
           </AnimatePresence>
         )}
+        </div>
       </main>
+
     </div>
   );
 }
@@ -111,7 +163,11 @@ function AppLayoutInner() {
 export default function AppLayout() {
   return (
     <TabResetProvider>
-      <AppLayoutInner />
+      <PageTabProvider>
+        <MessageProvider>
+          <AppLayoutInner />
+        </MessageProvider>
+      </PageTabProvider>
     </TabResetProvider>
   );
 }

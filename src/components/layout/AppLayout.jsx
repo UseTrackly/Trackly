@@ -1,7 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { useLocation, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import BottomNav from './BottomNav';
 const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
 import MobileHeader from './MobileHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
@@ -50,7 +49,7 @@ function AppLayoutInner() {
   }, [location.pathname, isChildPage]);
 
   return (
-    <div className="min-h-screen bg-background relative text-sm">
+    <div className="h-screen flex flex-col overflow-hidden bg-background relative text-sm">
       {/* Skip to content — visible on focus for keyboard users */}
       <a
         href="#main-content"
@@ -74,8 +73,8 @@ function AppLayoutInner() {
       <MobileHeader />
       <main
         id="main-content"
-        className="pb-16 max-w-2xl mx-auto relative z-10"
-        style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top, 0px))' }}
+        className="flex-1 overflow-y-auto overscroll-none max-w-2xl mx-auto w-full relative z-10"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
@@ -105,7 +104,6 @@ function AppLayoutInner() {
           </AnimatePresence>
         )}
       </main>
-      <BottomNav />
     </div>
   );
 }

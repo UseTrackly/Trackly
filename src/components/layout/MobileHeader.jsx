@@ -4,7 +4,11 @@ import { ArrowLeft } from 'lucide-react';
 import NotificationBell from '@/components/notifications/NotificationBell';
 
 const CHILD_ROUTES = ['/terms', '/privacy'];
-const ROOT_TABS = ['/', '/calculator', '/inventory', '/history', '/community', '/profile'];
+
+const PAGE_TITLES = {
+  '/terms': 'Terms of Service',
+  '/privacy': 'Privacy Policy',
+};
 
 export default function MobileHeader() {
   const navigate = useNavigate();
@@ -14,14 +18,9 @@ export default function MobileHeader() {
 
   const isChildPage = CHILD_ROUTES.includes(location.pathname);
 
-  const PAGE_TITLES = {
-    '/terms': 'Terms of Service',
-    '/privacy': 'Privacy Policy',
-  };
-
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border"
+      className="shrink-0 w-full z-50 relative flex items-center justify-between px-3 bg-background/80 backdrop-blur-xl border-b border-border"
       style={{ paddingTop: 'calc(0.625rem + env(safe-area-inset-top, 0px))', paddingBottom: '0.625rem' }}
     >
       {isChildPage ? (

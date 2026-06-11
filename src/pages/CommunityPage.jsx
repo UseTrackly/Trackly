@@ -69,25 +69,10 @@ export default function CommunityPage() {
 
   const interestMutation = useMutation({
     mutationFn: async (flipId) => {
-      // Always fetch fresh data from server before toggling to avoid stale array collisions
-      const freshList = await base44.entities.CommunityFlip.filter({ id: flipId }, '-created_date', 1);
-      const freshFlip = freshList?.[0];
-      if (!freshFlip) throw new Error('Flip not found');
-      const interested = freshFlip.interested_users || [];
-      const isNowInterested = interested.includes(user?.email);
-      const updated = isNowInterested
-        ? interested.filter(e => e !== user?.email)
-        : [...interested, user?.email];
-      await base44.entities.CommunityFlip.update(flipId, { interested_users: updated });
-      // Fire seller notification when adding interest (non-blocking)
-      if (!isNowInterested) {
-        base44.functions.invoke('notifyNewFlip', {
-          flip_id: flipId,
-          interested_user_email: user?.email,
-          interested_user_name: user?.full_name || 'Someone',
-        }).catch(() => {});
-      }
-      return { flipId, updated };
+      // Use backend function — bypasses RLS so any user can toggle interest on any listing
+      const res = await base44.functions.invoke('toggleInterest', { flip_id: flipId });
+      if (!res.data?.success) throw new Error(res.data?.error || 'Failed to update interest');
+      return { flipId, updated: res.data.interested_users };
     },
     onMutate: async (flipId) => {
       // Optimistic update so UI feels instant
@@ -113,7 +98,7 @@ export default function CommunityPage() {
       toast.error('Failed to update interest');
     },
     onSuccess: ({ flipId, updated }) => {
-      // Patch cache with the confirmed server value
+      // Patch cache with confirmed server value
       queryClient.setQueryData(['communityFlips'], (old) =>
         (Array.isArray(old) ? old : []).map(f =>
           f.id === flipId ? { ...f, interested_users: updated } : f

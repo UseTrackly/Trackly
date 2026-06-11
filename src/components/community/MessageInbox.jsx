@@ -64,9 +64,6 @@ function ThreadItem({ thread, onClick, navigate, onClose }) {
             <div className="flex items-center gap-1.5 mb-0.5">
               <Package className="w-3 h-3 text-muted-foreground shrink-0" />
               <span className="text-xs text-muted-foreground truncate flex-1">{thread.flipName}</span>
-              {thread.flipPrice != null && (
-                <span className="text-xs font-semibold text-primary shrink-0">${Number(thread.flipPrice).toFixed(0)}</span>
-              )}
             </div>
           )}
 
@@ -351,10 +348,6 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
     });
 
     return Array.from(map.values()).sort((a, b) => {
-      const aUnread = a.messages.some(m => !m.is_read && m.recipient_email === user.email);
-      const bUnread = b.messages.some(m => !m.is_read && m.recipient_email === user.email);
-      if (aUnread && !bUnread) return -1;
-      if (!aUnread && bUnread) return 1;
       const aDate = a.messages[0]?.created_date || '';
       const bDate = b.messages[0]?.created_date || '';
       return bDate.localeCompare(aDate);

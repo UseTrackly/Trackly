@@ -166,13 +166,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <DialogContent
         className="max-w-md mx-auto bg-card border-border max-h-[90vh] overflow-y-auto"
-        onInteractOutside={(e) => {
-          // Prevent dialog from closing when file picker opens (browser blur)
-          const target = e.target;
-          if (target?.tagName === 'INPUT' && target?.type === 'file') {
-            e.preventDefault();
-          }
-        }}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="text-lg">

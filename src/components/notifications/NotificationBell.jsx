@@ -90,52 +90,44 @@ export default function NotificationBell() {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 p-0 bg-card border-border" align="end">
-          <div className="p-4 border-b border-border">
-            <h3 className="font-semibold">Notifications</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {unreadCount} unread
-            </p>
-          </div>
-          <ScrollArea className="h-[400px]">
-            <div className="p-2">
-              {notifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No notifications yet
-                </p>
-              ) : (
-                <AnimatePresence>
-                  {notifications.map((notif, i) => (
-                    <motion.button
-                      key={notif.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      onClick={() => handleNotificationClick(notif)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors mb-1 ${
-                        notif.is_read
-                          ? 'hover:bg-secondary/50'
-                          : 'bg-primary/10 hover:bg-primary/20'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-medium text-sm">{notif.title}</h4>
-                        {!notif.is_read && (
-                          <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {notif.message}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {format(new Date(notif.created_date), 'MMM d, h:mm a')}
-                      </p>
-                    </motion.button>
-                  ))}
-                </AnimatePresence>
+        <PopoverContent className="w-[320px] p-0 bg-card border-border shadow-xl" align="end" sideOffset={8}>
+          <div className="px-4 pt-4 pb-3 border-b border-border flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-sm">Notifications</h3>
+              {unreadCount > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">{unreadCount} unread</p>
               )}
             </div>
-          </ScrollArea>
+          </div>
+          <div className="max-h-[360px] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {notifications.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-10">
+                No notifications yet
+              </p>
+            ) : (
+              notifications.map((notif) => (
+                <button
+                  key={notif.id}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`w-full text-left px-4 py-3 border-b border-border/50 last:border-0 transition-colors ${
+                    notif.is_read ? 'hover:bg-secondary/40' : 'bg-primary/5 hover:bg-primary/10'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {!notif.is_read && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />
+                    )}
+                    {notif.is_read && <div className="w-1.5 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{notif.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.message}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{format(new Date(notif.created_date), 'MMM d, h:mm a')}</p>
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </PopoverContent>
       </Popover>
 

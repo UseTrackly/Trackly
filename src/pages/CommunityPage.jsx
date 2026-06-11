@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 import PostFlipDialog from '@/components/community/PostFlipDialog';
 import FlipDetailsSheet from '@/components/community/FlipDetailsSheet';
@@ -68,27 +69,40 @@ export default function CommunityPage() {
 
   const interestMutation = useMutation({
     mutationFn: async (flipId) => {
-      const flip = communityFlips.find(f => f.id === flipId);
-      const interested = flip.interested_users || [];
-      const isInterested = interested.includes(user?.email);
-      const updated = isInterested
+      // Always fetch fresh data from server before toggling to avoid stale array collisions
+      const freshList = await base44.entities.CommunityFlip.filter({ id: flipId }, '-created_date', 1);
+      const freshFlip = freshList?.[0];
+      if (!freshFlip) throw new Error('Flip not found');
+      const interested = freshFlip.interested_users || [];
+      const isNowInterested = interested.includes(user?.email);
+      const updated = isNowInterested
         ? interested.filter(e => e !== user?.email)
         : [...interested, user?.email];
       await base44.entities.CommunityFlip.update(flipId, { interested_users: updated });
+      // Fire seller notification when adding interest (non-blocking)
+      if (!isNowInterested) {
+        base44.functions.invoke('notifyNewFlip', {
+          flip_id: flipId,
+          interested_user_email: user?.email,
+          interested_user_name: user?.full_name || 'Someone',
+        }).catch(() => {});
+      }
+      return { flipId, updated };
     },
     onMutate: async (flipId) => {
+      // Optimistic update so UI feels instant
       await queryClient.cancelQueries({ queryKey: ['communityFlips'] });
       const previous = queryClient.getQueryData(['communityFlips']);
       queryClient.setQueryData(['communityFlips'], (old) =>
-      (Array.isArray(old) ? old : []).map(f => {
-        if (f.id !== flipId) return f;
-        const interested = f.interested_users || [];
-        const isInterested = interested.includes(user?.email);
+        (Array.isArray(old) ? old : []).map(f => {
+          if (f.id !== flipId) return f;
+          const interested = f.interested_users || [];
+          const isInterested = interested.includes(user?.email);
           return {
             ...f,
             interested_users: isInterested
-            ? interested.filter(e => e !== user?.email)
-            : [...interested, user?.email],
+              ? interested.filter(e => e !== user?.email)
+              : [...interested, user?.email],
           };
         })
       );
@@ -96,6 +110,15 @@ export default function CommunityPage() {
     },
     onError: (_err, _flipId, context) => {
       queryClient.setQueryData(['communityFlips'], context.previous);
+      toast.error('Failed to update interest');
+    },
+    onSuccess: ({ flipId, updated }) => {
+      // Patch cache with the confirmed server value
+      queryClient.setQueryData(['communityFlips'], (old) =>
+        (Array.isArray(old) ? old : []).map(f =>
+          f.id === flipId ? { ...f, interested_users: updated } : f
+        )
+      );
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
@@ -148,6 +171,7 @@ export default function CommunityPage() {
           flip={selectedFlip}
           open={!!selectedFlip}
           onClose={() => setSelectedFlip(null)}
+          onInterest={(flipId) => requireAuth() && interestMutation.mutate(flipId)}
         />
       )}
 

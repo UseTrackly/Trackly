@@ -42,7 +42,7 @@ const CATEGORY_META = {
   other:       { icon: Tag,        gradient: 'from-gray-800/80 to-slate-900/80' },
 };
 
-export default function FlipDetailsSheet({ flip, open, onClose }) {
+export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -68,26 +68,7 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
   const blockedUsers = myProfileRaw?.[0]?.blocked_users || [];
   const isBlocked = blockedUsers.includes(flip?.posted_by);
 
-  const interestMutation = useMutation({
-    mutationFn: async () => {
-      const freshFlips = queryClient.getQueryData(['communityFlips']) || [];
-      const freshFlip = freshFlips.find(f => f.id === flip.id) || flip;
-      const interested = freshFlip.interested_users || [];
-      const isAlreadyInterested = interested.includes(user?.email);
-      const updated = isAlreadyInterested
-        ? interested.filter(e => e !== user?.email)
-        : [...interested, user?.email];
-      await base44.entities.CommunityFlip.update(flip.id, { interested_users: updated });
-      if (!isAlreadyInterested) {
-        base44.functions.invoke('notifyNewFlip', {
-          flip_id: flip.id,
-          interested_user_email: user?.email,
-          interested_user_name: user?.full_name || 'Someone',
-        }).catch(() => {});
-      }
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['communityFlips'] }),
-  });
+
 
   const handleContactSeller = () => {
     if (!user) { base44.auth.redirectToLogin(); return; }
@@ -332,8 +313,7 @@ export default function FlipDetailsSheet({ flip, open, onClose }) {
               </Button>
               <Button
                 variant={isInterested ? 'default' : 'outline'}
-                onClick={() => interestMutation.mutate()}
-                disabled={interestMutation.isPending}
+                onClick={() => onInterest?.(liveFlip.id)}
                 className="w-full gap-1.5"
                 size="sm"
               >

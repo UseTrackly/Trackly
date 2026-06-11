@@ -44,17 +44,24 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
 
   const togglePlay = async (e) => {
     e.stopPropagation();
-    if (!audioRef.current || !previewUrl) return;
+    if (!previewUrl) return;
+    const audio = audioRef.current;
+    if (!audio) return;
     if (playing) {
-      audioRef.current.pause();
+      audio.pause();
       setPlaying(false);
     } else {
+      // Ensure src is set (required on iOS with preload="none")
+      if (!audio.src || !audio.src.includes(previewUrl)) {
+        audio.src = previewUrl;
+        audio.load();
+      }
       try {
-        await audioRef.current.play();
+        await audio.play();
         setPlaying(true);
       } catch (err) {
-        // Autoplay policy or network error — don't show playing state
         console.warn('[ProfileSongCard] play() failed:', err?.message);
+        setPlaying(false);
       }
     }
   };
@@ -146,7 +153,6 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
 
         <audio
           ref={audioRef}
-          src={previewUrl}
           onEnded={() => setPlaying(false)}
           preload="none"
         />

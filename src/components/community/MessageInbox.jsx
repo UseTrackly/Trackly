@@ -312,7 +312,7 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
       if (!map.has(otherEmail)) {
         const flip = flips.find(f => f.id === m.community_flip_id);
         const profile = allProfiles.find(p => p.user_email === otherEmail);
-        const displayName = profile?.display_name || profile?.username || (m.sender_email === user.email ? m.recipient_name : m.sender_name) || 'User';
+        const displayName = profile?.display_name || profile?.username || (m.sender_email === user.email ? null : m.sender_name) || 'User';
         const username = profile?.username;
         const avatarUrl = profile?.avatar_url;
         map.set(otherEmail, { 

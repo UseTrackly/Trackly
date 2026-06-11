@@ -85,7 +85,7 @@ export default function UnifiedHeader() {
   return (
     <>
       <header
-        className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0"
+        className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
         }}

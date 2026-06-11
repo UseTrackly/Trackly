@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music2, Play, Pause, Pencil, Lock } from 'lucide-react';
+import { Music2, Play, Pause, Pencil, Lock, Loader2 } from 'lucide-react';
 
 // Equalizer bars animation (CSS-driven)
 function EqualizerBars() {
@@ -27,45 +27,64 @@ function EqualizerBars() {
 
 export default function ProfileSongCard({ songName, songArtist, previewUrl, artworkUrl, isPro = false, onEdit }) {
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
   const audioRef = useRef(null);
 
   const displayTitle = songName?.includes(' – ') ? songName.split(' – ')[0] : songName;
   const displayArtist = songArtist || (songName?.includes(' – ') ? songName.split(' – ')[1] : null);
 
+  // Keep audio src in sync with previewUrl
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    setPlaying(false);
+    setLoading(false);
+    if (previewUrl) {
+      audio.src = previewUrl;
+      audio.load();
+    } else {
+      audio.src = '';
+    }
+  }, [previewUrl]);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; }
+      const audio = audioRef.current;
+      if (audio) { audio.pause(); audio.src = ''; }
     };
   }, []);
-
-  useEffect(() => {
-    if (audioRef.current) { audioRef.current.pause(); setPlaying(false); }
-  }, [previewUrl]);
 
   const togglePlay = (e) => {
     e.stopPropagation();
     if (!previewUrl) return;
     const audio = audioRef.current;
     if (!audio) return;
+
+    console.log('[ProfileSongCard] togglePlay — playing:', playing, 'src:', audio.src, 'previewUrl:', previewUrl);
+
     if (playing) {
       audio.pause();
       setPlaying(false);
     } else {
-      // iOS requires play() to be called synchronously within the user gesture.
-      // Set src before play — no await, no load() call in between.
-      if (!audio.src || !audio.src.endsWith(previewUrl)) {
+      // Ensure src is set (iOS: must be synchronous before play())
+      if (!audio.src || audio.src === window.location.href) {
         audio.src = previewUrl;
       }
+      setLoading(true);
       const promise = audio.play();
       if (promise !== undefined) {
         promise
-          .then(() => setPlaying(true))
+          .then(() => { setPlaying(true); setLoading(false); })
           .catch((err) => {
-            console.warn('[ProfileSongCard] play() failed:', err?.message);
+            console.warn('[ProfileSongCard] play() failed:', err?.name, err?.message);
             setPlaying(false);
+            setLoading(false);
           });
       } else {
         setPlaying(true);
+        setLoading(false);
       }
     }
   };
@@ -139,9 +158,11 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
             onClick={togglePlay}
             className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-secondary hover:bg-secondary/80 transition-colors active:scale-95"
           >
-            {playing
-              ? <Pause className="w-3.5 h-3.5 text-foreground" />
-              : <Play className="w-3.5 h-3.5 text-foreground ml-0.5" />}
+            {loading
+              ? <Loader2 className="w-3.5 h-3.5 text-foreground animate-spin" />
+              : playing
+                ? <Pause className="w-3.5 h-3.5 text-foreground" />
+                : <Play className="w-3.5 h-3.5 text-foreground ml-0.5" />}
           </button>
         )}
 
@@ -157,7 +178,12 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
 
         <audio
           ref={audioRef}
-          onEnded={() => setPlaying(false)}
+          onEnded={() => { setPlaying(false); setLoading(false); }}
+          onError={(e) => {
+            console.warn('[ProfileSongCard] audio error:', e.target?.error?.message);
+            setPlaying(false);
+            setLoading(false);
+          }}
           playsInline
         />
       </div>

@@ -166,8 +166,8 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
 
   return (
     <div
-      className="flex flex-col bg-background"
-      style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}
+      className="flex flex-col"
+      style={{ flex: 1, minHeight: 0, overflow: 'hidden', backgroundColor: 'hsl(var(--background))' }}
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0 bg-background/90 backdrop-blur-sm">
@@ -407,7 +407,7 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent
         side="right"
-        className="p-0 bg-background border-l border-border"
+        className="p-0 border-l border-border"
         style={{
           width: '100%',
           maxWidth: 480,
@@ -416,6 +416,7 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          backgroundColor: 'hsl(var(--background))',
         }}
       >
         {/* ── Thread list header ─────────────────────── */}

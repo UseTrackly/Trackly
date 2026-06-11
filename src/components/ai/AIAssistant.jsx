@@ -221,7 +221,7 @@ User: ${userMessage}`,
   }, [messages, isTyping]);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-14rem)] bg-card border border-border rounded-2xl">
+    <div className="flex flex-col bg-card border border-border rounded-2xl" style={{ height: 'clamp(320px, calc(100dvh - 200px), 580px)' }}>
       <div className="p-4 border-b border-border flex items-center justify-between">
         <div>
           <h3 className="font-semibold">AI Flip Assistant</h3>

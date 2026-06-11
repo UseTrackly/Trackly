@@ -100,10 +100,15 @@ function AppLayoutInner() {
       />
       <Suspense fallback={null}><GlowOrbs /></Suspense>
 
-      {/* Header — part of flex column, does NOT scroll */}
+      {/* Header — fixed, floats above content */}
       {!isFullscreen && <UnifiedHeader />}
 
-      {/* Page tab bar — sits between header and content, never scrolls */}
+      {/* Spacer to push content below the fixed header (header ~56px + safe-area-top) */}
+      {!isFullscreen && (
+        <div style={{ flexShrink: 0, height: 'calc(56px + env(safe-area-inset-top, 0px))' }} />
+      )}
+
+      {/* Page tab bar — sits between header spacer and content, never scrolls */}
       {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
 
       {/* Scrollable content — flex-1, ONLY this scrolls */}
@@ -120,7 +125,7 @@ function AppLayoutInner() {
           touchAction: 'pan-y',
         }}
       >
-        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '8px', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}>
+        <div className="max-w-2xl w-full mx-auto" style={{ paddingTop: '16px', paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 24px)' }}>
         {/* Tab pages — mounted once, toggled via display to preserve state & scroll */}
         {TAB_ROUTES.map(({ path, component: Comp }) => {
           if (!mountedTabs.has(path)) return null;

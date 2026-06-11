@@ -60,14 +60,22 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
           setDebugMsg(`Proxy returned no audio (response: ${JSON.stringify(res.data)})`);
           return;
         }
-        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-        const blob = new Blob([bytes], { type: contentType || 'audio/mpeg' });
+        // Decode base64 in chunks to avoid call stack overflow on large strings
+        const mime = contentType || 'audio/mpeg';
+        const binaryStr = atob(base64);
+        const len = binaryStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = binaryStr.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
         const url = URL.createObjectURL(blob);
         setProxyUrl(url);
-        setDebugMsg(`Proxy OK — blob ready (${Math.round(bytes.length / 1024)}KB)`);
+        setDebugMsg(`Proxy OK — ${Math.round(len / 1024)}KB ${mime} — setting src…`);
         if (audioRef.current) {
           audioRef.current.src = url;
           audioRef.current.load();
+          setDebugMsg(`Proxy OK — ${Math.round(len / 1024)}KB — src set, ready to play`);
+        } else {
+          setDebugMsg(`Proxy OK but audioRef is null!`);
         }
       })
       .catch((err) => {
@@ -107,7 +115,9 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
       setDebugMsg('Paused');
     } else {
       setLoading(true);
-      setDebugMsg('Attempting play…');
+      const srcAtPlay = audio.src || '(empty)';
+      const readyState = audio.readyState; // 0=HAVE_NOTHING, 1=HAVE_METADATA, 2=HAVE_CURRENT_DATA, 3=HAVE_FUTURE_DATA, 4=HAVE_ENOUGH_DATA
+      setDebugMsg(`play() called — readyState:${readyState} src:${srcAtPlay.startsWith('blob:') ? 'blob:✓' : srcAtPlay.slice(0, 60)}`);
       const promise = audio.play();
       if (promise !== undefined) {
         promise

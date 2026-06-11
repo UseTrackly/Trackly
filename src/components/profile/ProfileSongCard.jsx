@@ -30,6 +30,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [proxyUrl, setProxyUrl] = useState(null);
+  const [debugMsg, setDebugMsg] = useState(null); // visible debug state
   const audioRef = useRef(null);
 
   const displayTitle = songName?.includes(' – ') ? songName.split(' – ')[0] : songName;
@@ -42,19 +43,28 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     setPlaying(false);
     setLoading(false);
     setProxyUrl(null);
+    setDebugMsg(null);
 
-    if (!previewUrl) return;
+    if (!previewUrl) {
+      setDebugMsg('No preview URL');
+      return;
+    }
 
+    setDebugMsg('Loading proxy…');
     let cancelled = false;
     base44.functions.invoke('proxyAudio', { url: previewUrl })
       .then((res) => {
         if (cancelled) return;
         const { base64, contentType } = res.data || {};
-        if (!base64) { console.warn('[ProfileSongCard] no base64 in response'); return; }
+        if (!base64) {
+          setDebugMsg(`Proxy returned no audio (response: ${JSON.stringify(res.data)})`);
+          return;
+        }
         const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
         const blob = new Blob([bytes], { type: contentType || 'audio/mpeg' });
         const url = URL.createObjectURL(blob);
         setProxyUrl(url);
+        setDebugMsg(`Proxy OK — blob ready (${Math.round(bytes.length / 1024)}KB)`);
         if (audioRef.current) {
           audioRef.current.src = url;
           audioRef.current.load();
@@ -62,7 +72,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
       })
       .catch((err) => {
         if (cancelled) return;
-        console.warn('[ProfileSongCard] proxy fetch failed:', err?.message);
+        setDebugMsg(`Proxy failed: ${err?.message || 'unknown error'}`);
         // Fallback: try direct URL
         setProxyUrl(previewUrl);
         if (audioRef.current) {
@@ -94,20 +104,23 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     if (playing) {
       audio.pause();
       setPlaying(false);
+      setDebugMsg('Paused');
     } else {
       setLoading(true);
+      setDebugMsg('Attempting play…');
       const promise = audio.play();
       if (promise !== undefined) {
         promise
-          .then(() => { setPlaying(true); setLoading(false); })
+          .then(() => { setPlaying(true); setLoading(false); setDebugMsg('Playing ▶'); })
           .catch((err) => {
-            console.warn('[ProfileSongCard] play() failed:', err?.name, err?.message);
             setPlaying(false);
             setLoading(false);
+            setDebugMsg(`Audio blocked: ${err?.name} — ${err?.message}`);
           });
       } else {
         setPlaying(true);
         setLoading(false);
+        setDebugMsg('Playing ▶ (no promise)');
       }
     }
   };
@@ -202,15 +215,23 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
 
         <audio
           ref={audioRef}
-          onEnded={() => { setPlaying(false); setLoading(false); }}
+          onEnded={() => { setPlaying(false); setLoading(false); setDebugMsg('Ended'); }}
           onError={(e) => {
-            console.warn('[ProfileSongCard] audio error:', e.target?.error?.message);
+            const msg = e.target?.error?.message || 'unknown audio error';
             setPlaying(false);
             setLoading(false);
+            setDebugMsg(`Audio element error: ${msg}`);
           }}
           playsInline
         />
       </div>
+
+      {/* Temporary debug banner — remove before shipping */}
+      {debugMsg && (
+        <div className="mt-1 px-2 py-1 rounded-md bg-black/80 text-[10px] font-mono break-all" style={{ color: debugMsg.includes('Playing') ? '#4ade80' : debugMsg.includes('failed') || debugMsg.includes('blocked') || debugMsg.includes('error') ? '#f87171' : '#facc15' }}>
+          🎵 {debugMsg}
+        </div>
+      )}
     </div>
   );
 }

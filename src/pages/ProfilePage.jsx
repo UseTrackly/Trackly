@@ -267,25 +267,25 @@ export default function ProfilePage() {
 
       {/* Avatar + Edit button row */}
       <div className="relative px-4 pb-0">
-        <div className="flex items-end justify-between" style={{ marginTop: -40 }}>
+        <div className="flex items-end justify-between" style={{ marginTop: -28 }}>
           {/* Avatar */}
           <div className="relative">
             <div
-              className="w-20 h-20 rounded-full overflow-hidden border-4 border-background bg-secondary"
-              style={{ boxShadow: '0 0 0 2px hsl(var(--border))' }}
+              className="w-14 h-14 rounded-full overflow-hidden border-3 border-background bg-secondary"
+              style={{ boxShadow: '0 0 0 2px hsl(var(--border))', borderWidth: 3 }}
             >
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-muted-foreground">
+                  <span className="text-lg font-bold text-muted-foreground">
                     {(profile?.display_name || user?.full_name || '?')[0]?.toUpperCase()}
                   </span>
                 </div>
               )}
             </div>
             <label
-              className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer border-2 border-background"
+              className="absolute -bottom-0.5 -right-0.5 p-1 rounded-full bg-primary text-primary-foreground cursor-pointer border-2 border-background"
               style={(uploading || isCameraUploading) ? { pointerEvents: 'none', opacity: 0.5 } : {}}
               onClick={(e) => {
                 e.preventDefault();
@@ -302,9 +302,9 @@ export default function ProfilePage() {
                 className="hidden"
               />
               {(uploading || isCameraUploading) ? (
-                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-2.5 h-2.5 border border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Camera className="w-3 h-3" />
+                <Camera className="w-2.5 h-2.5" />
               )}
             </label>
           </div>
@@ -314,7 +314,7 @@ export default function ProfilePage() {
             variant="outline"
             size="sm"
             onClick={handleEditProfile}
-            className="mb-1 text-xs gap-1.5 rounded-full px-4"
+            className="mb-1 text-xs gap-1.5 rounded-full px-3 h-7"
           >
             <Edit3 className="w-3 h-3" />
             Edit Profile
@@ -322,8 +322,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Name + username + location */}
-        <div className="mt-3 space-y-0.5">
-          <h2 className="text-lg font-bold leading-tight">
+        <div className="mt-1.5 space-y-0.5">
+          <h2 className="text-base font-bold leading-tight">
             {profile?.display_name || user?.full_name || 'Reseller'}
           </h2>
           <p className="text-sm text-primary font-medium">
@@ -352,7 +352,7 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Song Card (Pro Feature) */}
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-3">
           <ProfileSongCard
             songName={profile?.song_name}
             songArtist={profile?.song_artist}

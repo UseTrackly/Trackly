@@ -227,15 +227,15 @@ export default function ViewProfilePage() {
 
       {/* Profile Info */}
       <div className="relative px-4 pb-4">
-        <div className="flex items-end justify-between" style={{ marginTop: -40 }}>
+        <div className="flex items-end justify-between" style={{ marginTop: -28 }}>
           {/* Avatar */}
           <div className="relative">
-            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-background bg-secondary">
+            <div className="w-14 h-14 rounded-full overflow-hidden border-background bg-secondary" style={{ borderWidth: 3, borderStyle: 'solid', borderColor: 'hsl(var(--background))' }}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-muted-foreground">
+                  <span className="text-lg font-bold text-muted-foreground">
                     {displayName[0]?.toUpperCase()}
                   </span>
                 </div>
@@ -277,8 +277,8 @@ export default function ViewProfilePage() {
         </div>
 
         {/* Name & Username */}
-        <div className="mt-3">
-          <h1 className="text-xl font-bold text-foreground">{displayName}</h1>
+        <div className="mt-1.5">
+          <h1 className="text-base font-bold text-foreground">{displayName}</h1>
           <p className="text-sm text-primary font-medium">@{handle}</p>
           {locationVal && (
             <div className="flex items-center gap-1.5 mt-1.5 text-muted-foreground">

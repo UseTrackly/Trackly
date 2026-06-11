@@ -42,7 +42,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     if (audioRef.current) { audioRef.current.pause(); setPlaying(false); }
   }, [previewUrl]);
 
-  const togglePlay = async (e) => {
+  const togglePlay = (e) => {
     e.stopPropagation();
     if (!previewUrl) return;
     const audio = audioRef.current;
@@ -51,17 +51,21 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
       audio.pause();
       setPlaying(false);
     } else {
-      // Ensure src is set (required on iOS with preload="none")
-      if (!audio.src || !audio.src.includes(previewUrl)) {
+      // iOS requires play() to be called synchronously within the user gesture.
+      // Set src before play — no await, no load() call in between.
+      if (!audio.src || !audio.src.endsWith(previewUrl)) {
         audio.src = previewUrl;
-        audio.load();
       }
-      try {
-        await audio.play();
+      const promise = audio.play();
+      if (promise !== undefined) {
+        promise
+          .then(() => setPlaying(true))
+          .catch((err) => {
+            console.warn('[ProfileSongCard] play() failed:', err?.message);
+            setPlaying(false);
+          });
+      } else {
         setPlaying(true);
-      } catch (err) {
-        console.warn('[ProfileSongCard] play() failed:', err?.message);
-        setPlaying(false);
       }
     }
   };
@@ -154,7 +158,7 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
         <audio
           ref={audioRef}
           onEnded={() => setPlaying(false)}
-          preload="none"
+          playsInline
         />
       </div>
     </div>

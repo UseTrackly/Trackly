@@ -60,20 +60,14 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
           setDebugMsg(`Proxy returned no audio (response: ${JSON.stringify(res.data)})`);
           return;
         }
-        // Decode base64 in chunks to avoid call stack overflow on large strings
         const mime = contentType || 'audio/mpeg';
-        const binaryStr = atob(base64);
-        const len = binaryStr.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) bytes[i] = binaryStr.charCodeAt(i);
-        const blob = new Blob([bytes], { type: mime });
-        const url = URL.createObjectURL(blob);
-        setProxyUrl(url);
-        setDebugMsg(`Proxy OK — ${Math.round(len / 1024)}KB ${mime} — setting src…`);
+        const dataUri = `data:${mime};base64,${base64}`;
+        setProxyUrl(dataUri);
+        setDebugMsg(`Proxy OK — data URI ${mime} (${Math.round(base64.length * 0.75 / 1024)}KB) — setting src…`);
         if (audioRef.current) {
-          audioRef.current.src = url;
+          audioRef.current.src = dataUri;
           audioRef.current.load();
-          setDebugMsg(`Proxy OK — ${Math.round(len / 1024)}KB — src set, ready to play`);
+          setDebugMsg(`src set as data URI — ready to play`);
         } else {
           setDebugMsg(`Proxy OK but audioRef is null!`);
         }
@@ -94,12 +88,11 @@ export default function ProfileSongCard({ songName, songArtist, previewUrl, artw
     };
   }, [previewUrl]);
 
-  // Cleanup blob URLs and audio on unmount
+  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
       const audio = audioRef.current;
       if (audio) { audio.pause(); audio.src = ''; }
-      if (proxyUrl && proxyUrl.startsWith('blob:')) URL.revokeObjectURL(proxyUrl);
     };
   }, []);
 

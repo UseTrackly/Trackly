@@ -411,11 +411,10 @@ export default function CommunityFeed({ user, flips, activeTab, onPostFlip, onFl
         return [...flips].sort((a, b) => {
           const aMatch = userCats.includes(a.category);
           const bMatch = userCats.includes(b.category);
-          const aEngagement = a.interested_users?.length || 0;
-          const bEngagement = b.interested_users?.length || 0;
           if (aMatch && !bMatch) return -1;
           if (!aMatch && bMatch) return 1;
-          return bEngagement - aEngagement;
+          // Sort by newest first — never re-sort on engagement to prevent jumping
+          return (b.created_date || '').localeCompare(a.created_date || '');
         });
     }
   }, [flips, feedTab, user, followingEmails]);

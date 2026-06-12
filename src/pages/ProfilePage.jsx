@@ -357,7 +357,13 @@ export default function ProfilePage() {
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Socials & Storefronts</p>
           <SocialLinksEditor
             socialLinks={profile?.social_links}
-            onSave={(links) => updateProfileMutation.mutate({ social_links: links })}
+            onSave={(links) => updateProfileMutation.mutate({ social_links: links }, {
+              onSuccess: (savedProfile) => {
+                if (savedProfile) queryClient.setQueryData(['userProfile', user?.email], savedProfile);
+                queryClient.invalidateQueries({ queryKey: ['userProfile', user?.email] });
+                toast.success('Links saved');
+              },
+            })}
             isSaving={updateProfileMutation.isPending}
           />
         </div>

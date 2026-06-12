@@ -75,6 +75,39 @@
       ],
       "default": "public",
       "description": "Who can see the user's net profit"
+    },
+    "social_links": {
+      "type": "object",
+      "description": "Social media links",
+      "properties": {
+        "instagram": {
+          "type": "string"
+        },
+        "tiktok": {
+          "type": "string"
+        },
+        "twitter": {
+          "type": "string"
+        },
+        "youtube": {
+          "type": "string"
+        },
+        "facebook": {
+          "type": "string"
+        },
+        "ebay": {
+          "type": "string"
+        },
+        "stockx": {
+          "type": "string"
+        },
+        "depop": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        }
+      }
     }
   },
   "required": [

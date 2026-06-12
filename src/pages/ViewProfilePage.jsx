@@ -14,6 +14,7 @@ import ProfitVisibilityToggle from '@/components/profile/ProfitVisibilityToggle'
 import { toast } from 'sonner';
 import ProfileLink from '@/components/shared/ProfileLink';
 import { MessageContext } from '@/components/layout/UnifiedHeader';
+import { SocialLinksDisplay } from '@/components/profile/SocialLinks';
 
 export default function ViewProfilePage() {
   const { userProfile: profileParam } = useParams();
@@ -316,6 +317,13 @@ export default function ViewProfilePage() {
             <p className="text-[11px] text-muted-foreground">Following</p>
           </button>
         </div>
+
+        {/* Social Links */}
+        {otherProfile?.social_links && Object.values(otherProfile.social_links).some(v => v?.trim()) && (
+          <div className="mt-3">
+            <SocialLinksDisplay socialLinks={otherProfile.social_links} />
+          </div>
+        )}
 
         {/* Profile Song */}
         <ProfileSongCard

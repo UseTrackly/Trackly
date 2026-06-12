@@ -20,12 +20,21 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'Sender is blocked by recipient' });
     }
 
+    // Resolve sender's @handle
+    const senderProfiles = await base44.asServiceRole.entities.UserProfile.filter({
+      user_email: data.sender_email
+    }, '-created_date', 1);
+    const senderProfile = senderProfiles?.[0];
+    const senderHandle = senderProfile?.username
+      || (senderProfile?.display_name ? senderProfile.display_name.toLowerCase().replace(/\s+/g, '') : null)
+      || data.sender_email.split('@')[0];
+
     // Notify the recipient
     await base44.asServiceRole.entities.Notification.create({
       user_email: data.recipient_email,
       type: 'new_message',
       title: '💬 New Message',
-      message: `${data.sender_name} sent you a message`,
+      message: `@${senderHandle} sent you a message`,
       link: `/community`,
       metadata: {
         message_id: data.id,

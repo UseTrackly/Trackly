@@ -25,6 +25,7 @@ import FollowStats from '@/components/profile/FollowStats';
 import SongSearchPicker from '@/components/profile/SongSearchPicker';
 import EditSongDialog from '@/components/profile/EditSongDialog';
 import ProfitVisibilityToggle from '@/components/profile/ProfitVisibilityToggle';
+import SocialLinksEditor from '@/components/profile/SocialLinks';
 
 const CATEGORIES = [
   { value: 'cards', label: 'Cards', emoji: '🎴' },
@@ -350,6 +351,16 @@ export default function ProfilePage() {
         {profile?.bio && (
           <p className="mt-3 text-sm text-foreground/80 leading-relaxed">{profile.bio}</p>
         )}
+
+        {/* Social Links */}
+        <div className="mt-4">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Socials & Storefronts</p>
+          <SocialLinksEditor
+            socialLinks={profile?.social_links}
+            onSave={(links) => updateProfileMutation.mutate({ social_links: links })}
+            isSaving={updateProfileMutation.isPending}
+          />
+        </div>
 
         {/* Profile Song Card (Pro Feature) */}
         <div className="flex justify-center mt-3">

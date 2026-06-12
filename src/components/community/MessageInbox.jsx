@@ -94,10 +94,10 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
   const userEmail = currentUser?.email ?? '';
 
   const { data: messagesRaw = [] } = useQuery({
-    queryKey: ['messages', thread.flipId, thread.otherEmail],
-    queryFn: () => base44.entities.Message.filter({ community_flip_id: thread.flipId }, 'created_date', 200),
+    queryKey: ['messages', thread.otherEmail],
+    queryFn: () => base44.entities.Message.list('created_date', 500),
     refetchInterval: 5000,
-    enabled: !!thread.flipId && !!userEmail,
+    enabled: !!userEmail,
   });
 
   const messages = messagesRaw.filter(m =>

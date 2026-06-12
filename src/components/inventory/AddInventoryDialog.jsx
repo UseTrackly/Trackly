@@ -157,7 +157,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
       <DrawerContent
         className="bg-card border-border"
         style={{ maxHeight: '92dvh', display: 'flex', flexDirection: 'column' }}
-        onInteractOutside={(e) => e.preventDefault()}
       >
         <DrawerHeader className="shrink-0 pb-0">
           <DrawerTitle className="text-lg">

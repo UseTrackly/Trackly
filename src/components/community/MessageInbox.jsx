@@ -91,29 +91,31 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
   const queryClient = useQueryClient();
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
+  const userEmail = currentUser?.email ?? '';
 
   const { data: messagesRaw = [] } = useQuery({
     queryKey: ['messages', thread.flipId, thread.otherEmail],
     queryFn: () => base44.entities.Message.filter({ community_flip_id: thread.flipId }, 'created_date', 200),
     refetchInterval: 5000,
-    enabled: !!thread.flipId,
+    enabled: !!thread.flipId && !!userEmail,
   });
 
   const messages = messagesRaw.filter(m =>
-    (m.sender_email === currentUser.email && m.recipient_email === thread.otherEmail) ||
-    (m.sender_email === thread.otherEmail && m.recipient_email === currentUser.email)
+    (m.sender_email === userEmail && m.recipient_email === thread.otherEmail) ||
+    (m.sender_email === thread.otherEmail && m.recipient_email === userEmail)
   );
 
   // Mark incoming as read
   useEffect(() => {
+    if (!userEmail) return;
     messages
-      .filter(m => !m.is_read && m.recipient_email === currentUser.email)
+      .filter(m => !m.is_read && m.recipient_email === userEmail)
       .forEach(m => {
         base44.entities.Message.update(m.id, { is_read: true })
           .then(() => queryClient.invalidateQueries({ queryKey: ['myMessages'] }))
           .catch(() => {});
       });
-  }, [messages.length]);
+  }, [messages.length, userEmail]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -124,8 +126,8 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
     mutationFn: (payload) =>
       base44.entities.Message.create({
         community_flip_id: thread.flipId,
-        sender_email: currentUser.email,
-        sender_name: currentUser.full_name || 'User',
+        sender_email: userEmail,
+        sender_name: currentUser?.full_name || 'User',
         recipient_email: thread.otherEmail,
         is_read: false,
         ...payload,
@@ -137,6 +139,8 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
     },
     onError: () => toast.error('Failed to send'),
   });
+
+  if (!userEmail) return null;
 
   const handleSend = () => {
     if (!text.trim() || sendMutation.isPending) return;
@@ -170,7 +174,7 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
       style={{ flex: 1, minHeight: 0, overflow: 'hidden', backgroundColor: 'hsl(var(--background))' }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0 bg-background/90 backdrop-blur-sm">
+      <div className="flex items-center gap-3 px-4 border-b border-border shrink-0 bg-background/90 backdrop-blur-sm" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)', paddingBottom: '12px' }}>
         <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 -ml-2 shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -207,7 +211,7 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
           </div>
         ) : (
           messages.map(msg => {
-            const isMe = msg.sender_email === currentUser.email;
+            const isMe = msg.sender_email === userEmail;
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
@@ -409,10 +413,13 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
         side="right"
         className="p-0 border-l border-border"
         style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          bottom: 0,
           width: '100%',
           maxWidth: 480,
           height: '100dvh',
-          maxHeight: '100dvh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',

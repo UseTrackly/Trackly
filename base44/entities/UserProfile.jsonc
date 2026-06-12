@@ -78,7 +78,7 @@
     },
     "social_links": {
       "type": "object",
-      "description": "Social media links",
+      "description": "Social media and storefront links",
       "properties": {
         "instagram": {
           "type": "string"
@@ -86,22 +86,28 @@
         "tiktok": {
           "type": "string"
         },
-        "twitter": {
-          "type": "string"
-        },
         "youtube": {
           "type": "string"
         },
-        "facebook": {
+        "twitter": {
+          "type": "string"
+        },
+        "discord": {
           "type": "string"
         },
         "ebay": {
           "type": "string"
         },
-        "stockx": {
+        "whatnot": {
           "type": "string"
         },
-        "depop": {
+        "facebook": {
+          "type": "string"
+        },
+        "mercari": {
+          "type": "string"
+        },
+        "stockx": {
           "type": "string"
         },
         "website": {

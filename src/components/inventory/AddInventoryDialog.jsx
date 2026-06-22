@@ -48,7 +48,22 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
   const fileInputRef = useRef(null);
+  const isPickingFileRef = useRef(false);
   const queryClient = useQueryClient();
+
+  // When the browser file picker closes (photo selected or cancelled),
+  // iOS Safari fires a synthetic "ghost click" on the overlay. This effect
+  // resets the guard flag shortly after the window regains focus, swallowing
+  // that ghost click so the dialog doesn't close prematurely.
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isPickingFileRef.current) {
+        setTimeout(() => { isPickingFileRef.current = false; }, 500);
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   const { openCameraPicker, isUploading: isCameraUploading } = useCameraPicker({
     onImageSelected: (file) => {
@@ -159,8 +174,16 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
     if (isCapacitorNative()) {
       openCameraPicker({ inputId: 'inventory-image-input' });
     } else {
+      // Set guard so the ghost click from the file picker doesn't close the dialog
+      isPickingFileRef.current = true;
       fileInputRef.current?.click();
     }
+  };
+
+  const handleOverlayClick = () => {
+    // Ignore clicks that are actually ghost clicks from the file picker
+    if (isPickingFileRef.current) return;
+    handleClose();
   };
 
   if (!open) return null;
@@ -187,7 +210,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           display: 'flex',
           alignItems: 'flex-end',
         }}
-        onClick={handleClose}
+        onClick={handleOverlayClick}
       >
         {/* Sheet panel — stop propagation so tapping inside doesn't close */}
         <div

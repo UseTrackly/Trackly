@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCameraPicker } from '@/lib/useCameraPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Loader2, DollarSign, X, ChevronDown } from 'lucide-react';
+import { Upload, Loader2, DollarSign, X } from 'lucide-react';
 import CertImagePreview from '@/components/grading/CertImagePreview';
 import { toast } from 'sonner';
 
@@ -42,6 +41,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [targetPrice, setTargetPrice] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [isPickingPhoto, setIsPickingPhoto] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isGraded, setIsGraded] = useState(false);
   const [gradingCompany, setGradingCompany] = useState('PSA');
@@ -50,20 +50,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [certImageUrl, setCertImageUrl] = useState(null);
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
-
-  const { openCameraPicker, isUploading: isCameraUploading } = useCameraPicker({
-    onImageSelected: (file, previewUrl) => {
-      setImageFile(file);
-      // Use the dataUrl directly for preview when available (native iOS);
-      // fall back to URL.createObjectURL for web file input.
-      if (previewUrl) {
-        setImagePreviewUrl(previewUrl);
-      } else {
-        try { setImagePreviewUrl(URL.createObjectURL(file)); } catch { setImagePreviewUrl(null); }
-      }
-      toast.success('Photo selected');
-    },
-  });
 
   useEffect(() => {
     if (editingItem) {
@@ -161,18 +147,17 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
     if (file) {
       setImageFile(file);
       try { setImagePreviewUrl(URL.createObjectURL(file)); } catch { setImagePreviewUrl(null); }
+      toast.success('Photo selected');
     }
+    setIsPickingPhoto(false);
     e.target.value = '';
   };
 
   const triggerFilePicker = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isCapacitorNative()) {
-      openCameraPicker({ inputId: 'inventory-image-input' });
-    } else {
-      fileInputRef.current?.click();
-    }
+    setIsPickingPhoto(true);
+    fileInputRef.current?.click();
   };
 
   if (!open) return null;
@@ -195,16 +180,22 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           position: 'fixed',
           inset: 0,
           zIndex: 9999,
-          backgroundColor: 'rgba(0,0,0,0.6)',
+          backgroundColor: 'rgba(0,0,0,0.65)',
           display: 'flex',
           alignItems: 'flex-end',
+          overflow: 'hidden',
+          overscrollBehavior: 'contain',
+          touchAction: 'none',
+          WebkitBackfaceVisibility: 'hidden',
+          backfaceVisibility: 'hidden',
         }}
       >
-        {/* Sheet panel — stop propagation so tapping inside doesn't close */}
+        {/* Sheet panel */}
         <div
           style={{
             width: '100%',
             maxHeight: '92dvh',
+            minHeight: '40dvh',
             backgroundColor: 'hsl(var(--card))',
             borderTopLeftRadius: 16,
             borderTopRightRadius: 16,
@@ -212,8 +203,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
             flexDirection: 'column',
             overflow: 'hidden',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            willChange: 'transform',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden',
           }}
-          onClick={(e) => e.stopPropagation()}
         >
           {/* Handle bar */}
           <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
@@ -231,7 +224,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           </div>
 
           {/* Scrollable body */}
-          <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '0 16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 16px' }}>
             <div className="space-y-4 pb-4">
 
               {/* Photo */}
@@ -242,8 +235,8 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                     <img src={certImageUrl} alt="Card" className="w-12 h-16 object-contain rounded-lg border border-border bg-background" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-primary mb-1">Auto-fetched from {gradingCompany}</p>
-                      <button type="button" onClick={triggerFilePicker} disabled={isCameraUploading} className="text-xs text-muted-foreground underline">
-                        {isCameraUploading ? 'Loading...' : 'Replace with your own'}
+                      <button type="button" onClick={triggerFilePicker} disabled={isPickingPhoto} className="text-xs text-muted-foreground underline">
+                        {isPickingPhoto ? 'Loading...' : 'Replace with your own'}
                       </button>
                     </div>
                   </div>
@@ -255,22 +248,22 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                       className="w-full h-40 object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <button type="button" onClick={triggerFilePicker} disabled={isCameraUploading}
+                    <button type="button" onClick={triggerFilePicker} disabled={isPickingPhoto}
                       className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-                      {isCameraUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      {isPickingPhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                       Change photo
                     </button>
                   </div>
                 ) : (
-                  <button type="button" onClick={triggerFilePicker} disabled={isCameraUploading}
+                  <button type="button" onClick={triggerFilePicker} disabled={isPickingPhoto}
                     className="flex flex-col items-center justify-center gap-3 w-full h-44 border-2 border-dashed border-primary/40 rounded-2xl bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-50">
-                    {isCameraUploading ? <Loader2 className="w-10 h-10 text-primary animate-spin" /> : (
+                    {isPickingPhoto ? <Loader2 className="w-10 h-10 text-primary animate-spin" /> : (
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                         <Upload className="w-7 h-7 text-primary" />
                       </div>
                     )}
                     <div className="space-y-0.5 text-center">
-                      <p className="text-sm font-semibold text-foreground">{isCameraUploading ? 'Loading...' : 'Add a Photo'}</p>
+                      <p className="text-sm font-semibold text-foreground">{isPickingPhoto ? 'Loading...' : 'Add a Photo'}</p>
                       <p className="text-xs text-muted-foreground">Tap to upload</p>
                     </div>
                   </button>
@@ -416,8 +409,4 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
       </div>
     </>
   );
-}
-
-function isCapacitorNative() {
-  return window?.Capacitor?.isNativePlatform?.() === true;
 }

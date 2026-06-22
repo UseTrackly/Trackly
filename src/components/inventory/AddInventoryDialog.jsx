@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -162,9 +163,9 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <>
-      {/* Hidden file input — lives at top level, never inside a modal */}
+      {/* Hidden file input — lives at document.body, never inside a modal */}
       <input
         ref={fileInputRef}
         id="inventory-image-input"
@@ -174,12 +175,19 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
         style={{ position: 'fixed', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}
       />
 
-      {/* Full-screen overlay — solid opaque background, no transparency */}
+      {/* Full-screen overlay — portaled to document.body so it escapes any
+          parent stacking/overflow context that would trap position:fixed
+          on iOS WKWebView. Solid opaque background hides the inventory page. */}
       <div
         style={{
           position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 99999,
           backgroundColor: 'hsl(0 0% 4%)',
           display: 'flex',
           alignItems: 'flex-end',
@@ -405,6 +413,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

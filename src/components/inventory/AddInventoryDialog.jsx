@@ -174,18 +174,17 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
         style={{ position: 'fixed', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}
       />
 
-      {/* Full-screen overlay */}
+      {/* Full-screen overlay — solid opaque background, no transparency */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           zIndex: 9999,
-          backgroundColor: 'rgba(0,0,0,0.85)',
+          backgroundColor: 'hsl(0 0% 4%)',
           display: 'flex',
           alignItems: 'flex-end',
           overflow: 'hidden',
           overscrollBehavior: 'contain',
-          touchAction: 'none',
           WebkitBackfaceVisibility: 'hidden',
           backfaceVisibility: 'hidden',
         }}
@@ -225,7 +224,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
 
           {/* Scrollable body */}
           <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 16px' }}>
-            <div className="space-y-4 pb-4">
+            <div className="space-y-3 pb-4">
 
               {/* Photo */}
               <div className="space-y-2">
@@ -255,10 +254,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                   </div>
                 ) : (
                   <button type="button" onClick={triggerFilePicker} disabled={isPickingPhoto}
-                    className="flex flex-col items-center justify-center gap-3 w-full h-44 border-2 border-dashed border-primary/40 rounded-2xl bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-50">
-                    {isPickingPhoto ? <Loader2 className="w-10 h-10 text-primary animate-spin" /> : (
-                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Upload className="w-7 h-7 text-primary" />
+                    className="flex flex-col items-center justify-center gap-2 w-full h-28 border-2 border-dashed border-primary/40 rounded-2xl bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-50">
+                    {isPickingPhoto ? <Loader2 className="w-7 h-7 text-primary animate-spin" /> : (
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Upload className="w-5 h-5 text-primary" />
                       </div>
                     )}
                     <div className="space-y-0.5 text-center">

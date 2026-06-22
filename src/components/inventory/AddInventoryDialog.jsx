@@ -48,10 +48,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
   const fileInputRef = useRef(null);
-  // Timestamp-based guard — active until this time. Survives the entire
-  // camera/file-picker lifecycle on both web and native iOS without being
-  // prematurely cleared by focus/visibility events.
-  const guardUntilRef = useRef(0);
   const queryClient = useQueryClient();
 
   const { openCameraPicker, isUploading: isCameraUploading } = useCameraPicker({
@@ -160,26 +156,11 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const triggerFilePicker = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Set guard for 60 seconds — covers the entire camera lifecycle on native
-    // (opening, browsing library, taking/selecting photo, closing). The guard
-    // is then shortened to 3s once the picker resolves, which is enough to
-    // swallow any post-close ghost clicks without leaving the dialog stuck.
-    guardUntilRef.current = Date.now() + 60000;
     if (isCapacitorNative()) {
-      openCameraPicker({ inputId: 'inventory-image-input' })
-        .finally(() => {
-          guardUntilRef.current = Date.now() + 3000;
-        });
+      openCameraPicker({ inputId: 'inventory-image-input' });
     } else {
-      guardUntilRef.current = Date.now() + 3000;
       fileInputRef.current?.click();
     }
-  };
-
-  const handleOverlayClick = () => {
-    // Swallow ghost clicks that fire while/after the photo picker was open
-    if (Date.now() < guardUntilRef.current) return;
-    handleClose();
   };
 
   if (!open) return null;
@@ -206,7 +187,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           display: 'flex',
           alignItems: 'flex-end',
         }}
-        onClick={handleOverlayClick}
       >
         {/* Sheet panel — stop propagation so tapping inside doesn't close */}
         <div

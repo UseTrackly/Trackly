@@ -28,6 +28,7 @@ import ItemROIDialog from '@/components/inventory/ItemROIDialog';
 import ExpenseCard from '@/components/expenses/ExpenseCard';
 import AddExpenseDialog from '@/components/expenses/AddExpenseDialog';
 import { toast } from 'sonner';
+import { useCameraPicker } from '@/lib/useCameraPicker';
 
 const SORT_OPTIONS = [
   { value: 'date-desc', label: 'Newest First' },
@@ -59,6 +60,40 @@ export default function InventoryPage() {
   const [range, setRange] = useState(3);
   const queryClient = useQueryClient();
   const scrollContainerRef = useRef(null);
+  const photoTargetRef = useRef(null);
+  const quickPhotoInputRef = useRef(null);
+
+  // ── Quick photo upload for existing items (Bug 2 fix) ───────────────
+  // Opens the camera/file picker directly without opening the Add Item form.
+  const handleQuickPhotoSelected = async (file) => {
+    const targetItem = photoTargetRef.current;
+    if (!targetItem) return;
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.Inventory.update(targetItem.id, { image_url: file_url });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.success('Photo updated');
+    } catch {
+      toast.error('Failed to upload photo');
+    } finally {
+      photoTargetRef.current = null;
+    }
+  };
+
+  const { openCameraPicker: openQuickPhotoPicker } = useCameraPicker({
+    onImageSelected: handleQuickPhotoSelected,
+  });
+
+  const handleAddPhoto = (item) => {
+    photoTargetRef.current = item;
+    openQuickPhotoPicker({ inputId: 'inventory-quick-photo-input' });
+  };
+
+  const handleQuickPhotoInputChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleQuickPhotoSelected(file);
+    e.target.value = '';
+  };
   const handleRefresh = useCallback(() => queryClient.invalidateQueries(), [queryClient]);
 
   // Point pull-to-refresh at the actual scrollable <main> container
@@ -399,6 +434,7 @@ export default function InventoryPage() {
                     onEdit={handleEdit}
                     onDelete={(item) => deleteMutation.mutate(item.id)}
                     onPostToCommunity={handlePostToCommunity}
+                    onAddPhoto={handleAddPhoto}
                   />
                 </div>
               ))}
@@ -554,6 +590,16 @@ export default function InventoryPage() {
           <InventoryAIAssistant />
         </TabsContent>
       </Tabs>
+
+      {/* Hidden input for quick photo upload on existing items (web fallback) */}
+      <input
+        ref={quickPhotoInputRef}
+        id="inventory-quick-photo-input"
+        type="file"
+        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+        onChange={handleQuickPhotoInputChange}
+        style={{ position: 'fixed', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}
+      />
 
       <AddInventoryDialog
         open={showAdd}

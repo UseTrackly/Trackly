@@ -24,7 +24,7 @@ const CATEGORY_META = {
   other:       { icon: Tag,        gradient: 'from-gray-800/80 to-slate-900/80' },
 };
 
-export default function InventoryCard({ item, index, onEdit, onDelete, onPostToCommunity }) {
+export default function InventoryCard({ item, index, onEdit, onDelete, onPostToCommunity, onAddPhoto }) {
   const totalValue = (item.cost_basis || 0) * (item.quantity || 1);
   const potentialProfit = item.target_price ? (item.target_price - item.cost_basis) * (item.quantity || 1) : null;
   const meta = CATEGORY_META[item.category] || CATEGORY_META.other;
@@ -63,7 +63,7 @@ export default function InventoryCard({ item, index, onEdit, onDelete, onPostToC
       ) : (
         /* No photo: slim category strip with "Add photo" prompt */
         <button
-          onClick={(e) => { e.stopPropagation(); onEdit?.(item); }}
+          onClick={(e) => { e.stopPropagation(); onAddPhoto?.(item); }}
           className={`w-full h-14 bg-gradient-to-r ${meta.gradient} flex items-center px-3 gap-2 hover:opacity-90 transition-opacity`}
         >
           <CategoryIcon className="w-4 h-4 text-white/50 shrink-0" />

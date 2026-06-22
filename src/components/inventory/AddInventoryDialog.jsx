@@ -180,7 +180,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           position: 'fixed',
           inset: 0,
           zIndex: 9999,
-          backgroundColor: 'rgba(0,0,0,0.65)',
+          backgroundColor: 'rgba(0,0,0,0.85)',
           display: 'flex',
           alignItems: 'flex-end',
           overflow: 'hidden',
@@ -241,17 +241,16 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                     </div>
                   </div>
                 ) : (imageFile || editingItem?.image_url) ? (
-                  <div className="relative rounded-xl overflow-hidden border border-border">
+                  <div className="flex items-center gap-3">
                     <img
                       src={imagePreviewUrl || editingItem?.image_url}
                       alt="Item"
-                      className="w-full h-40 object-cover"
+                      className="w-24 h-28 object-cover rounded-xl border border-border shrink-0"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     <button type="button" onClick={triggerFilePicker} disabled={isPickingPhoto}
-                      className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-                      {isPickingPhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
-                      Change photo
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-background text-xs font-medium text-foreground hover:bg-secondary transition-colors disabled:opacity-50">
+                      {isPickingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      Change Photo
                     </button>
                   </div>
                 ) : (

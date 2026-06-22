@@ -41,6 +41,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [location, setLocation] = useState('');
   const [targetPrice, setTargetPrice] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [isGraded, setIsGraded] = useState(false);
   const [gradingCompany, setGradingCompany] = useState('PSA');
@@ -51,8 +52,15 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const queryClient = useQueryClient();
 
   const { openCameraPicker, isUploading: isCameraUploading } = useCameraPicker({
-    onImageSelected: (file) => {
+    onImageSelected: (file, previewUrl) => {
       setImageFile(file);
+      // Use the dataUrl directly for preview when available (native iOS);
+      // fall back to URL.createObjectURL for web file input.
+      if (previewUrl) {
+        setImagePreviewUrl(previewUrl);
+      } else {
+        try { setImagePreviewUrl(URL.createObjectURL(file)); } catch { setImagePreviewUrl(null); }
+      }
       toast.success('Photo selected');
     },
   });
@@ -88,6 +96,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
     setLocation('');
     setTargetPrice('');
     setImageFile(null);
+    setImagePreviewUrl(null);
     setIsGraded(false);
     setGradingCompany('PSA');
     setGrade('');
@@ -149,7 +158,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
-    if (file) setImageFile(file);
+    if (file) {
+      setImageFile(file);
+      try { setImagePreviewUrl(URL.createObjectURL(file)); } catch { setImagePreviewUrl(null); }
+    }
     e.target.value = '';
   };
 
@@ -238,7 +250,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                 ) : (imageFile || editingItem?.image_url) ? (
                   <div className="relative rounded-xl overflow-hidden border border-border">
                     <img
-                      src={imageFile ? URL.createObjectURL(imageFile) : editingItem.image_url}
+                      src={imagePreviewUrl || editingItem?.image_url}
                       alt="Item"
                       className="w-full h-40 object-cover"
                     />

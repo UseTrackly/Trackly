@@ -10,6 +10,19 @@ function isCapacitorNative() {
 }
 
 /**
+ * Convert a base64 data URL to a File without relying on fetch() —
+ * fetch(dataUrl) can silently fail on native iOS WKWebView.
+ */
+function dataUrlToFile(dataUrl, filename) {
+  const [meta, base64] = dataUrl.split(',');
+  const mime = meta.match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], filename, { type: mime });
+}
+
+/**
  * Reusable hook for camera/image picker with iOS Capacitor support.
  * Falls back to native file input on web.
  */
@@ -49,11 +62,10 @@ export function useCameraPicker({ onImageSelected }) {
       });
 
       if (photo?.dataUrl) {
-        // Convert base64 dataUrl → File
-        const res = await fetch(photo.dataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], 'photo.jpg', { type: blob.type || 'image/jpeg' });
-        await onImageSelected?.(file);
+        // Pass dataUrl directly for preview — URL.createObjectURL can fail
+        // on native iOS WKWebView. The File is still created for upload.
+        const file = dataUrlToFile(photo.dataUrl, 'photo.jpg');
+        await onImageSelected?.(file, photo.dataUrl);
       }
     } catch (err) {
       const msg = (err?.message || '').toLowerCase();

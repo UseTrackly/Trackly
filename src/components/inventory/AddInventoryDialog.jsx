@@ -48,22 +48,11 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
   const fileInputRef = useRef(null);
-  const isPickingFileRef = useRef(false);
+  // Timestamp-based guard — active until this time. Survives the entire
+  // camera/file-picker lifecycle on both web and native iOS without being
+  // prematurely cleared by focus/visibility events.
+  const guardUntilRef = useRef(0);
   const queryClient = useQueryClient();
-
-  // When the browser file picker closes (photo selected or cancelled),
-  // iOS Safari fires a synthetic "ghost click" on the overlay. This effect
-  // resets the guard flag shortly after the window regains focus, swallowing
-  // that ghost click so the dialog doesn't close prematurely.
-  useEffect(() => {
-    const handleFocus = () => {
-      if (isPickingFileRef.current) {
-        setTimeout(() => { isPickingFileRef.current = false; }, 500);
-      }
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, []);
 
   const { openCameraPicker, isUploading: isCameraUploading } = useCameraPicker({
     onImageSelected: (file) => {
@@ -171,15 +160,15 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const triggerFilePicker = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Set guard for BOTH native and web paths — when the camera/file picker
-    // closes, iOS fires a synthetic ghost click on the overlay that would
-    // otherwise close the dialog.
-    isPickingFileRef.current = true;
+    // Set guard for 5 seconds — covers the full camera lifecycle on native
+    // (opening, taking/selecting photo, closing) plus any ghost clicks that
+    // fire when the native picker dismisses.
+    guardUntilRef.current = Date.now() + 5000;
     if (isCapacitorNative()) {
       openCameraPicker({ inputId: 'inventory-image-input' })
         .finally(() => {
-          // Keep guard active briefly after the picker closes to swallow ghost clicks
-          setTimeout(() => { isPickingFileRef.current = false; }, 500);
+          // Extend guard 1.5s after picker resolves to catch post-close ghost clicks
+          guardUntilRef.current = Math.max(guardUntilRef.current, Date.now() + 1500);
         });
     } else {
       fileInputRef.current?.click();
@@ -187,8 +176,8 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   };
 
   const handleOverlayClick = () => {
-    // Ignore clicks that are actually ghost clicks from the file picker
-    if (isPickingFileRef.current) return;
+    // Swallow ghost clicks that fire while/after the photo picker was open
+    if (Date.now() < guardUntilRef.current) return;
     handleClose();
   };
 

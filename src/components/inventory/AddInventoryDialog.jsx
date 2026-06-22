@@ -171,11 +171,17 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const triggerFilePicker = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    // Set guard for BOTH native and web paths — when the camera/file picker
+    // closes, iOS fires a synthetic ghost click on the overlay that would
+    // otherwise close the dialog.
+    isPickingFileRef.current = true;
     if (isCapacitorNative()) {
-      openCameraPicker({ inputId: 'inventory-image-input' });
+      openCameraPicker({ inputId: 'inventory-image-input' })
+        .finally(() => {
+          // Keep guard active briefly after the picker closes to swallow ghost clicks
+          setTimeout(() => { isPickingFileRef.current = false; }, 500);
+        });
     } else {
-      // Set guard so the ghost click from the file picker doesn't close the dialog
-      isPickingFileRef.current = true;
       fileInputRef.current?.click();
     }
   };

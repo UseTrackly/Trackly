@@ -106,6 +106,23 @@
   }
 }
 
+/* ─── Pin the top header so it NEVER drops or shifts ───────── */
+/* Radix Dialog/Sheet/Select can add data-scroll-locked to <html>
+   and inject inline styles on <body> (padding-right, top, position).
+   These rules ensure the header stays glued to top:0 regardless. */
+.app-header-fixed {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: auto !important;
+  z-index: 50 !important;
+  transform: none !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* ─── Prevent header/body shift when modals & sheets open ────── */
 /* Radix Dialog sets data-scroll-locked on <html> and injects inline
    styles on <body> (padding-right, position, top) to lock scroll.

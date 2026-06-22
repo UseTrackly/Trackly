@@ -412,6 +412,9 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
       <SheetContent
         side="right"
         className="p-0 border-l border-border"
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
         style={{
           position: 'fixed',
           top: 0,

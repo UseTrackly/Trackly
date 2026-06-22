@@ -194,6 +194,12 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
             <p className="text-xs text-muted-foreground truncate">{thread.flipName}</p>
           )}
         </button>
+        <button
+          onClick={onClose}
+          className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Messages — native scroll */}
@@ -408,7 +414,7 @@ export default function MessageInbox({ open, onClose, preselectRecipientEmail, p
   }, [open]);
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) return; }}>
       <SheetContent
         side="right"
         className="p-0 border-l border-border"

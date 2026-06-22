@@ -160,17 +160,18 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const triggerFilePicker = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Set guard for 5 seconds — covers the full camera lifecycle on native
-    // (opening, taking/selecting photo, closing) plus any ghost clicks that
-    // fire when the native picker dismisses.
-    guardUntilRef.current = Date.now() + 5000;
+    // Set guard for 60 seconds — covers the entire camera lifecycle on native
+    // (opening, browsing library, taking/selecting photo, closing). The guard
+    // is then shortened to 3s once the picker resolves, which is enough to
+    // swallow any post-close ghost clicks without leaving the dialog stuck.
+    guardUntilRef.current = Date.now() + 60000;
     if (isCapacitorNative()) {
       openCameraPicker({ inputId: 'inventory-image-input' })
         .finally(() => {
-          // Extend guard 1.5s after picker resolves to catch post-close ghost clicks
-          guardUntilRef.current = Math.max(guardUntilRef.current, Date.now() + 1500);
+          guardUntilRef.current = Date.now() + 3000;
         });
     } else {
+      guardUntilRef.current = Date.now() + 3000;
       fileInputRef.current?.click();
     }
   };

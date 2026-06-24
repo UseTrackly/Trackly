@@ -94,13 +94,8 @@
     overscroll-behavior: none;
     touch-action: pan-y;
     overflow: hidden !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
     margin: 0 !important;
-    padding-right: 0 !important;
+    padding: 0 !important;
     /* Extend background color into safe-area insets to eliminate black bars */
     background-color: hsl(var(--background));
   }
@@ -126,19 +121,15 @@
 /* ─── Prevent header/body shift when modals & sheets open ────── */
 /* Radix Dialog sets data-scroll-locked on <html> and injects inline
    styles on <body> (padding-right, position, top) to lock scroll.
-   These !important overrides neutralize those modifications so the
-   fixed top header never shifts vertically or horizontally. */
+   We only neutralize the padding/margin — NOT position — so that
+   position:fixed descendants anchor to the viewport (initial
+   containing block), which is immune to keyboard-induced shifts. */
 html[data-scroll-locked] body,
 html[data-scroll-locked] {
   overflow: hidden !important;
   padding-right: 0 !important;
   margin-right: 0 !important;
   margin-top: 0 !important;
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
 }
 
 /* ─── Mobile Touch: prevent scroll from triggering hover states ── */

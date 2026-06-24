@@ -357,10 +357,13 @@ PODEOF
         script: |
           # ── Bypass altool's broken Bundle ID → Apple ID lookup ──────────────
           # Xcode 26+ altool fails with "Cannot determine the Apple ID from
-          # Bundle ID". We pass the App Store Connect Apple ID (6762493484)
-          # directly via APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS so
-          # altool skips the lookup entirely.
+          # Bundle ID". We pass the numeric App Store Connect Apple ID
+          # (6762493484) directly to altool via --altool-additional-arguments
+          # so altool skips the broken lookup entirely.
           set -e
+
+          echo "=== Codemagic CLI version ==="
+          app-store-connect --version
 
           IPA_PATH=$(ls build/ios/ipa/*.ipa 2>/dev/null | head -1)
           if [ -z "$IPA_PATH" ]; then
@@ -369,13 +372,23 @@ PODEOF
           fi
           echo "Publishing IPA: $IPA_PATH"
 
+          # Write private key to temp file to avoid shell newline-escaping issues
+          KEY_FILE="/tmp/asc_private_key.p8"
+          printf '%s\n' "$APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+
+          echo "=== Uploading to App Store Connect (Apple ID: 6762493484) ==="
           app-store-connect publish \
             --path "$IPA_PATH" \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
-            --private-key "$APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY" \
+            --private-key "@file:$KEY_FILE" \
+            --altool-additional-arguments "--apple-id 6762493484" \
+            --altool-verbose-logging \
             --testflight \
             --max-build-processing-wait 20
+
+          rm -f "$KEY_FILE"
 
     artifacts:
       - build/ios/ipa/*.ipa

@@ -353,12 +353,33 @@ PODEOF
             --scheme "App" \
             --export-options-plist /Users/builder/export_options.plist
 
+      - name: Publish to App Store Connect (explicit Apple ID)
+        script: |
+          # ── Bypass altool's broken Bundle ID → Apple ID lookup ──────────────
+          # Xcode 26+ altool fails with "Cannot determine the Apple ID from
+          # Bundle ID". We pass the App Store Connect Apple ID (6762493484)
+          # directly via APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS so
+          # altool skips the lookup entirely.
+          set -e
+
+          IPA_PATH=$(ls build/ios/ipa/*.ipa 2>/dev/null | head -1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "FATAL: No IPA found in build/ios/ipa/"
+            exit 1
+          fi
+          echo "Publishing IPA: $IPA_PATH"
+
+          app-store-connect publish \
+            --path "$IPA_PATH" \
+            --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
+            --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
+            --private-key "$APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY" \
+            --testflight \
+            --max-build-processing-wait 20
+
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
-        submit_to_app_store: false
+      email:
+        recipients:
+          - noreply@trackly.app

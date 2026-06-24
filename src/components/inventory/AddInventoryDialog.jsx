@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [grade, setGrade] = useState('');
   const [certNumber, setCertNumber] = useState('');
   const [certImageUrl, setCertImageUrl] = useState(null);
+  const [isPublic, setIsPublic] = useState(false);
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
 
@@ -66,6 +68,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
       setGradingCompany(editingItem.grading_company || 'PSA');
       setGrade(editingItem.grade || '');
       setCertNumber(editingItem.cert_number || '');
+      setIsPublic(editingItem.is_public || false);
     } else {
       resetForm();
     }
@@ -88,6 +91,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
     setGrade('');
     setCertNumber('');
     setCertImageUrl(null);
+    setIsPublic(false);
   };
 
   const saveMutation = useMutation({
@@ -134,6 +138,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
       grading_company: category === 'cards' && isGraded ? gradingCompany : undefined,
       grade: category === 'cards' && isGraded ? grade : undefined,
       cert_number: category === 'cards' && isGraded ? certNumber : undefined,
+      is_public: isPublic,
     });
   };
 
@@ -162,7 +167,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Hidden file input — positioned off-screen, never inside a modal */}
       <input
@@ -383,6 +388,18 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Condition details, flaws, or other notes..." className="bg-background min-h-[80px]" />
               </div>
 
+              {/* Public Storefront Toggle */}
+              <div className="flex items-center justify-between p-3 border border-border rounded-xl bg-background">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Show on Storefront</p>
+                  <p className="text-xs text-muted-foreground">Make this item visible on your public profile</p>
+                </div>
+                <button type="button" onClick={() => setIsPublic(v => !v)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isPublic ? 'bg-primary' : 'bg-muted'}`}>
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${isPublic ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
             </div>
           </div>
 
@@ -401,6 +418,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

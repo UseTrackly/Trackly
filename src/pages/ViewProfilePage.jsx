@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import ProfileLink from '@/components/shared/ProfileLink';
 import { MessageContext } from '@/components/layout/UnifiedHeader';
 import { SocialLinksDisplay } from '@/components/profile/SocialLinks';
+import ProfileStatsSheet from '@/components/profile/ProfileStatsSheet';
 
 export default function ViewProfilePage() {
   const { userProfile: profileParam } = useParams();
@@ -68,6 +69,7 @@ export default function ViewProfilePage() {
   }, [isOwnProfile, otherProfile, navigate]);
 
   const [showFollowers, setShowFollowers] = useState(null);
+  const [showStats, setShowStats] = useState(null);
 
   // Fetch other user's flips (public data only)
   const { data: flipsRaw = [] } = useQuery({
@@ -87,8 +89,8 @@ export default function ViewProfilePage() {
   // Fetch other user's inventory
   const { data: inventoryRaw = [] } = useQuery({
     queryKey: ['otherInventory', decodedParam],
-    queryFn: () => base44.entities.Inventory.filter({ created_by_email: decodedParam }, '-created_date', 50),
-    enabled: !!decodedParam && !!otherProfile,
+    queryFn: () => base44.entities.Inventory.filter({ is_public: true, created_by_id: otherProfile?.created_by_id }, '-created_date', 50),
+    enabled: !!otherProfile?.created_by_id,
   });
   const inventory = Array.isArray(inventoryRaw) ? inventoryRaw : [];
 
@@ -336,11 +338,11 @@ export default function ViewProfilePage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-2 mt-4">
-          <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3 text-center">
+          <button onClick={() => setShowStats('inventory')} className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3 text-center hover:border-primary/40 transition-colors">
             <Package className="w-4 h-4 mx-auto mb-1 text-primary" />
             <p className="text-lg font-bold">{totalInventory}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Items</p>
-          </div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">In Stock</p>
+          </button>
           <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3 text-center">
             <TrendingUp className="w-4 h-4 mx-auto mb-1 text-primary" />
             <p className="text-lg font-bold">{totalFlips}</p>
@@ -490,6 +492,16 @@ export default function ViewProfilePage() {
           </>
         )}
       </div>
+
+      {/* Stats Bottom Sheet */}
+      <ProfileStatsSheet
+        open={!!showStats}
+        onClose={() => setShowStats(null)}
+        type={showStats}
+        items={inventory}
+        isOwner={false}
+        currency="USD"
+      />
     </div>
   );
 }

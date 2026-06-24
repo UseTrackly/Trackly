@@ -26,6 +26,7 @@ import SongSearchPicker from '@/components/profile/SongSearchPicker';
 import EditSongDialog from '@/components/profile/EditSongDialog';
 import ProfitVisibilityToggle from '@/components/profile/ProfitVisibilityToggle';
 import SocialLinksEditor from '@/components/profile/SocialLinks';
+import ProfileStatsSheet from '@/components/profile/ProfileStatsSheet';
 
 const CATEGORIES = [
   { value: 'cards', label: 'Cards', emoji: '🎴' },
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const { isAuthenticated, navigateToLogin } = useAuth();
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditSong, setShowEditSong] = useState(false);
+  const [showStats, setShowStats] = useState(null);
   const [showFollowers, setShowFollowers] = useState(null); // 'followers' | 'following' | null
   const [bio, setBio] = useState('');
   const [locationVal, setLocationVal] = useState('');
@@ -430,20 +432,20 @@ export default function ProfilePage() {
         <div className="mt-6">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Collection</p>
           <div className="flex gap-4">
-            <div className="flex-1 bg-card/60 backdrop-blur-xl border border-border rounded-xl p-4 text-center">
+            <button onClick={() => setShowStats('flips')} className="flex-1 bg-card/60 backdrop-blur-xl border border-border rounded-xl p-4 text-center hover:border-primary/40 transition-colors">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Package className="w-4 h-4 text-muted-foreground" />
                 <p className="text-2xl font-bold">{flips.length}</p>
               </div>
               <p className="text-[11px] text-muted-foreground">Flips</p>
-            </div>
-            <div className="flex-1 bg-card/60 backdrop-blur-xl border border-border rounded-xl p-4 text-center">
+            </button>
+            <button onClick={() => setShowStats('inventory')} className="flex-1 bg-card/60 backdrop-blur-xl border border-border rounded-xl p-4 text-center hover:border-primary/40 transition-colors">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <ShoppingBag className="w-4 h-4 text-muted-foreground" />
                 <p className="text-2xl font-bold">{inventory.length}</p>
               </div>
               <p className="text-[11px] text-muted-foreground">In Stock</p>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -634,6 +636,16 @@ export default function ProfilePage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Stats Bottom Sheet */}
+      <ProfileStatsSheet
+        open={!!showStats}
+        onClose={() => setShowStats(null)}
+        type={showStats}
+        items={showStats === 'inventory' ? inventory : flips}
+        isOwner={true}
+        currency={user?.currency}
+      />
 
       {/* Edit Profile Dialog */}
       <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>

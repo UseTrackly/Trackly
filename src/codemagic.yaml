@@ -9,6 +9,9 @@ workflows:
         - app_store
       vars:
         BUNDLE_ID: com.base69bfd92e3db7d48eec6c8062.app
+        # Xcode 26+ altool can no longer determine the app's Apple ID from the
+        # Bundle ID. Pass it explicitly so altool skips the broken lookup.
+        APP_STORE_CONNECT_ALTOOL_ADDITIONAL_ARGUMENTS: "--apple-id 6762493484"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.base69bfd92e3db7d48eec6c8062.app

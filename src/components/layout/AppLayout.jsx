@@ -72,9 +72,6 @@ function AppLayoutInner() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        width: '100%',
-        height: '100dvh',
-        // Ensure background fills the safe-area inset on notched iPhones
         backgroundColor: 'hsl(var(--background))',
       }}
     >
@@ -100,10 +97,15 @@ function AppLayoutInner() {
       />
       <Suspense fallback={null}><GlowOrbs /></Suspense>
 
-      {/* Header — in-flow, sits at top of the fixed container (no portal = no body scroll-lock interaction) */}
+      {/* Header — fixed at viewport top (no portal = no body scroll-lock interaction) */}
       {!isFullscreen && <UnifiedHeader />}
 
-      {/* Page tab bar — sits right below header, never scrolls */}
+      {/* Spacer to push content below the fixed header (~56px + safe-area-top) */}
+      {!isFullscreen && (
+        <div style={{ flexShrink: 0, height: 'calc(56px + env(safe-area-inset-top, 0px))' }} />
+      )}
+
+      {/* Page tab bar — sits right below header spacer, never scrolls */}
       {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
 
       {/* Scrollable content — flex-1, ONLY this scrolls */}

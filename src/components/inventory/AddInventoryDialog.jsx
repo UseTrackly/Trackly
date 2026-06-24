@@ -139,6 +139,11 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   };
 
   const handleClose = () => {
+    // Blur the active element so the keyboard dismisses before the portal unmounts —
+    // prevents iOS WKWebView from leaving a residual viewport offset after close.
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
     resetForm();
     onClose();
   };
@@ -185,8 +190,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           left: 0,
           right: 0,
           bottom: 0,
-          width: '100%',
-          height: '100%',
           zIndex: 99999,
           backgroundColor: 'hsl(0 0% 4%)',
           display: 'flex',

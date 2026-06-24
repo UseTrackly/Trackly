@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -139,11 +138,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   };
 
   const handleClose = () => {
-    // Blur the active element so the keyboard dismisses before the portal unmounts —
-    // prevents iOS WKWebView from leaving a residual viewport offset after close.
-    if (document.activeElement && document.activeElement.blur) {
-      document.activeElement.blur();
-    }
     resetForm();
     onClose();
   };
@@ -168,9 +162,9 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
 
   if (!open) return null;
 
-  return createPortal(
+  return (
     <>
-      {/* Hidden file input — lives at document.body, never inside a modal */}
+      {/* Hidden file input — positioned off-screen, never inside a modal */}
       <input
         ref={fileInputRef}
         id="inventory-image-input"
@@ -180,9 +174,9 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
         style={{ position: 'fixed', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}
       />
 
-      {/* Full-screen overlay — portaled to document.body so it escapes any
-          parent stacking/overflow context that would trap position:fixed
-          on iOS WKWebView. Solid opaque background hides the inventory page. */}
+      {/* Full-screen overlay — fixed to viewport. Rendered inline (not portaled
+          to body) so body's position:fixed / height:100% can't clip the bottom
+          safe area. No ancestor has a transform, so fixed anchors to viewport. */}
       <div
         style={{
           position: 'fixed',
@@ -196,8 +190,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           alignItems: 'flex-end',
           overflow: 'hidden',
           overscrollBehavior: 'contain',
-          WebkitBackfaceVisibility: 'hidden',
-          backfaceVisibility: 'hidden',
         }}
       >
         {/* Sheet panel */}
@@ -212,9 +204,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            willChange: 'transform',
-            WebkitBackfaceVisibility: 'hidden',
-            backfaceVisibility: 'hidden',
           }}
         >
           {/* Handle bar */}
@@ -412,7 +401,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           </div>
         </div>
       </div>
-    </>,
-    document.body
+    </>
   );
 }

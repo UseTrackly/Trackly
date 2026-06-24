@@ -249,7 +249,7 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
         <button
           type="button"
           className="flex items-center justify-center w-9 h-9 rounded-full bg-secondary text-muted-foreground shrink-0"
-          onPointerDown={handleFileButtonClick}
+          onClick={handleFileButtonClick}
           disabled={uploadingImg}
         >
           {uploadingImg ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
@@ -277,7 +277,7 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
           type="file"
           accept="image/*"
           onChange={handleImageUpload}
-          className="hidden"
+          style={{ position: 'fixed', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}
           onClick={e => e.stopPropagation()}
         />
       </div>

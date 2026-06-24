@@ -232,7 +232,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
 
           {/* Scrollable body */}
           <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 16px' }}>
-            <div className="space-y-3 pb-4">
+            <div className="space-y-2.5 pb-4">
 
               {/* Photo */}
               <div className="space-y-2">
@@ -262,16 +262,13 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                   </div>
                 ) : (
                   <button type="button" onClick={triggerFilePicker} disabled={isPickingPhoto}
-                    className="flex flex-col items-center justify-center gap-2 w-full h-28 border-2 border-dashed border-primary/40 rounded-2xl bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-50">
-                    {isPickingPhoto ? <Loader2 className="w-7 h-7 text-primary animate-spin" /> : (
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Upload className="w-5 h-5 text-primary" />
+                    className="flex items-center justify-center gap-2 w-full h-20 border-2 border-dashed border-primary/40 rounded-2xl bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-50">
+                    {isPickingPhoto ? <Loader2 className="w-5 h-5 text-primary animate-spin" /> : (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Upload className="w-4 h-4 text-primary" />
                       </div>
                     )}
-                    <div className="space-y-0.5 text-center">
-                      <p className="text-sm font-semibold text-foreground">{isPickingPhoto ? 'Loading...' : 'Add a Photo'}</p>
-                      <p className="text-xs text-muted-foreground">Tap to upload</p>
-                    </div>
+                    <span className="text-sm font-medium text-foreground">{isPickingPhoto ? 'Loading...' : 'Add a Photo'}</span>
                   </button>
                 )}
               </div>
@@ -356,7 +353,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
               {/* Cost & Quantity */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cost Basis *</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Paid *</label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input type="number" value={costBasis} onChange={(e) => setCostBasis(e.target.value)} placeholder="0.00" className="bg-background pl-9" />
@@ -368,18 +365,18 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                 </div>
               </div>
 
-              {/* Date & Target Price */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Acquired *</label>
-                  <Input type="date" value={dateAcquired} onChange={(e) => setDateAcquired(e.target.value)} className="bg-background" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Target Price</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input type="number" value={targetPrice} onChange={(e) => setTargetPrice(e.target.value)} placeholder="0.00" className="bg-background pl-9" />
-                  </div>
+              {/* Date Acquired — full width to prevent collision with Target on small screens */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Acquired *</label>
+                <Input type="date" value={dateAcquired} onChange={(e) => setDateAcquired(e.target.value)} className="bg-background" />
+              </div>
+
+              {/* Target Price — full width */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Target Price</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input type="number" value={targetPrice} onChange={(e) => setTargetPrice(e.target.value)} placeholder="0.00" className="bg-background pl-9" />
                 </div>
               </div>
 

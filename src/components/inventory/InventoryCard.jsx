@@ -61,14 +61,16 @@ export default function InventoryCard({ item, index, onEdit, onDelete, onPostToC
           )}
         </div>
       ) : (
-        /* No photo: slim category strip with "Add photo" prompt */
+        /* No photo: intentional placeholder with category icon + add photo prompt */
         <button
           onClick={(e) => { e.stopPropagation(); onAddPhoto?.(item); }}
-          className={`w-full h-14 bg-gradient-to-r ${meta.gradient} flex items-center px-3 gap-2 hover:opacity-90 transition-opacity`}
+          className={`relative w-full h-32 bg-gradient-to-br ${meta.gradient} flex flex-col items-center justify-center gap-1.5 hover:opacity-90 transition-opacity`}
         >
-          <CategoryIcon className="w-4 h-4 text-white/50 shrink-0" />
-          <span className="text-white/40 text-[9px] font-medium uppercase tracking-wider flex-1">{item.category}</span>
-          <span className="flex items-center gap-1 text-[9px] text-white/50 border border-white/20 rounded-full px-2 py-0.5">
+          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+            <CategoryIcon className="w-5 h-5 text-white/60" />
+          </div>
+          <span className="text-white/50 text-[9px] font-medium uppercase tracking-wider">{item.category}</span>
+          <span className="flex items-center gap-1 text-[9px] text-white/60 border border-white/20 rounded-full px-2 py-0.5">
             <Camera className="w-2.5 h-2.5" /> Add photo
           </span>
         </button>
@@ -76,17 +78,12 @@ export default function InventoryCard({ item, index, onEdit, onDelete, onPostToC
 
       {/* Card body */}
       <div className="p-3">
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <h3 className="font-semibold text-sm leading-tight flex-1 min-w-0 truncate">{item.item_name}</h3>
-          <div className="text-right shrink-0">
-            <p className="text-sm font-bold">${totalValue.toFixed(2)}</p>
-            <p className="text-[9px] text-muted-foreground leading-none">cost basis</p>
-          </div>
-        </div>
+        {/* Item name — primary */}
+        <h3 className="font-semibold text-sm leading-tight mb-2 truncate">{item.item_name}</h3>
 
         {/* Show category/condition only if no image (already shown in overlay above) */}
         {!item.image_url && (
-          <div className="flex flex-wrap gap-1 mb-1.5">
+          <div className="flex flex-wrap gap-1 mb-2">
             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">{item.category}</span>
             {item.condition && (
               <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${CONDITION_COLORS[item.condition]}`}>
@@ -96,18 +93,37 @@ export default function InventoryCard({ item, index, onEdit, onDelete, onPostToC
           </div>
         )}
 
-        {/* Details row */}
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mb-2">
-          {item.location && (
-            <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 shrink-0" />{item.location}</span>
-          )}
-          {item.notes && <span className="line-clamp-1 opacity-70">{item.notes}</span>}
-          {potentialProfit !== null && (
-            <span className={`font-medium ${potentialProfit > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-              Target ${item.target_price.toFixed(0)} · {potentialProfit > 0 ? '+' : ''}${potentialProfit.toFixed(0)}
-            </span>
-          )}
+        {/* Financial summary: Paid | Target | Profit — clean 3-column layout */}
+        <div className="grid grid-cols-3 gap-1 mb-2">
+          <div>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider leading-none mb-0.5">Paid</p>
+            <p className="text-xs font-semibold text-foreground">${totalValue.toFixed(0)}</p>
+          </div>
+          <div className="border-l border-border pl-2">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider leading-none mb-0.5">Target</p>
+            <p className="text-xs font-semibold text-foreground">
+              {item.target_price ? `$${item.target_price.toFixed(0)}` : '—'}
+            </p>
+          </div>
+          <div className="border-l border-border pl-2">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider leading-none mb-0.5">Profit</p>
+            <p className={`text-xs font-semibold ${potentialProfit !== null && potentialProfit > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+              {potentialProfit !== null
+                ? `${potentialProfit > 0 ? '+' : ''}$${potentialProfit.toFixed(0)}`
+                : '—'}
+            </p>
+          </div>
         </div>
+
+        {/* Subtle details row */}
+        {(item.location || item.notes) && (
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mb-2">
+            {item.location && (
+              <span className="flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 shrink-0" />{item.location}</span>
+            )}
+            {item.notes && <span className="line-clamp-1 opacity-70">{item.notes}</span>}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-1 items-center">

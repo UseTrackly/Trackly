@@ -128,7 +128,7 @@ export default function ItemROIDialog({ item, open, onClose, currency = 'USD' })
 
               {/* Cost basis line */}
               <p className="text-xs text-muted-foreground px-0.5">
-                Cost basis: <span className="font-semibold text-foreground">{formatCurrency(item.cost_basis, currency)}</span>
+                Paid: <span className="font-semibold text-foreground">{formatCurrency(item.cost_basis, currency)}</span>
                 {' '}• Min 10% ROI after fees
               </p>
 

@@ -176,7 +176,7 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto p-0">
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
         <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
           <SheetTitle className="text-base">Share to Community</SheetTitle>
         </SheetHeader>

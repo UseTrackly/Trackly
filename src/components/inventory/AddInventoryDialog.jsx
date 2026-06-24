@@ -201,7 +201,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
         <div
           style={{
             width: '100%',
-            maxHeight: '92dvh',
+            maxHeight: '95dvh',
             minHeight: '40dvh',
             backgroundColor: 'hsl(var(--card))',
             borderTopLeftRadius: 16,
@@ -209,7 +209,6 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
             willChange: 'transform',
             WebkitBackfaceVisibility: 'hidden',
             backfaceVisibility: 'hidden',
@@ -231,7 +230,7 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
           </div>
 
           {/* Scrollable body */}
-          <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', padding: '0 16px' }}>
             <div className="space-y-2.5 pb-4">
 
               {/* Photo */}
@@ -365,10 +364,10 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
                 </div>
               </div>
 
-              {/* Date Acquired — full width to prevent collision with Target on small screens */}
+              {/* Date Acquired — full width, compact to prevent horizontal overflow on small screens */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Date Acquired *</label>
-                <Input type="date" value={dateAcquired} onChange={(e) => setDateAcquired(e.target.value)} className="bg-background" />
+                <Input type="date" value={dateAcquired} onChange={(e) => setDateAcquired(e.target.value)} className="bg-background h-9 text-sm" style={{ fontSize: 16, maxWidth: '100%' }} />
               </div>
 
               {/* Target Price — full width */}
@@ -395,8 +394,8 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
             </div>
           </div>
 
-          {/* Footer buttons */}
-          <div className="flex gap-2 px-4 py-3 border-t border-border bg-card shrink-0">
+          {/* Footer buttons — safe-area padding here so the footer extends to the home indicator */}
+          <div className="flex gap-2 px-4 py-3 border-t border-border bg-card shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)' }}>
             <Button variant="outline" onClick={handleClose} className="flex-1" disabled={saveMutation.isPending || uploading}>
               Cancel
             </Button>

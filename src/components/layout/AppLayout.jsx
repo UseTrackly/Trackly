@@ -100,15 +100,10 @@ function AppLayoutInner() {
       />
       <Suspense fallback={null}><GlowOrbs /></Suspense>
 
-      {/* Header — fixed, floats above content */}
+      {/* Header — in-flow, sits at top of the fixed container (no portal = no body scroll-lock interaction) */}
       {!isFullscreen && <UnifiedHeader />}
 
-      {/* Spacer to push content below the fixed header (header ~56px + safe-area-top) */}
-      {!isFullscreen && (
-        <div style={{ flexShrink: 0, height: 'calc(56px + env(safe-area-inset-top, 0px))' }} />
-      )}
-
-      {/* Page tab bar — sits between header spacer and content, never scrolls */}
+      {/* Page tab bar — sits right below header, never scrolls */}
       {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
 
       {/* Scrollable content — flex-1, ONLY this scrolls */}

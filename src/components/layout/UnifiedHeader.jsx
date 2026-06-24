@@ -1,5 +1,4 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -85,9 +84,8 @@ export default function UnifiedHeader() {
 
   return (
     <>
-      {createPortal(
       <header
-        className="app-header-fixed bg-background/80 backdrop-blur-xl border-b border-border"
+        className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border shrink-0"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
@@ -135,7 +133,6 @@ export default function UnifiedHeader() {
           )}
         </div>
       </header>
-      , document.body)}
 
       <MessageInbox 
         open={messageState.open} 

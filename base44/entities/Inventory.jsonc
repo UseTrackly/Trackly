@@ -91,6 +91,11 @@
     "cert_number": {
       "type": "string",
       "description": "Grading certificate/serial number"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this item is visible on the user's public storefront"
     }
   },
   "required": [
@@ -103,7 +108,14 @@
       "created_by_id": "{{user.id}}"
     },
     "read": {
-      "created_by_id": "{{user.id}}"
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.is_public": true
+        }
+      ]
     },
     "update": {
       "created_by_id": "{{user.id}}"

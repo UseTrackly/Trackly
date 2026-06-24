@@ -9,6 +9,7 @@ import { ArrowLeft, Send, MessageCircle, Image, Loader2, X, Search, Package } fr
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { containsProfanity, MODERATION_WARNING } from '@/lib/profanityFilter';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -144,6 +145,11 @@ function Conversation({ thread, currentUser, onBack, navigate, onClose }) {
 
   const handleSend = () => {
     if (!text.trim() || sendMutation.isPending) return;
+    const check = containsProfanity(text.trim());
+    if (!check.isClean) {
+      toast.error(MODERATION_WARNING);
+      return;
+    }
     sendMutation.mutate({ content: text.trim() });
   };
 

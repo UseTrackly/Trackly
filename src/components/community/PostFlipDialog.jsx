@@ -11,6 +11,7 @@ import CertImagePreview from '@/components/grading/CertImagePreview';
 import AIImageSearch from '@/components/community/AIImageSearch';
 import { toast } from 'sonner';
 import { canPostCommunity, FREE_LIMITS } from '@/lib/proGate';
+import { containsProfanity, MODERATION_WARNING } from '@/lib/profanityFilter';
 
 const CATEGORY_META = {
   cards:       { icon: CreditCard, gradient: 'from-blue-900/80 to-indigo-900/80' },
@@ -95,12 +96,10 @@ export default function PostFlipDialog({ open, onClose, prefillData = null }) {
     mutationFn: async (initialData) => {
       let data = { ...initialData };
 
-      const textToCheck = [data.item_name, data.description].filter(Boolean).join(' ');
-      const textModResult = await base44.integrations.Core.InvokeLLM({
-        prompt: `Is the following text appropriate for a professional reselling marketplace? Check for slurs, hate speech, profanity, or offensive content. Text: "${textToCheck}"\n\nRespond with only "approved" or "rejected".`
-      });
-      if (textModResult.toLowerCase().includes('rejected')) {
-        throw new Error('Your post contains inappropriate content. Please revise and try again.');
+      // Content moderation — instant client-side check
+      const check = containsProfanity([data.item_name, data.description].join(' '));
+      if (!check.isClean) {
+        throw new Error(MODERATION_WARNING);
       }
 
       const VALID_CATS = ['cards','sneakers','clothing','electronics','collectibles','games','technology','vintage','other'];

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Package, ShoppingBag, TrendingUp, Eye } from 'lucide-react';
 import { formatCurrency } from '@/lib/currencyFormatter';
@@ -9,7 +10,9 @@ export default function ProfileStatsSheet({ open, onClose, type, items, isOwner,
     ? (isOwner ? 'My Inventory' : 'Storefront')
     : 'Flip History';
 
-  return (
+  if (!open) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -25,11 +28,15 @@ export default function ProfileStatsSheet({ open, onClose, type, items, isOwner,
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="fixed z-[61] bottom-0 left-0 right-0 max-h-[80vh] bg-card border-t border-border rounded-t-2xl shadow-2xl overflow-hidden flex flex-col"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+            className="fixed z-[61] bottom-0 left-0 right-0 max-h-[80vh] border-t border-border rounded-t-2xl shadow-2xl overflow-hidden flex flex-col"
+            style={{
+              backgroundColor: 'hsl(0 0% 7%)',
+              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+              willChange: 'transform',
+            }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+            <div className="flex items-center justify-between p-4 border-b border-border shrink-0" style={{ backgroundColor: 'hsl(0 0% 7%)' }}>
               <div className="flex items-center gap-2">
                 {type === 'inventory' ? (
                   <ShoppingBag className="w-4 h-4 text-primary" />
@@ -48,7 +55,7 @@ export default function ProfileStatsSheet({ open, onClose, type, items, isOwner,
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: 'hsl(0 0% 7%)', WebkitOverflowScrolling: 'touch' }}>
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   {type === 'inventory' ? (
@@ -137,6 +144,7 @@ export default function ProfileStatsSheet({ open, onClose, type, items, isOwner,
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

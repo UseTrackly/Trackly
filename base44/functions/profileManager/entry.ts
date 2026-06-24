@@ -138,6 +138,26 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'data object required' }, { status: 400 });
       }
 
+      // ── Server-side content moderation ──────────────────────────────────────
+      const MOD_BLOCKED = ['nigger','nigga','niglet','spic','wetback','chink','gook','kike','kyke','towelhead','raghead','beaner','coon','jigaboo','sambo','wop','dago','kraut','mick','paddy','polack','faggot','fag','fagg','faggit','dyke','tranny','trannie','shemale','whore','slut','skank','cunt','bitch','twat','pussy','bimbo','cumdumpster','sloot','kill all','genocide','ethnic cleansing','race war','white power','nazi','hitler','rape','molest','pedophile','paedophile','child porn','loli','shota','bestiality','beastiality','zoophilia','necrophilia','incest','motherfucker','cocksucker','asshole','arsehole','dickhead','shitstain','bullshit','horseshit','dipshit','dumbshit','shithead','fuckface','fuckhead','fucktard','fuckwad','fuckboy','jackass','dumbass','lazyass','fatass','dumbfuck'];
+      const NORM_MAP = {'@':'a','4':'a','8':'b','(':'c','3':'e','!':'i','1':'i','|':'i','0':'o','$':'s','5':'s','7':'t','+':'t','2':'z'};
+      function normStr(t) {
+        if (!t || typeof t !== 'string') return '';
+        let r = t.toLowerCase();
+        for (const [f, t2] of Object.entries(NORM_MAP)) r = r.replaceAll(f, t2);
+        return r.replace(/[\.*_\-=~`'^]/g, '');
+      }
+      const textFields = [data.display_name, data.username, data.bio].filter(v => v && typeof v === 'string');
+      for (const raw of textFields) {
+        const n = normStr(raw);
+        for (const bw of MOD_BLOCKED) {
+          const bn = normStr(bw);
+          if (n.includes(bn)) {
+            return Response.json({ error: 'Please remove inappropriate language before continuing.' }, { status: 400 });
+          }
+        }
+      }
+
       const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users', 'banner_url', 'song_name', 'song_preview_url', 'song_artwork_url', 'song_artist', 'profit_visibility', 'social_links'];
       const cleanData = Object.fromEntries(
         Object.entries(data).filter(([k]) => ALLOWED_PROFILE_FIELDS.includes(k))

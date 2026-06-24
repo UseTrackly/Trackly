@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, Loader2, DollarSign, X } from 'lucide-react';
 import CertImagePreview from '@/components/grading/CertImagePreview';
+import { containsProfanity, MODERATION_WARNING } from '@/lib/profanityFilter';
 import { toast } from 'sonner';
 
 const CATEGORIES = [
@@ -122,6 +123,12 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const handleSubmit = () => {
     if (!itemName || !costBasis || !dateAcquired) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+    // Content moderation
+    const check = containsProfanity([itemName, notes].join(' '));
+    if (!check.isClean) {
+      toast.error(MODERATION_WARNING);
       return;
     }
     saveMutation.mutate({

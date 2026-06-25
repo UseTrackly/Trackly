@@ -138,24 +138,79 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'data object required' }, { status: 400 });
       }
 
-      // ── Server-side content moderation ──────────────────────────────────────
-      const MOD_BLOCKED = ['nigger','nigga','niglet','spic','wetback','chink','gook','kike','kyke','towelhead','raghead','beaner','coon','jigaboo','sambo','wop','dago','kraut','mick','paddy','polack','faggot','fag','fagg','faggit','dyke','tranny','trannie','shemale','whore','slut','skank','cunt','bitch','twat','pussy','bimbo','cumdumpster','sloot','kill all','genocide','ethnic cleansing','race war','white power','nazi','hitler','rape','molest','pedophile','paedophile','child porn','loli','shota','bestiality','beastiality','zoophilia','necrophilia','incest','motherfucker','cocksucker','asshole','arsehole','dickhead','shitstain','bullshit','horseshit','dipshit','dumbshit','shithead','fuckface','fuckhead','fucktard','fuckwad','fuckboy','jackass','dumbass','lazyass','fatass','dumbfuck'];
-      const NORM_MAP = {'@':'a','4':'a','8':'b','(':'c','3':'e','!':'i','1':'i','|':'i','0':'o','$':'s','5':'s','7':'t','+':'t','2':'z'};
+      // ── Server-side content moderation (mirrors lib/profanityFilter.js) ─────
+      const MOD_BLOCKED = [
+        'nigger','nigga','niglet','nignog','spic','spick','wetback','chink','gook','kike','kyke',
+        'towelhead','raghead','beaner','jigaboo','sambo','wop','dago','kraut','polack','slope',
+        'zipperhead','sandnigger','porchmonkey','junglebunny','spearchucker','pickaninny','gypsy','pikey',
+        'faggot','fag','fagg','faggit','fudgepacker','tranny','trannie','shemale','queerbash',
+        'whore','slut','skank','cunt','bitch','twat','pussy','bimbo','cumdumpster','sloot',
+        'killall','genocide','ethniccleansing','racewar','whitepower','whitepride','nazi','neonazi',
+        'hitler','heilhitler','racetraitor',
+        'rape','molest','pedophile','paedophile','pedobear','childporn','loli','shota',
+        'bestiality','beastiality','zoophilia','necrophilia','incest','childsex','jailbait',
+        'motherfucker','cocksucker','asshole','arsehole','dickhead','shitstain','bullshit','horseshit',
+        'dipshit','dumbshit','shithead','fuckface','fuckhead','fucktard','fuckwad','fuckboy','jackass',
+        'dumbass','fatass','dumbfuck','fuck','shit',
+      ];
+      const WHOLE_WORD_ONLY = new Set(['coon','nip','spic','fag','dyke']);
+      const NORM_MAP = {'@':'a','4':'a','8':'b','(':'c','¢':'c','3':'e','€':'e','!':'i','1':'i','|':'i','0':'o','$':'s','5':'s','7':'t','+':'t','2':'z','vv':'w'};
       function normStr(t) {
         if (!t || typeof t !== 'string') return '';
         let r = t.toLowerCase();
         for (const [f, t2] of Object.entries(NORM_MAP)) r = r.replaceAll(f, t2);
-        return r.replace(/[\.*_\-=~`'^]/g, '');
+        return r.replace(/[^a-z]/g, '');
       }
-      const textFields = [data.display_name, data.username, data.bio].filter(v => v && typeof v === 'string');
+      function buildRepetitionRegex(word) {
+        const norm = word.replace(/[^a-z]/g, '');
+        if (!norm) return null;
+        const pattern = norm.split('').map(c => `${c}{1,8}`).join('');
+        return new RegExp(pattern);
+      }
+      const substringRegexes = MOD_BLOCKED
+        .filter(w => !WHOLE_WORD_ONLY.has(w))
+        .map(w => ({ word: w, regex: buildRepetitionRegex(w) }))
+        .filter(item => item.regex !== null);
+      const wholeWordRegexes = [...WHOLE_WORD_ONLY].map(w => ({
+        word: w, regex: new RegExp(`\\b${w}\\b`, 'i'),
+      }));
+
+      // Check all text fields (display_name, username, bio, location)
+      const textFields = [data.display_name, data.username, data.bio, data.location].filter(v => v && typeof v === 'string');
       for (const raw of textFields) {
         const n = normStr(raw);
-        for (const bw of MOD_BLOCKED) {
-          const bn = normStr(bw);
-          if (n.includes(bn)) {
+        for (const { regex } of substringRegexes) {
+          if (regex && regex.test(n)) {
             return Response.json({ error: 'Please remove inappropriate language before continuing.' }, { status: 400 });
           }
         }
+        for (const { regex } of wholeWordRegexes) {
+          if (regex && regex.test(raw)) {
+            return Response.json({ error: 'Please remove inappropriate language before continuing.' }, { status: 400 });
+          }
+        }
+      }
+
+      // ── Validate social_links against domain allowlist ──────────────────────
+      if (data.social_links) {
+        const ALLOWED_DOMAINS = ['instagram.com','tiktok.com','youtube.com','youtu.be','x.com','twitter.com','discord.gg','discord.com','ebay.com','whatnot.com','facebook.com','mercari.com','stockx.com'];
+        for (const [key, val] of Object.entries(data.social_links)) {
+          if (!val || typeof val !== 'string') continue;
+          if (val.includes('://') || val.includes('.com')) {
+            try {
+              const u = new URL(val.startsWith('http') ? val : `https://${val}`);
+              const host = u.hostname.toLowerCase().replace(/^www\./, '');
+              const isAllowed = ALLOWED_DOMAINS.some(d => host === d || host.endsWith('.' + d));
+              if (!isAllowed) {
+                return Response.json({ error: 'Only links from approved platforms are allowed.' }, { status: 400 });
+              }
+            } catch {
+              return Response.json({ error: `Invalid URL in ${key} link.` }, { status: 400 });
+            }
+          }
+        }
+        // Strip "website" key if present (field removed for security)
+        if (data.social_links.website) delete data.social_links.website;
       }
 
       const ALLOWED_PROFILE_FIELDS = ['display_name', 'username', 'bio', 'location', 'blocked_users', 'banner_url', 'song_name', 'song_preview_url', 'song_artwork_url', 'song_artist', 'profit_visibility', 'social_links'];

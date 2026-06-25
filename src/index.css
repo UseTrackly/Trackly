@@ -120,16 +120,22 @@
 
 /* ─── Prevent header/body shift when modals & sheets open ────── */
 /* Radix Dialog sets data-scroll-locked on <html> and injects inline
-   styles on <body> (padding-right, position, top) to lock scroll.
-   We only neutralize the padding/margin — NOT position — so that
-   position:fixed descendants anchor to the viewport (initial
-   containing block), which is immune to keyboard-induced shifts. */
-html[data-scroll-locked] body,
-html[data-scroll-locked] {
+   styles on <body> (padding-right, position, top, margin) to lock scroll.
+   We neutralize ALL of them so the fixed header never shifts. */
+html[data-scroll-locked] body {
   overflow: hidden !important;
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
   padding-right: 0 !important;
   margin-right: 0 !important;
   margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+html[data-scroll-locked] {
+  overflow: hidden !important;
 }
 
 /* ─── Mobile Touch: prevent scroll from triggering hover states ── */

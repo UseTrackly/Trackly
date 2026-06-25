@@ -2,104 +2,117 @@
  * Client-side profanity / hate speech / explicit content filter.
  * Used before saving inventory items, community posts, profile data, and messages.
  *
+ * Catches: slurs, hate speech, heavy profanity, sexual terms,
+ * and common bypass attempts (symbols, spacing, leetspeak, repeated letters,
+ * alternate casing).
+ *
  * Returns { isClean: boolean, flaggedWords: string[] }.
  */
 
+// ─── Blocked word list ──────────────────────────────────────────────────────────
+
 const BLOCKED_WORDS = [
-  // Racial slurs
-  'nigger', 'nigga', 'niglet', 'spic', 'wetback', 'chink', 'gook', 'kike',
-  'kyke', 'towelhead', 'raghead', 'spear chucker', 'porch monkey', 'jungle bunny',
-  'sand nigger', 'beaner', 'coon', 'jigaboo', 'sambo', 'wop', 'dago', 'kraut',
-  'mick', 'paddy', 'polack', 'hun', 'nip', 'zip', 'gook', 'slope',
+  // Racial / ethnic slurs
+  'nigger', 'nigga', 'niglet', 'nignog', 'spic', 'spick', 'wetback', 'chink',
+  'gook', 'kike', 'kyke', 'towelhead', 'raghead', 'beaner', 'jigaboo',
+  'sambo', 'wop', 'dago', 'kraut', 'polack', 'slope', 'zipperhead',
+  'sandnigger', 'porchmonkey', 'junglebunny', 'spearchucker', 'pickaninny',
+  'gypsy', 'pikey',
+
+  // Short slurs — checked as whole-word only (false-positive risk)
+  'coon', 'nip', 'spic',
 
   // Homophobic / transphobic slurs
-  'faggot', 'fag', 'fagg', 'faggit', 'dyke', 'tranny', 'trannie', 'shemale',
-  'he-she', 'it', 'queer bash',
+  'faggot', 'fag', 'fagg', 'faggit', 'fudgepacker', 'dyke', 'tranny',
+  'trannie', 'shemale', 'queerbash',
 
   // Gender / sexuality slurs
   'whore', 'slut', 'skank', 'cunt', 'bitch', 'twat', 'pussy', 'bimbo',
   'cumdumpster', 'sloot',
 
   // Hate speech keywords
-  'kill all', 'genocide', 'ethnic cleansing', 'racial war', 'race war',
-  'white power', 'white pride', 'nazi', 'neo-nazi', 'neo nazi', 'hitler',
-  'heil hitler', '88 hh', 'hh88', 'race traitor',
+  'killall', 'genocide', 'ethniccleansing', 'racewar', 'whitepower',
+  'whitepride', 'nazi', 'neonazi', 'hitler', 'heilhitler', 'racetraitor',
 
-  // Explicit sexual terms (heavy)
-  'rape', 'molest', 'pedophile', 'paedophile', 'pedobear', 'child porn',
-  'cp distribution', 'loli', 'shota', 'bestiality', 'beastiality',
-  'zoophilia', 'necrophilia', 'incest', 'child sex',
+  // Sexual / explicit terms
+  'rape', 'molest', 'pedophile', 'paedophile', 'pedobear', 'childporn',
+  'loli', 'shota', 'bestiality', 'beastiality', 'zoophilia', 'necrophilia',
+  'incest', 'childsex', 'jailbait',
 
   // Heavy profanity
-  'motherfucker', 'mother fucker', 'cocksucker', 'cock sucker',
-  'asshole', 'arsehole', 'dickhead', 'dick weed', 'shitstain',
-  'bullshit', 'horseshit', 'dipshit', 'dumbshit', 'shithead',
-  'fuckface', 'fuckhead', 'fucktard', 'fuckwad', 'fuckboy',
-  'jackass', 'dumbass', 'lazyass', 'fatass', 'dumbfuck',
+  'motherfucker', 'cocksucker', 'asshole', 'arsehole', 'dickhead',
+  'shitstain', 'bullshit', 'horseshit', 'dipshit', 'dumbshit', 'shithead',
+  'fuckface', 'fuckhead', 'fucktard', 'fuckwad', 'fuckboy', 'jackass',
+  'dumbass', 'fatass', 'dumbfuck', 'fuck', 'shit',
 ];
 
-// Common leetspeak / obfuscation substitutions
+// Words too short for safe substring matching — only check as whole word
+// on the original text (with word boundaries) to avoid false positives
+// like "japan", "sniper", "raccoon", "spice".
+const WHOLE_WORD_ONLY = new Set(['coon', 'nip', 'spic', 'fag', 'dyke']);
+
+// ─── Normalization ───────────────────────────────────────────────────────────────
+
 const NORMALIZE_MAP = {
   '@': 'a', '4': 'a', '8': 'b', '(': 'c', '¢': 'c',
   '3': 'e', '€': 'e', '!': 'i', '1': 'i', '|': 'i',
-  '0': 'o', '$': 's', '5': 's', '7': 't', '+': 't',
-  'vv': 'w', '2': 'z',
+  '0': 'o', '$': 's', '5': 's', '7': 't', '+': 't', '2': 'z',
+  'vv': 'w',
 };
 
-function normalizeText(text) {
-  let result = text.toLowerCase();
-  // Apply character substitutions
+function normalize(text) {
+  let r = (text || '').toLowerCase();
   for (const [from, to] of Object.entries(NORMALIZE_MAP)) {
-    result = result.replaceAll(from, to);
+    r = r.replaceAll(from, to);
   }
-  // Remove common bypass characters: asterisks, dots, dashes, spaces between letters
-  result = result.replace(/[\.*_\-=~`'^]/g, '');
-  return result;
+  // Remove everything that's not a-z (spaces, symbols, punctuation, numbers)
+  return r.replace(/[^a-z]/g, '');
 }
 
-function getWords(text) {
-  // Split on whitespace and common punctuation, keep alphanumeric
-  return text.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 2);
+/**
+ * Build a regex that allows each character in the word to repeat 1–3 times.
+ * This catches "fuuuuck" → "fuck", "nnigger" → "nigger", etc.
+ */
+function buildRepetitionRegex(word) {
+  const norm = word.replace(/[^a-z]/g, '');
+  if (!norm) return null;
+  const pattern = norm.split('').map(c => `${c}{1,8}`).join('');
+  return new RegExp(pattern);
 }
+
+// Pre-build regexes for all substring-matched words
+const SUBSTRING_REGEXES = BLOCKED_WORDS
+  .filter(w => !WHOLE_WORD_ONLY.has(w))
+  .map(w => ({ word: w, regex: buildRepetitionRegex(w) }))
+  .filter(item => item.regex !== null);
+
+// Pre-build word-boundary regexes for whole-word-only terms
+const WHOLE_WORD_REGEXES = [...WHOLE_WORD_ONLY].map(w => ({
+  word: w,
+  regex: new RegExp(`\\b${w}\\b`, 'i'),
+}));
+
+// ─── Public API ──────────────────────────────────────────────────────────────────
 
 export function containsProfanity(text) {
   if (!text || typeof text !== 'string') return { isClean: true, flaggedWords: [] };
 
-  const original = text.toLowerCase();
-  const normalized = normalizeText(text);
-  const words = getWords(text);
-  const normalizedWords = getWords(normalized);
-
-  // Combined word pool to check
-  const allWords = [...new Set([...words, ...normalizedWords])];
+  const normalized = normalize(text);
+  if (!normalized) return { isClean: true, flaggedWords: [] };
 
   const flagged = [];
 
-  for (const blocked of BLOCKED_WORDS) {
-    const blockedNorm = normalizeText(blocked);
-
-    // Check as whole-word match
-    for (const word of allWords) {
-      if (word === blockedNorm) {
-        flagged.push(blocked);
-        break;
-      }
-    }
-
-    // Check multi-word phrases as substring in the normalized full text
-    if (blocked.includes(' ')) {
-      if (normalized.includes(blockedNorm)) {
-        flagged.push(blocked);
-      }
+  // Substring check with repetition tolerance
+  for (const { word, regex } of SUBSTRING_REGEXES) {
+    if (regex && regex.test(normalized)) {
+      flagged.push(word);
     }
   }
 
-  // Also check raw substring for short slurs that might be concatenated
-  // (e.g., "f*ck" -> "fuck" after normalization)
-  const shortSlurs = ['nigger', 'faggot', 'kike', 'spic', 'chink'];
-  for (const slur of shortSlurs) {
-    if (normalized.includes(slur)) {
-      if (!flagged.includes(slur)) flagged.push(slur);
+  // Whole-word check for short slurs with false-positive risk
+  for (const { word, regex } of WHOLE_WORD_REGEXES) {
+    if (regex && regex.test(text)) {
+      flagged.push(word);
     }
   }
 

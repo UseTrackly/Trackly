@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Globe, Edit2, X, AlertCircle, Check } from 'lucide-react';
+import { ExternalLink, Edit2, X, AlertCircle, Check, Loader2 } from 'lucide-react';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -66,49 +67,49 @@ const IconStockX = ({ className }) => (
 );
 
 // ─── Platform Config ──────────────────────────────────────────────────────────
+// NOTE: "website" field removed for security — only approved platform domains allowed.
 
 export const SOCIALS = [
-  { key: 'instagram', label: 'Instagram', icon: IconInstagram, color: '#E1306C', urlBase: 'https://instagram.com/', placeholder: 'username (without @)' },
-  { key: 'tiktok',    label: 'TikTok',    icon: IconTikTok,    color: '#010101', urlBase: 'https://tiktok.com/@', placeholder: 'username (without @)' },
-  { key: 'youtube',   label: 'YouTube',   icon: IconYouTube,   color: '#FF0000', urlBase: 'https://youtube.com/@', placeholder: 'channel handle' },
-  { key: 'twitter',   label: 'X / Twitter', icon: IconXTwitter, color: '#000000', urlBase: 'https://x.com/', placeholder: 'username (without @)' },
-  { key: 'discord',   label: 'Discord',   icon: IconDiscord,   color: '#5865F2', urlBase: 'https://discord.gg/', placeholder: 'invite code or username' },
+  { key: 'instagram', label: 'Instagram', icon: IconInstagram, color: '#E1306C', urlBase: 'https://instagram.com/', placeholder: 'username (without @)', allowedDomain: 'instagram.com' },
+  { key: 'tiktok',    label: 'TikTok',    icon: IconTikTok,    color: '#010101', urlBase: 'https://tiktok.com/@', placeholder: 'username (without @)', allowedDomain: 'tiktok.com' },
+  { key: 'youtube',   label: 'YouTube',   icon: IconYouTube,   color: '#FF0000', urlBase: 'https://youtube.com/@', placeholder: 'channel handle', allowedDomain: 'youtube.com' },
+  { key: 'twitter',   label: 'X / Twitter', icon: IconXTwitter, color: '#000000', urlBase: 'https://x.com/', placeholder: 'username (without @)', allowedDomain: 'x.com' },
+  { key: 'discord',   label: 'Discord',   icon: IconDiscord,   color: '#5865F2', urlBase: 'https://discord.gg/', placeholder: 'invite code or username', allowedDomain: 'discord.gg' },
 ];
 
 export const STOREFRONTS = [
-  { key: 'ebay',      label: 'eBay',      icon: IconEbay,     color: '#e53238', urlBase: 'https://ebay.com/usr/', placeholder: 'store username' },
-  { key: 'whatnot',   label: 'Whatnot',   icon: IconWhatnot,  color: '#7C3AED', urlBase: 'https://whatnot.com/user/', placeholder: 'username' },
-  { key: 'facebook',  label: 'Facebook Marketplace', icon: IconFacebook, color: '#1877F2', urlBase: 'https://facebook.com/', placeholder: 'profile name or URL' },
-  { key: 'mercari',   label: 'Mercari',   icon: IconMercari,  color: '#FF4F00', urlBase: 'https://mercari.com/u/', placeholder: 'user ID or handle' },
-  { key: 'stockx',    label: 'StockX',    icon: IconStockX,   color: '#006340', urlBase: 'https://stockx.com/', placeholder: 'profile name' },
-  { key: 'website',   label: 'Website',   icon: Globe,        color: '#6366f1', urlBase: '', placeholder: 'https://yoursite.com' },
+  { key: 'ebay',      label: 'eBay',      icon: IconEbay,     color: '#e53238', urlBase: 'https://ebay.com/usr/', placeholder: 'store username', allowedDomain: 'ebay.com' },
+  { key: 'whatnot',   label: 'Whatnot',   icon: IconWhatnot,  color: '#7C3AED', urlBase: 'https://whatnot.com/user/', placeholder: 'username', allowedDomain: 'whatnot.com' },
+  { key: 'facebook',  label: 'Facebook Marketplace', icon: IconFacebook, color: '#1877F2', urlBase: 'https://facebook.com/', placeholder: 'profile name or URL', allowedDomain: 'facebook.com' },
+  { key: 'mercari',   label: 'Mercari',   icon: IconMercari,  color: '#FF4F00', urlBase: 'https://mercari.com/u/', placeholder: 'user ID or handle', allowedDomain: 'mercari.com' },
+  { key: 'stockx',    label: 'StockX',    icon: IconStockX,   color: '#006340', urlBase: 'https://stockx.com/', placeholder: 'profile name', allowedDomain: 'stockx.com' },
 ];
 
 export const ALL_PLATFORMS = [...SOCIALS, ...STOREFRONTS];
 
-// ─── Blocklist ────────────────────────────────────────────────────────────────
+// ─── Domain allowlist (strict — no custom websites) ──────────────────────────
 
-const BLOCKED_DOMAINS = [
-  // Adult
-  'pornhub','xvideos','xhamster','onlyfans','fansly','manyvids','chaturbate','stripchat',
-  // Gambling
-  'draftkings','fanduel','betmgm','caesars','bovada','bet365','pokerstars',
-  // Known scam / phishing patterns (partial)
-  'bit.ly','tinyurl','goo.gl','t.co',
-  // Crypto / NFT scams
-  'nft-drop','freecrypto','claimtoken',
-  // Generic unsafe
-  'malware','phishing','hack','crack','warez',
+const ALLOWED_DOMAINS = [
+  'instagram.com', 'tiktok.com', 'youtube.com', 'youtu.be',
+  'x.com', 'twitter.com', 'discord.gg', 'discord.com',
+  'ebay.com', 'whatnot.com', 'facebook.com',
+  'mercari.com', 'stockx.com',
 ];
 
-function isDomainBlocked(url) {
+function extractDomain(url) {
   try {
-    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
-    const host = u.hostname.toLowerCase().replace(/^www\./, '');
-    return BLOCKED_DOMAINS.some(b => host.includes(b));
+    const withProto = url.startsWith('http') ? url : `https://${url}`;
+    const u = new URL(withProto);
+    return u.hostname.toLowerCase().replace(/^www\./, '');
   } catch {
-    return false;
+    return null;
   }
+}
+
+function isDomainAllowed(url) {
+  const domain = extractDomain(url);
+  if (!domain) return false;
+  return ALLOWED_DOMAINS.some(allowed => domain === allowed || domain.endsWith('.' + allowed));
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -117,28 +118,29 @@ function validateHandle(platform, raw) {
   if (!raw?.trim()) return { ok: true }; // empty = fine (clearing)
   const val = raw.trim();
 
-  if (platform.key === 'website') {
-    // Must be a valid URL
-    const withProto = val.startsWith('http') ? val : `https://${val}`;
-    try { new URL(withProto); } catch { return { ok: false, msg: 'Enter a valid website URL.' }; }
-    if (isDomainBlocked(withProto)) return { ok: false, msg: 'This website is not allowed on Trackly.' };
+  // If the user pasted a full URL, validate its domain against the allowlist
+  if (val.includes('://') || val.includes('.com')) {
+    if (!isDomainAllowed(val)) {
+      return { ok: false, msg: 'Only approved platform links are allowed.' };
+    }
+    // Also make sure it matches THIS platform's domain
+    const domain = extractDomain(val);
+    if (domain && !domain.includes(platform.allowedDomain.replace('.com',''))) {
+      return { ok: false, msg: `This URL doesn't match ${platform.label}.` };
+    }
     return { ok: true };
   }
 
-  // Reject full URLs containing blocked domains for non-website fields
-  if (val.includes('://') || val.includes('.com')) {
-    const withProto = val.startsWith('http') ? val : `https://${val}`;
-    if (isDomainBlocked(withProto)) return { ok: false, msg: 'This link is not allowed on Trackly.' };
-  }
-
-  // Basic: no spaces, reasonably short
+  // Plain handle — no spaces, reasonable length
   if (val.length > 80) return { ok: false, msg: 'Handle is too long.' };
+  if (/\s/.test(val)) return { ok: false, msg: 'Handles cannot contain spaces.' };
   return { ok: true };
 }
 
 function buildHref(platform, handle) {
   const val = handle.trim().replace(/^@/, '').replace(/^\//, '');
-  if (platform.key === 'website') return val.startsWith('http') ? val : `https://${val}`;
+  // If it's already a full URL, use as-is
+  if (val.startsWith('http')) return val;
   return `${platform.urlBase}${val}`;
 }
 
@@ -204,7 +206,8 @@ function PlatformField({ platform, value, onChange, error }) {
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={`${label}: ${placeholder}`}
-          className={`flex-1 h-9 text-sm bg-background ${error ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+          className="flex-1 h-9 text-sm bg-background"
+          style={{ fontSize: 16 }}
         />
         {value?.trim() && !error && (
           <Check className="w-4 h-4 text-primary shrink-0" />
@@ -247,7 +250,6 @@ export default function SocialLinksEditor({ socialLinks = {}, onSave, isSaving }
 
   const handleChange = (key, raw) => {
     setValues(v => ({ ...v, [key]: raw }));
-    // Clear error on change
     setErrors(e => ({ ...e, [key]: '' }));
     setGlobalError('');
   };
@@ -350,63 +352,107 @@ export default function SocialLinksEditor({ socialLinks = {}, onSave, isSaving }
     );
   }
 
-  return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-bold">Socials & Storefronts</p>
-        <button onClick={() => setEditing(false)} className="text-muted-foreground hover:text-foreground">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {globalError && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive mb-3">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-          {globalError}
-        </div>
-      )}
-
-      {/* Socials */}
-      <SectionLabel label="Socials" />
-      <div className="space-y-2">
-        {SOCIALS.map(p => (
-          <PlatformField
-            key={p.key}
-            platform={p}
-            value={values[p.key] || ''}
-            onChange={(v) => handleChange(p.key, v)}
-            error={errors[p.key]}
-          />
-        ))}
-      </div>
-
-      {/* Storefronts */}
-      <SectionLabel label="Storefronts" />
-      <div className="space-y-2">
-        {STOREFRONTS.map(p => (
-          <PlatformField
-            key={p.key}
-            platform={p}
-            value={values[p.key] || ''}
-            onChange={(v) => handleChange(p.key, v)}
-            error={errors[p.key]}
-          />
-        ))}
-      </div>
-
-      <Button
-        onClick={handleSave}
-        disabled={isSaving}
-        className="w-full bg-primary hover:bg-primary/90 mt-4"
-        size="sm"
+  // ── Portaled bottom sheet for iOS safety ──────────────────────────────────
+  return createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 99999,
+        backgroundColor: 'hsl(0 0% 4%)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        overflow: 'hidden',
+        overscrollBehavior: 'contain',
+      }}
+    >
+      {/* Sheet panel */}
+      <div
+        style={{
+          width: '100%',
+          maxHeight: '95dvh',
+          minHeight: '40dvh',
+          backgroundColor: 'hsl(var(--card))',
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
       >
-        {isSaving ? 'Saving...' : 'Save Links'}
-      </Button>
+        {/* Handle bar */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: 'hsl(var(--border))' }} />
+        </div>
 
-      <p className="text-[10px] text-muted-foreground text-center mt-2 leading-relaxed">
-        Links are visible to all Trackly users. Only add links to platforms you own.
-      </p>
-    </div>
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 12px' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'hsl(var(--foreground))' }}>
+            Socials & Storefronts
+          </h2>
+          <button onClick={() => setEditing(false)} style={{ padding: 6, borderRadius: 20, color: 'hsl(var(--muted-foreground))' }}>
+            <X style={{ width: 20, height: 20 }} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div style={{
+          flex: 1, overflowY: 'auto', overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain',
+          padding: '0 16px', backgroundColor: 'hsl(var(--card))',
+        }}>
+          {globalError && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive mb-3">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {globalError}
+            </div>
+          )}
+
+          {/* Socials */}
+          <SectionLabel label="Socials" />
+          <div className="space-y-2">
+            {SOCIALS.map(p => (
+              <PlatformField
+                key={p.key}
+                platform={p}
+                value={values[p.key] || ''}
+                onChange={(v) => handleChange(p.key, v)}
+                error={errors[p.key]}
+              />
+            ))}
+          </div>
+
+          {/* Storefronts */}
+          <SectionLabel label="Storefronts" />
+          <div className="space-y-2">
+            {STOREFRONTS.map(p => (
+              <PlatformField
+                key={p.key}
+                platform={p}
+                value={values[p.key] || ''}
+                onChange={(v) => handleChange(p.key, v)}
+                error={errors[p.key]}
+              />
+            ))}
+          </div>
+
+          <p className="text-[10px] text-muted-foreground text-center mt-3 mb-4 leading-relaxed">
+            Only links to approved platforms are allowed. Links are visible to all Trackly users.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 px-4 py-3 border-t border-border bg-card shrink-0"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)' }}>
+          <Button variant="outline" onClick={() => setEditing(false)} className="flex-1" disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} className="flex-1 bg-primary hover:bg-primary/90" disabled={isSaving}>
+            {isSaving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save Links'}
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

@@ -130,10 +130,13 @@
 html[data-scroll-locked] body {
   overflow: hidden !important;
   position: relative !important;
-  padding-right: 0 !important;
-  margin-right: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  inset: 0 !important;
 }
 html[data-scroll-locked] {
   overflow: hidden !important;

@@ -67,13 +67,15 @@ function AppLayoutInner() {
   // absolute-positioned AppLayout — and the header — downward.
   useEffect(() => {
     const cleanup = () => {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         if (document.documentElement.hasAttribute('data-scroll-locked')) return;
         const body = document.body;
-        ['margin-top', 'margin-bottom', 'padding-right', 'padding-top', 'top', 'position'].forEach(prop => {
+        ['margin', 'margin-top', 'margin-bottom', 'margin-left', 'margin-right',
+         'padding', 'padding-top', 'padding-bottom', 'padding-left', 'padding-right',
+         'top', 'left', 'right', 'bottom', 'inset', 'position', 'transform'].forEach(prop => {
           if (body.style.getPropertyValue(prop)) body.style.removeProperty(prop);
         });
-      }, 0);
+      });
     };
     const observer = new MutationObserver(cleanup);
     observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });

@@ -85,7 +85,7 @@ export default function UnifiedHeader() {
   return (
     <>
       <header
-        className="bg-background/80 backdrop-blur-xl border-b border-border"
+        className="bg-background border-b border-border"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
           flexShrink: 0,

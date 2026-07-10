@@ -173,7 +173,7 @@ function App() {
                 <AuthenticatedApp />
               </AppErrorBoundary>
             </Router>
-            <Toaster theme="dark" toastOptions={{ className: 'bg-card text-foreground border-border' }} />
+            <Toaster theme="dark" duration={3000} toastOptions={{ className: 'bg-card text-foreground border-border' }} />
           </QueryClientProvider>
         </ThemeProvider>
       </AuthProvider>

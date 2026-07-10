@@ -63,7 +63,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
-      toast.success('Listing deleted');
+      toast.success('Listing deleted', { duration: 2500 });
       setShowDeleteConfirm(false);
     },
     onError: () => toast.error('Failed to delete listing'),

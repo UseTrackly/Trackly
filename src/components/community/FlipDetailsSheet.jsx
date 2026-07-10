@@ -101,7 +101,7 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
       // Close confirm dialog + detail sheet immediately
       setShowDeleteConfirm(false);
       onClose();
-      toast.success('Listing deleted');
+      toast.success('Listing deleted', { duration: 2500 });
       // Refetch in background to sync with server
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
     },

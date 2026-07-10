@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+
+// On iOS, position:fixed anchors to the visual viewport — when the keyboard
+// opens/closes and the modal is removed, iOS can leave the viewport in an offset
+// state, permanently shifting the header. position:absolute anchors to body
+// (which is position:relative + height:100%), so it's immune to viewport changes.
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -53,6 +58,28 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
   const [isPublic, setIsPublic] = useState(false);
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
+
+  // Reset any body/html scroll offset or inline styles when the modal closes.
+  // iOS can leave the viewport scrolled or the body offset after keyboard
+  // interactions inside a modal, which permanently shifts the header.
+  useEffect(() => {
+    if (!open) return;
+    return () => {
+      // Reset scroll offsets
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      // Remove any leftover scroll-lock state from Radix (selects, etc.)
+      document.documentElement.removeAttribute('data-scroll-locked');
+      // Clear any inline styles Radix may have injected on body
+      const body = document.body;
+      body.style.removeProperty('padding-right');
+      body.style.removeProperty('margin-top');
+      body.style.removeProperty('margin-bottom');
+      body.style.removeProperty('top');
+      body.style.removeProperty('position');
+      body.style.removeProperty('overflow');
+    };
+  }, [open]);
 
   useEffect(() => {
     if (editingItem) {
@@ -176,22 +203,23 @@ export default function AddInventoryDialog({ open, onClose, editingItem }) {
 
   return createPortal(
     <>
-      {/* Hidden file input — positioned off-screen, never inside a modal */}
+      {/* Hidden file input — positioned off-screen via absolute (not fixed)
+          to avoid iOS visual viewport recalculations */}
       <input
         ref={fileInputRef}
         id="inventory-image-input"
         type="file"
         accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
         onChange={handleFileChange}
-        style={{ position: 'fixed', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}
+        style={{ position: 'absolute', top: -9999, left: -9999, opacity: 0, pointerEvents: 'none' }}
       />
 
-      {/* Full-screen overlay — fixed to viewport. Rendered inline (not portaled
-          to body) so body's position:fixed / height:100% can't clip the bottom
-          safe area. No ancestor has a transform, so fixed anchors to viewport. */}
+      {/* Full-screen overlay — position:absolute (not fixed) anchors to body
+          (position:relative + height:100%), making it immune to iOS visual
+          viewport shifts caused by keyboard open/close. */}
       <div
         style={{
-          position: 'fixed',
+          position: 'absolute',
           top: 0,
           left: 0,
           right: 0,

@@ -4,16 +4,38 @@ import { createPortal } from 'react-dom';
 /**
  * iOS-safe inline action menu — no Radix, no focus traps, no scroll locks.
  * Renders a transparent full-screen backdrop + menu panel via portal to body.
- * Uses pointerdown (works on iOS touch) for both open and outside-click-close.
+ *
+ * Key iOS fix: after a menu item is clicked, the backdrop stays rendered for
+ * 350ms (via `closing` state) to absorb the delayed "ghost click" that iOS
+ * synthesizes after touchend. Without this, the ghost click falls through to
+ * the card underneath and opens the listing detail page.
  */
 export default function ActionMenu({ trigger, items, align = 'end' }) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const triggerRef = useRef(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const closeTimer = useRef(null);
+
+  // Delayed close: keeps backdrop in DOM to catch ghost clicks
+  const close = useCallback(() => {
+    setClosing(true);
+    closeTimer.current = setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 350);
+  }, []);
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   const handleTrigger = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (closing) {
+      setClosing(false);
+      clearTimeout(closeTimer.current);
+      return;
+    }
     const rect = triggerRef.current.getBoundingClientRect();
     const menuWidth = 192; // w-48
     let left;
@@ -22,11 +44,10 @@ export default function ActionMenu({ trigger, items, align = 'end' }) {
     } else {
       left = rect.left;
     }
-    // Keep on screen
     left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
     setPos({ top: rect.bottom + 4, left });
     setOpen(v => !v);
-  }, [align]);
+  }, [align, closing]);
 
   // Close on outside pointerdown
   useEffect(() => {
@@ -35,7 +56,7 @@ export default function ActionMenu({ trigger, items, align = 'end' }) {
       const target = e.target;
       if (target?.closest?.('[data-action-menu-content]')) return;
       if (target?.closest?.('[data-action-menu-trigger]')) return;
-      setOpen(false);
+      close();
     };
     // Delay to avoid the same pointerdown that opened it
     const timer = setTimeout(() => {
@@ -45,7 +66,7 @@ export default function ActionMenu({ trigger, items, align = 'end' }) {
       clearTimeout(timer);
       document.removeEventListener('pointerdown', handle, true);
     };
-  }, [open]);
+  }, [open, close]);
 
   // Clone trigger to inject onClick
   const triggerEl = React.cloneElement(trigger, {
@@ -64,12 +85,13 @@ export default function ActionMenu({ trigger, items, align = 'end' }) {
       >
         {triggerEl}
       </span>
-      {open && createPortal(
+      {(open || closing) && createPortal(
         <>
-          {/* Transparent backdrop — catches outside taps */}
+          {/* Transparent backdrop — catches outside taps AND ghost clicks */}
           <div
             style={{ position: 'fixed', inset: 0, zIndex: 99998 }}
-            onPointerDown={(e) => { e.stopPropagation(); setOpen(false); }}
+            onPointerDown={(e) => { e.stopPropagation(); if (open) close(); }}
+            onClick={(e) => { e.stopPropagation(); }}
           />
           {/* Menu panel */}
           <div
@@ -83,14 +105,16 @@ export default function ActionMenu({ trigger, items, align = 'end' }) {
               width: 192,
             }}
             onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {items.map((item, i) => (
               <button
                 key={i}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpen(false);
+                  if (item.disabled) return;
                   item.onClick?.();
+                  close();
                 }}
                 disabled={item.disabled}
                 className={`w-full flex items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors disabled:opacity-50 disabled:pointer-events-none ${

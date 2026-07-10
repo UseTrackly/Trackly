@@ -12,12 +12,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ProfileLink from '@/components/shared/ProfileLink';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import ActionMenu from '@/components/shared/ActionMenu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -195,29 +190,19 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold text-primary shrink-0">${liveFlip.price?.toFixed(0)}</p>
                   {isMyPost && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <ActionMenu
+                      trigger={
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreVertical className="w-4 h-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
-                          <Pencil className="w-4 h-4 mr-2" />Edit Listing
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => markSoldMutation.mutate()} disabled={liveFlip.is_sold}>
-                          <CheckCircle className="w-4 h-4 mr-2" />{liveFlip.is_sold ? 'Marked as Sold' : 'Mark as Sold'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => renewMutation.mutate()}>
-                          <RefreshCw className="w-4 h-4 mr-2" />Renew Listing
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive">
-                          <Trash2 className="w-4 h-4 mr-2" />Delete Listing
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    </div>
+                      }
+                      items={[
+                        { label: 'Edit Listing', icon: <Pencil className="w-4 h-4" />, onClick: () => setShowEditDialog(true) },
+                        { label: liveFlip.is_sold ? 'Marked as Sold' : 'Mark as Sold', icon: <CheckCircle className="w-4 h-4" />, onClick: () => markSoldMutation.mutate(), disabled: liveFlip.is_sold },
+                        { label: 'Renew Listing', icon: <RefreshCw className="w-4 h-4" />, onClick: () => renewMutation.mutate() },
+                        { label: 'Delete Listing', icon: <Trash2 className="w-4 h-4" />, onClick: () => setShowDeleteConfirm(true), destructive: true },
+                      ]}
+                    />
                   )}
                 </div>
               </div>

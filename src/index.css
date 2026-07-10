@@ -91,12 +91,7 @@
   }
   html {
     overflow: hidden !important;
-    position: static !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    bottom: auto !important;
-    transform: none !important;
+    position: relative !important;
     margin: 0 !important;
     padding: 0 !important;
     height: 100% !important;
@@ -109,36 +104,13 @@
     overflow: hidden !important;
     margin: 0 !important;
     padding: 0 !important;
-    /* ── Permanently lock body so NO library (Radix, Vaul, etc.) can
-       shift it via inline styles. This is the root cause of the
-       header shifting on iOS when modals/sheets/keyboard open. ── */
-    position: static !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    bottom: auto !important;
+    /* position: relative so absolute-positioned AppLayout root anchors to body,
+       not the visual viewport — stable on iOS across modal/keyboard/portal changes */
+    position: relative !important;
     transform: none !important;
     height: 100% !important;
-    /* Extend background color into safe-area insets to eliminate black bars */
     background-color: hsl(var(--background));
   }
-}
-
-/* ─── Pin the top header so it NEVER drops or shifts ───────── */
-/* Radix Dialog/Sheet/Select can add data-scroll-locked to <html>
-   and inject inline styles on <body> (padding-right, top, position).
-   These rules ensure the header stays glued to top:0 regardless. */
-.app-header-fixed {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: auto !important;
-  z-index: 50 !important;
-  transform: none !important;
-  margin: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
 }
 
 /* ─── Prevent header/body shift when modals & sheets open ────── */
@@ -147,11 +119,7 @@
    We neutralize ALL of them so the fixed header never shifts. */
 html[data-scroll-locked] body {
   overflow: hidden !important;
-  position: static !important;
-  top: auto !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
+  position: relative !important;
   padding-right: 0 !important;
   margin-right: 0 !important;
   margin-top: 0 !important;

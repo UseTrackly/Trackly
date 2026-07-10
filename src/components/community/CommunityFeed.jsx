@@ -8,12 +8,6 @@ import { Button } from '@/components/ui/button';
 import EmptyState from '@/components/shared/EmptyState';
 import ProfileLink from '@/components/shared/ProfileLink';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -25,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { MoreVertical, Pencil, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import ActionMenu from '@/components/shared/ActionMenu';
 import EditListingDialog from './EditListingDialog';
 
 const CATEGORY_META = {
@@ -144,32 +139,20 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
           )}
           {/* Owner menu */}
           {isMyPost && (
-            <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+            <div className="absolute top-2 right-2 z-20">
+              <ActionMenu
+                trigger={
                   <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60">
                     <MoreVertical className="w-4 h-4 text-white" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
-                    <Pencil className="w-4 h-4 mr-2" />
-                    Edit Listing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => markSoldMutation.mutate()} disabled={isSold}>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {isSold ? 'Marked as Sold' : 'Mark as Sold'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => renewMutation.mutate()}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Renew Listing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Listing
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                }
+                items={[
+                  { label: 'Edit Listing', icon: <Pencil className="w-4 h-4" />, onClick: () => setShowEditDialog(true) },
+                  { label: isSold ? 'Marked as Sold' : 'Mark as Sold', icon: <CheckCircle className="w-4 h-4" />, onClick: () => markSoldMutation.mutate(), disabled: isSold },
+                  { label: 'Renew Listing', icon: <RefreshCw className="w-4 h-4" />, onClick: () => renewMutation.mutate() },
+                  { label: 'Delete Listing', icon: <Trash2 className="w-4 h-4" />, onClick: () => setShowDeleteConfirm(true), destructive: true },
+                ]}
+              />
             </div>
           )}
         </div>
@@ -267,32 +250,20 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
         )}
         {/* Owner menu */}
         {isMyPost && (
-          <div className="absolute top-2 right-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+          <div className="absolute top-2 right-2 z-20">
+            <ActionMenu
+              trigger={
                 <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60">
                   <MoreVertical className="w-4 h-4 text-white" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit Listing
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => markSoldMutation.mutate()} disabled={isSold}>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  {isSold ? 'Marked as Sold' : 'Mark as Sold'}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => renewMutation.mutate()}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Renew Listing
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-destructive">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Listing
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+              items={[
+                { label: 'Edit Listing', icon: <Pencil className="w-4 h-4" />, onClick: () => setShowEditDialog(true) },
+                { label: isSold ? 'Marked as Sold' : 'Mark as Sold', icon: <CheckCircle className="w-4 h-4" />, onClick: () => markSoldMutation.mutate(), disabled: isSold },
+                { label: 'Renew Listing', icon: <RefreshCw className="w-4 h-4" />, onClick: () => renewMutation.mutate() },
+                { label: 'Delete Listing', icon: <Trash2 className="w-4 h-4" />, onClick: () => setShowDeleteConfirm(true), destructive: true },
+              ]}
+            />
           </div>
         )}
       </div>

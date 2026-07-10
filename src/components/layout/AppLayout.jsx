@@ -65,7 +65,7 @@ function AppLayoutInner() {
     <div
       className="bg-background text-sm"
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
@@ -86,7 +86,7 @@ function AppLayoutInner() {
 
       {/* Grid background */}
       <div
-        className="fixed inset-0 z-0 pointer-events-none"
+        className="absolute inset-0 z-0 pointer-events-none"
         style={{
           backgroundImage: `
             linear-gradient(hsl(var(--border)) 1px, transparent 1px),

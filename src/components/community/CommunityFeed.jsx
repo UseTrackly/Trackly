@@ -147,7 +147,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
             <div className="absolute top-2 right-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60" onClick={(e) => e.stopPropagation()}>
                     <MoreVertical className="w-4 h-4 text-white" />
                   </Button>
                 </DropdownMenuTrigger>

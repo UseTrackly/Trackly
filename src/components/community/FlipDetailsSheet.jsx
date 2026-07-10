@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -48,6 +48,17 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const queryClient = useQueryClient();
+
+  // ── Cleanup all sub-modal state when the sheet closes ──────────────────────
+  // Prevents stale AlertDialog / EditDialog state from persisting after the
+  // sheet is dismissed (e.g. after delete, mark sold, or backdrop tap).
+  useEffect(() => {
+    if (!open) {
+      setShowDeleteConfirm(false);
+      setShowEditDialog(false);
+      setShowAnalysis(false);
+    }
+  }, [open]);
   const navigate = useNavigate();
 
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => base44.auth.me() });
@@ -90,6 +101,7 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
       toast.success('Listing deleted');
+      setShowDeleteConfirm(false);
       onClose();
     },
     onError: () => toast.error('Failed to delete listing'),
@@ -179,7 +191,7 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
                   {isMyPost && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>

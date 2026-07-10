@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePageTab } from '@/lib/PageTabContext';
+import { useModal } from '@/lib/ModalContext';
 import { useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,11 +16,10 @@ import CommunityFeed from '@/components/community/CommunityFeed';
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = usePageTab('/community', 'discover');
-  const [showPost, setShowPost] = useState(false);
   const [selectedFlip, setSelectedFlip] = useState(null);
-  const [showInbox, setShowInbox] = useState(false);
   const [inboxContactEmail, setInboxContactEmail] = useState(null);
   const [inboxFlipId, setInboxFlipId] = useState(null);
+  const { isOpen, open, close } = useModal();
   const queryClient = useQueryClient();
   const location = useLocation();
 
@@ -28,7 +28,7 @@ export default function CommunityPage() {
     if (location.state?.openInbox) {
       setInboxContactEmail(location.state.contactEmail || null);
       setInboxFlipId(location.state.flipId || null);
-      setShowInbox(true);
+      open('community-inbox');
       // Clear the state so back/forward nav doesn't re-trigger
       window.history.replaceState({}, '');
     }
@@ -141,28 +141,28 @@ export default function CommunityPage() {
         flips={communityFlips}
         blockedUsers={blockedUsers}
         activeTab={activeTab}
-        onPostFlip={() => setShowPost(true)}
-        onFlipClick={setSelectedFlip}
+        onPostFlip={() => open('community-post')}
+        onFlipClick={(flip) => { setSelectedFlip(flip); open('community-details'); }}
         onInterest={(flipId) => interestMutation.mutate(flipId)}
       />
 
       <PostFlipDialog
-        open={showPost}
-        onClose={() => setShowPost(false)}
+        open={isOpen('community-post')}
+        onClose={() => close('community-post')}
       />
 
       {selectedFlip && (
         <FlipDetailsSheet
           flip={selectedFlip}
-          open={!!selectedFlip}
-          onClose={() => setSelectedFlip(null)}
+          open={isOpen('community-details')}
+          onClose={() => { close('community-details'); setSelectedFlip(null); }}
           onInterest={(flipId) => requireAuth() && interestMutation.mutate(flipId)}
         />
       )}
 
       <MessageInbox
-        open={showInbox}
-        onClose={() => { setShowInbox(false); setInboxContactEmail(null); setInboxFlipId(null); }}
+        open={isOpen('community-inbox')}
+        onClose={() => { close('community-inbox'); setInboxContactEmail(null); setInboxFlipId(null); }}
         preselectRecipientEmail={inboxContactEmail}
         preselectFlipId={inboxFlipId}
       />

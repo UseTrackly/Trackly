@@ -96,6 +96,15 @@
     overflow: hidden !important;
     margin: 0 !important;
     padding: 0 !important;
+    /* ── Permanently lock body so NO library (Radix, Vaul, etc.) can
+       shift it via inline styles. This is the root cause of the
+       header shifting on iOS when modals/sheets/keyboard open. ── */
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
     /* Extend background color into safe-area insets to eliminate black bars */
     background-color: hsl(var(--background));
   }

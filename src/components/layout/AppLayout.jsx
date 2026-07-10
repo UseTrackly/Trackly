@@ -5,6 +5,7 @@ const GlowOrbs = lazy(() => import('@/components/background/GlowOrbs'));
 import UnifiedHeader, { MessageProvider } from './UnifiedHeader';
 import { TabResetProvider, useTabReset } from '@/lib/TabResetContext';
 import { PageTabProvider, usePageTab } from '@/lib/PageTabContext';
+import { ModalProvider } from '@/lib/ModalContext';
 import PageTabBar from './PageTabBar';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -159,12 +160,14 @@ function AppLayoutInner() {
 
 export default function AppLayout() {
   return (
-    <TabResetProvider>
-      <PageTabProvider>
-        <MessageProvider>
-          <AppLayoutInner />
-        </MessageProvider>
-      </PageTabProvider>
-    </TabResetProvider>
+    <ModalProvider>
+      <TabResetProvider>
+        <PageTabProvider>
+          <MessageProvider>
+            <AppLayoutInner />
+          </MessageProvider>
+        </PageTabProvider>
+      </TabResetProvider>
+    </ModalProvider>
   );
 }

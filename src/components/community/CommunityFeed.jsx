@@ -144,10 +144,10 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
           )}
           {/* Owner menu */}
           {isMyPost && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-black/40 hover:bg-black/60">
                     <MoreVertical className="w-4 h-4 text-white" />
                   </Button>
                 </DropdownMenuTrigger>

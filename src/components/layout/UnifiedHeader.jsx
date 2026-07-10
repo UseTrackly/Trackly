@@ -1,4 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -84,12 +85,13 @@ export default function UnifiedHeader() {
 
   return (
     <>
-      <header
-        className="app-header-fixed fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border"
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-        }}
-      >
+      {createPortal(
+        <header
+          className="app-header-fixed fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border"
+          style={{
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+          }}
+        >
         <div className="flex items-center justify-between px-4 py-3">
           {isChildPage ? (
             <>
@@ -132,7 +134,9 @@ export default function UnifiedHeader() {
             </>
           )}
         </div>
-      </header>
+      </header>,
+        document.body
+      )}
 
       <MessageInbox 
         open={messageState.open} 

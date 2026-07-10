@@ -89,6 +89,19 @@
     user-select: text;
     -webkit-touch-callout: default;
   }
+  html {
+    overflow: hidden !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
     overscroll-behavior: none;
@@ -105,6 +118,7 @@
     right: auto !important;
     bottom: auto !important;
     transform: none !important;
+    height: 100% !important;
     /* Extend background color into safe-area insets to eliminate black bars */
     background-color: hsl(var(--background));
   }

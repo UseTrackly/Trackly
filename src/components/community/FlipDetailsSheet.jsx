@@ -189,9 +189,10 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold text-primary shrink-0">${liveFlip.price?.toFixed(0)}</p>
                   {isMyPost && (
+                    <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreVertical className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -210,6 +211,7 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    </div>
                   )}
                 </div>
               </div>

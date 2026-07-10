@@ -82,10 +82,8 @@ export default function UpgradePage() {
   const [restoring, setRestoring] = useState(false);
   const onIOS = isIOSApp();
 
-  // Redirect if already pro
-  useEffect(() => {
-    if (user?.is_pro) navigate('/', { replace: true });
-  }, [user?.is_pro]);
+  // If user is already Pro, show a confirmation instead of redirecting to Home
+  const isAlreadyPro = user?.is_pro;
 
   const handlePurchase = async () => {
     if (onIOS) {
@@ -133,6 +131,35 @@ export default function UpgradePage() {
   };
 
   const selectedPlanData = PLANS.find(p => p.id === selectedPlan);
+
+  // Already Pro — show confirmation, never redirect to Home
+  if (isAlreadyPro) {
+    return (
+      <div className="flex flex-col min-h-full items-center justify-center px-5">
+        <div
+          className="flex items-center px-4 pb-2 shrink-0 w-full"
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
+        >
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        </div>
+        <div className="text-center py-20">
+          <div className="w-20 h-20 rounded-full bg-primary/15 flex items-center justify-center mx-auto mb-5">
+            <Crown className="w-9 h-9 text-primary" />
+          </div>
+          <h1 className="text-2xl font-extrabold mb-2">You're already Pro!</h1>
+          <p className="text-muted-foreground text-sm">
+            Thank you for supporting Trackly. Enjoy unlimited access to all features.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-full">

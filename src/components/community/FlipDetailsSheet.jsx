@@ -99,10 +99,16 @@ export default function FlipDetailsSheet({ flip, open, onClose, onInterest }) {
   const deleteMutation = useMutation({
     mutationFn: async () => { await base44.entities.CommunityFlip.delete(flip.id); },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
-      toast.success('Listing deleted');
+      // Optimistically remove from cache so the feed updates immediately
+      queryClient.setQueryData(['communityFlips'], (old) =>
+        (Array.isArray(old) ? old : []).filter(f => f.id !== flip.id)
+      );
+      // Close confirm dialog + detail sheet immediately
       setShowDeleteConfirm(false);
       onClose();
+      toast.success('Listing deleted');
+      // Refetch in background to sync with server
+      queryClient.invalidateQueries({ queryKey: ['communityFlips'] });
     },
     onError: () => toast.error('Failed to delete listing'),
   });

@@ -98,15 +98,10 @@ function AppLayoutInner() {
       />
       <Suspense fallback={null}><GlowOrbs /></Suspense>
 
-      {/* Header — fixed at viewport top (no portal = no body scroll-lock interaction) */}
+      {/* Header — in normal document flow (no fixed/portal for iOS stability) */}
       {!isFullscreen && <UnifiedHeader />}
 
-      {/* Spacer to push content below the fixed header (~56px + safe-area-top) */}
-      {!isFullscreen && (
-        <div style={{ flexShrink: 0, height: 'calc(56px + env(safe-area-inset-top, 0px))' }} />
-      )}
-
-      {/* Page tab bar — sits right below header spacer, never scrolls */}
+      {/* Page tab bar — sits right below header, never scrolls */}
       {!isFullscreen && <PageTabBar activeTab={activeTab} onTabChange={setActiveTab} />}
 
       {/* Scrollable content — flex-1, ONLY this scrolls */}

@@ -104,6 +104,8 @@
     overflow: hidden !important;
     margin: 0 !important;
     padding: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
     /* position: relative so absolute-positioned AppLayout root anchors to body,
        not the visual viewport — stable on iOS across modal/keyboard/portal changes */
     position: relative !important;

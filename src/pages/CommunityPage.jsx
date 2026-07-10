@@ -155,7 +155,7 @@ export default function CommunityPage() {
         <FlipDetailsSheet
           flip={selectedFlip}
           open={isOpen('community-details')}
-          onClose={() => close('community-details')}
+          onClose={() => { close('community-details'); setSelectedFlip(null); }}
           onInterest={(flipId) => requireAuth() && interestMutation.mutate(flipId)}
         />
       )}

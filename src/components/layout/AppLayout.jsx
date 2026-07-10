@@ -61,6 +61,26 @@ function AppLayoutInner() {
     }
   }, [location.pathname, isChildPage]);
 
+  // Strip residual inline styles that Radix scroll-lock leaves on <body>
+  // when two dialogs close simultaneously (e.g. AlertDialog + Sheet in delete flow).
+  // Without this, body can retain top/margin-top/padding that pushes the
+  // absolute-positioned AppLayout — and the header — downward.
+  useEffect(() => {
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.documentElement.hasAttribute('data-scroll-locked')) return;
+        const body = document.body;
+        ['margin-top', 'margin-bottom', 'padding-right', 'padding-top', 'top', 'position'].forEach(prop => {
+          if (body.style.getPropertyValue(prop)) body.style.removeProperty(prop);
+        });
+      }, 0);
+    };
+    const observer = new MutationObserver(cleanup);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-scroll-locked'] });
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
       className="bg-background text-sm"

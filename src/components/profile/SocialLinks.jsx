@@ -356,7 +356,7 @@ export default function SocialLinksEditor({ socialLinks = {}, onSave, isSaving }
   return createPortal(
     <div
       style={{
-        position: 'fixed',
+        position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
         zIndex: 99999,
         backgroundColor: 'hsl(0 0% 4%)',

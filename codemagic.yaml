@@ -73,22 +73,29 @@ workflows:
           from PIL import Image
           logo = Image.open('/tmp/icon_src.png').convert('RGBA')
           logo = logo.resize((1024, 1024), Image.LANCZOS)
+          # Zoom in: crop to content bbox (removes transparent padding around
+          # the circle), then crop center ~82% so the T+leaf fill more of
+          # the icon like the zoomed reference.
+          bbox = logo.getbbox()
+          if bbox:
+              logo = logo.crop(bbox)
+          w, h = logo.size
+          mw, mh = int(w * 0.09), int(h * 0.09)
+          logo = logo.crop((mw, mh, w - mw, h - mh))
+          logo = logo.resize((1024, 1024), Image.LANCZOS)
           # Sample the circle's actual navy from inside the circle.
-          navy = logo.getpixel((250, 250))[:3]
+          navy = logo.getpixel((120, 120))[:3]
           if max(navy) > 150 or max(navy) < 20:
               navy = (42, 51, 77)
           bg = Image.new('RGB', (1024, 1024), navy)
           bg.paste(logo, (0, 0), logo)
-          # Keep ONLY the white T and green leaf; flood everything else
-          # (white corners, circle edge fringe, anti-aliased halos) to navy.
+          # Keep ONLY the white T (center) and green leaf; flood everything
+          # else — corners, circle edge, halos — to uniform navy.
           px = bg.load()
           for y in range(1024):
               for x in range(1024):
                   r, g, b = px[x, y][0], px[x, y][1], px[x, y][2]
-                  # Only keep the white T in the CENTER region — this ensures
-                  # any white in corners (opaque or semi-transparent bg) is
-                  # flooded to navy. Green leaf has no center restriction.
-                  in_center = 100 < x < 924 and 100 < y < 924
+                  in_center = 30 < x < 994 and 30 < y < 994
                   is_white_T = in_center and r > 190 and g > 190 and b > 190
                   is_green_leaf = g > 90 and g > r + 25 and g > b + 25
                   if not is_white_T and not is_green_leaf:

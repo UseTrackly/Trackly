@@ -252,9 +252,15 @@ PODEOF
           bbox = diff.getbbox()
           if bbox:
               img = img.crop(bbox)
-          img = img.resize((1024, 1024), Image.LANCZOS)
+          # Scale ~10% past the frame and center-crop so the circle bleeds to the
+          # edges (zoomed-in, profile-picture look) instead of sitting small.
+          target = 1126
+          img = img.resize((target, target), Image.LANCZOS)
+          left = (target - 1024) // 2
+          top = (target - 1024) // 2
+          img = img.crop((left, top, left + 1024, top + 1024))
           img.save('/tmp/trackly_icon_1024.png', 'PNG')
-          print(f"Icon trimmed & filled: {img.size}, trimmed={bool(bbox)}")
+          print(f"Icon trimmed & zoomed: {img.size}, trimmed={bool(bbox)}")
           PYEOF
           test -s /tmp/trackly_icon_1024.png || { echo "FATAL: icon processing failed"; exit 1; }
 

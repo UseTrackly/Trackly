@@ -166,6 +166,19 @@ export default function InventoryPage() {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       toast.success('Item removed from inventory');
     },
+    onError: (err) => {
+      console.error('Inventory delete error:', err);
+      toast.error('Failed to delete item');
+    },
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: async () => { await base44.entities.Inventory.deleteMany({}); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.success('All inventory items cleared');
+    },
+    onError: () => toast.error('Failed to clear inventory'),
   });
 
   const deleteExpenseMutation = useMutation({
@@ -345,13 +358,29 @@ export default function InventoryPage() {
         <TabsList className="hidden" />
 
         <TabsContent value="inventory" className="space-y-3 px-3 pb-24">
-          <Button
-            onClick={() => setShowAdd(true)}
-            className="w-full h-9 text-sm font-medium bg-primary hover:bg-primary/90 rounded-lg"
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            Add Item
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowAdd(true)}
+              className="flex-1 h-9 text-sm font-medium bg-primary hover:bg-primary/90 rounded-lg"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Add Item
+            </Button>
+            {items.length > 0 && (
+              <Button
+                onClick={() => {
+                  if (window.confirm(`Delete all ${items.length} inventory item${items.length !== 1 ? 's' : ''}? This cannot be undone.`)) {
+                    clearAllMutation.mutate();
+                  }
+                }}
+                disabled={clearAllMutation.isPending}
+                variant="outline"
+                className="h-9 text-sm font-medium text-destructive border-destructive/30 hover:bg-destructive/10 rounded-lg"
+              >
+                {clearAllMutation.isPending ? 'Clearing...' : 'Clear All'}
+              </Button>
+            )}
+          </div>
 
           {items.length === 0 ? (
             <EmptyState

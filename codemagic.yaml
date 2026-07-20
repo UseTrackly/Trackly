@@ -77,12 +77,23 @@ workflows:
           navy = logo.getpixel((20, 512))[:3]
           if sum(navy) > 200 or sum(navy) < 30:
               navy = (27, 41, 74)
-          # Paste the logo onto a solid navy background: transparent margins and the
-          # circle both become navy, leaving a full-bleed navy icon + white T.
+          # Start with a solid navy background, then paste the logo on top.
           bg = Image.new('RGB', (1024, 1024), navy)
           bg.paste(logo, (0, 0), logo)
+          # BULLETPROOF: force every near-white pixel OUTSIDE the central circle to
+          # navy. This kills white corners whether the source had transparent or
+          # opaque-white margins, while preserving the white T (inside the circle).
+          px = bg.load()
+          cx = cy = 512
+          r2 = 455 * 455
+          for y in range(1024):
+              for x in range(1024):
+                  if (x - cx) ** 2 + (y - cy) ** 2 > r2:
+                      p = px[x, y]
+                      if min(p) > 180:
+                          px[x, y] = navy
           bg.save('/tmp/icon_1024.png', 'PNG')
-          print(f"Icon full-bleed navy: navy={navy}, size={bg.size}")
+          print(f"Icon bulletproof navy: navy={navy}, size={bg.size}")
           PYEOF
           cp /tmp/icon_1024.png "$ICONSET/icon-1024.png"
           cat > "$ICONSET/Contents.json" << 'JSONEOF'

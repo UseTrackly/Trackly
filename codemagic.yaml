@@ -70,25 +70,19 @@ workflows:
           fi
           pip3 install Pillow --quiet 2>/dev/null
           python3 << 'PYEOF'
-          from PIL import Image, ImageChops
-          img = Image.open('/tmp/icon_src.png').convert('RGBA')
-          # Composite transparency onto white so margins are white (not black)
-          bg = Image.new('RGBA', img.size, (255, 255, 255, 255))
-          img = Image.alpha_composite(bg, img).convert('RGB')
-          # Trim white margins down to the logo's bounding box
-          white = Image.new('RGB', img.size, (255, 255, 255))
-          diff = ImageChops.difference(img, white).point(lambda v: 255 if v > 15 else 0)
-          bbox = diff.getbbox()
-          if bbox:
-              img = img.crop(bbox)
-          # Zoom ~10% past the frame so the circle bleeds edge-to-edge
-          target = 1126
-          img = img.resize((target, target), Image.LANCZOS)
-          left = (target - 1024) // 2
-          top = (target - 1024) // 2
-          final = img.crop((left, top, left + 1024, top + 1024))
-          final.save('/tmp/icon_1024.png', 'PNG')
-          print(f"Icon processed: size={final.size}, trimmed={bool(bbox)}")
+          from PIL import Image
+          logo = Image.open('/tmp/icon_src.png').convert('RGBA')
+          logo = logo.resize((1024, 1024), Image.LANCZOS)
+          # Sample the logo's navy from inside the circle (left edge, away from the T)
+          navy = logo.getpixel((20, 512))[:3]
+          if sum(navy) > 200 or sum(navy) < 30:
+              navy = (27, 41, 74)
+          # Paste the logo onto a solid navy background: transparent margins and the
+          # circle both become navy, leaving a full-bleed navy icon + white T.
+          bg = Image.new('RGB', (1024, 1024), navy)
+          bg.paste(logo, (0, 0), logo)
+          bg.save('/tmp/icon_1024.png', 'PNG')
+          print(f"Icon full-bleed navy: navy={navy}, size={bg.size}")
           PYEOF
           cp /tmp/icon_1024.png "$ICONSET/icon-1024.png"
           cat > "$ICONSET/Contents.json" << 'JSONEOF'

@@ -73,18 +73,22 @@ workflows:
           from PIL import Image
           logo = Image.open('/tmp/icon_src.png').convert('RGBA')
           logo = logo.resize((1024, 1024), Image.LANCZOS)
-          navy = (26, 35, 56)
+          # Sample the circle's actual navy from inside the circle (upper-left,
+          # away from the centered T and the upper-right leaf).
+          navy = logo.getpixel((250, 250))[:3]
+          if max(navy) > 150 or max(navy) < 20:
+              navy = (42, 51, 77)
           bg = Image.new('RGB', (1024, 1024), navy)
           bg.paste(logo, (0, 0), logo)
-          # Full-bleed: replace ALL dark (navy) pixels with uniform navy so the
-          # circle disappears — only the white T and green leaf remain on solid navy.
+          # Replace every dark (navy) pixel with the circle's navy so the circle
+          # and corners become one uniform fill; the white T and green leaf remain.
           px = bg.load()
           for y in range(1024):
               for x in range(1024):
                   if max(px[x, y]) < 110:
                       px[x, y] = navy
           bg.save('/tmp/icon_1024.png', 'PNG')
-          print(f"Icon full-bleed: navy={navy}")
+          print(f"Icon: navy={navy}")
           PYEOF
           cp /tmp/icon_1024.png "$ICONSET/icon-1024.png"
           cat > "$ICONSET/Contents.json" << 'JSONEOF'

@@ -35,10 +35,10 @@ export default function NotificationBell() {
     const panelWidth = 300;
     // Right-align the panel flush to the bell's right edge, clamped to the
     // viewport so it never overflows on narrow screens.
-    const left = Math.max(8, Math.min(
-      rect.right - panelWidth,
-      window.innerWidth - panelWidth - 8
-    ));
+    // Anchor flush to the right edge of the screen so the dropdown reads as
+    // truly right-aligned (the bell sits left of the Menu button, so aligning
+    // to rect.right left the panel floating mid-header).
+    const left = Math.max(8, window.innerWidth - panelWidth - 12);
     setPos({ top: rect.bottom + 6, left });
     setOpen(v => !v);
   }, []);

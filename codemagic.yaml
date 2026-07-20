@@ -73,19 +73,21 @@ workflows:
           from PIL import Image
           logo = Image.open('/tmp/icon_src.png').convert('RGBA')
           logo = logo.resize((1024, 1024), Image.LANCZOS)
-          # Sample the circle's actual navy from inside the circle (upper-left,
-          # away from the centered T and the upper-right leaf).
+          # Sample the circle's actual navy from inside the circle.
           navy = logo.getpixel((250, 250))[:3]
           if max(navy) > 150 or max(navy) < 20:
               navy = (42, 51, 77)
           bg = Image.new('RGB', (1024, 1024), navy)
           bg.paste(logo, (0, 0), logo)
-          # Replace every dark (navy) pixel with the circle's navy so the circle
-          # and corners become one uniform fill; the white T and green leaf remain.
+          # Keep ONLY the white T and green leaf; flood everything else
+          # (white corners, circle edge fringe, anti-aliased halos) to navy.
           px = bg.load()
           for y in range(1024):
               for x in range(1024):
-                  if max(px[x, y]) < 110:
+                  r, g, b = px[x, y][0], px[x, y][1], px[x, y][2]
+                  is_white_T = r > 190 and g > 190 and b > 190
+                  is_green_leaf = g > 90 and g > r + 25 and g > b + 25
+                  if not is_white_T and not is_green_leaf:
                       px[x, y] = navy
           bg.save('/tmp/icon_1024.png', 'PNG')
           print(f"Icon: navy={navy}")

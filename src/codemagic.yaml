@@ -235,7 +235,7 @@ PODEOF
           mkdir -p "$ICON_DIR"
 
           # Download the master icon (1024x1024 source)
-          curl -fsSL "https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/c29d404d0_logo_no_bg_final.png" \
+          curl -fsSL "https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/5d245cd07_app_icon_1024.png" \
             -o /tmp/trackly_icon_master.png
 
           # Flatten to opaque dark background (App Store requires no alpha on 1024 icon)

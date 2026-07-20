@@ -243,15 +243,17 @@ PODEOF
           python3 << 'PYEOF'
           from PIL import Image, ImageChops
           img = Image.open('/tmp/trackly_icon_master.png').convert('RGB')
-          # Auto-trim near-white background so the circle fills the frame
+          # Auto-trim near-white background (tolerance for slight off-white)
           bg = Image.new('RGB', img.size, (255, 255, 255))
-          bbox = ImageChops.difference(img, bg).getbbox()
+          diff = ImageChops.difference(img, bg).point(lambda v: 255 if v > 15 else 0)
+          bbox = diff.getbbox()
           if bbox:
               img = img.crop(bbox)
           img = img.resize((1024, 1024), Image.LANCZOS)
           img.save('/tmp/trackly_icon_1024.png', 'PNG')
-          print(f"Icon trimmed & filled: {img.size}")
+          print(f"Icon trimmed & filled: {img.size}, trimmed={bool(bbox)}")
           PYEOF
+          test -s /tmp/trackly_icon_1024.png || { echo "FATAL: icon processing failed"; exit 1; }
 
           # Generate all required sizes using sips
           generate_icon() {

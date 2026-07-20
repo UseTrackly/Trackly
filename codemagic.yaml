@@ -85,7 +85,11 @@ workflows:
           for y in range(1024):
               for x in range(1024):
                   r, g, b = px[x, y][0], px[x, y][1], px[x, y][2]
-                  is_white_T = r > 190 and g > 190 and b > 190
+                  # Only keep the white T in the CENTER region — this ensures
+                  # any white in corners (opaque or semi-transparent bg) is
+                  # flooded to navy. Green leaf has no center restriction.
+                  in_center = 100 < x < 924 and 100 < y < 924
+                  is_white_T = in_center and r > 190 and g > 190 and b > 190
                   is_green_leaf = g > 90 and g > r + 25 and g > b + 25
                   if not is_white_T and not is_green_leaf:
                       px[x, y] = navy

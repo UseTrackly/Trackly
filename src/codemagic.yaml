@@ -241,26 +241,19 @@ PODEOF
           # Trim white margins and fill 1024×1024 edge-to-edge (no letterboxing)
           pip3 install Pillow --quiet 2>/dev/null
           python3 << 'PYEOF'
-          from PIL import Image, ImageChops, ImageDraw
-          img = Image.open('/tmp/trackly_icon_master.png').convert('RGBA')
-          # Composite transparency onto white (convert('RGB') alone fills alpha with black)
-          bg = Image.new('RGBA', img.size, (255, 255, 255, 255))
-          img = Image.alpha_composite(bg, img).convert('RGB')
-          # Auto-trim near-white background (tolerance for slight off-white)
-          white = Image.new('RGB', img.size, (255, 255, 255))
-          diff = ImageChops.difference(img, white).point(lambda v: 255 if v > 15 else 0)
-          bbox = diff.getbbox()
-          if bbox:
-              img = img.crop(bbox)
-          # Resize the logo to fill the full 1024×1024 frame
-          img = img.resize((1024, 1024), Image.LANCZOS)
-          # Flood-fill white corner areas (outside a circular logo) with the navy
-          # sampled from the logo edge, so the icon is full-bleed — no white pad.
-          sample = img.getpixel((8, 512))
-          for corner in [(0, 0), (1023, 0), (0, 1023), (1023, 1023)]:
-              ImageDraw.flood_fill(img, corner, sample, thresh=40)
-          img.save('/tmp/trackly_icon_1024.png', 'PNG')
-          print(f"Icon full-bleed: size={img.size}, trimmed={bool(bbox)}")
+          from PIL import Image
+          logo = Image.open('/tmp/trackly_icon_master.png').convert('RGBA')
+          logo = logo.resize((1024, 1024), Image.LANCZOS)
+          # Sample the logo's navy from inside the circle (left edge, away from the T)
+          navy = logo.getpixel((20, 512))[:3]
+          if sum(navy) > 200 or sum(navy) < 30:
+              navy = (27, 41, 74)
+          # Paste the logo onto a solid navy background: transparent margins and the
+          # circle both become navy, leaving a full-bleed navy icon + white T.
+          bg = Image.new('RGB', (1024, 1024), navy)
+          bg.paste(logo, (0, 0), logo)
+          bg.save('/tmp/trackly_icon_1024.png', 'PNG')
+          print(f"Icon full-bleed navy: navy={navy}, size={bg.size}")
           PYEOF
           test -s /tmp/trackly_icon_1024.png || { echo "FATAL: icon processing failed"; exit 1; }
 

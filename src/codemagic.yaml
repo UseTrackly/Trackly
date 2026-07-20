@@ -242,10 +242,13 @@ PODEOF
           pip3 install Pillow --quiet 2>/dev/null
           python3 << 'PYEOF'
           from PIL import Image, ImageChops
-          img = Image.open('/tmp/trackly_icon_master.png').convert('RGB')
+          img = Image.open('/tmp/trackly_icon_master.png').convert('RGBA')
+          # Composite transparency onto white (convert('RGB') alone fills alpha with black)
+          bg = Image.new('RGBA', img.size, (255, 255, 255, 255))
+          img = Image.alpha_composite(bg, img).convert('RGB')
           # Auto-trim near-white background (tolerance for slight off-white)
-          bg = Image.new('RGB', img.size, (255, 255, 255))
-          diff = ImageChops.difference(img, bg).point(lambda v: 255 if v > 15 else 0)
+          white = Image.new('RGB', img.size, (255, 255, 255))
+          diff = ImageChops.difference(img, white).point(lambda v: 255 if v > 15 else 0)
           bbox = diff.getbbox()
           if bbox:
               img = img.crop(bbox)

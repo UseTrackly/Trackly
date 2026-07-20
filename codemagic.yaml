@@ -60,6 +60,44 @@ workflows:
           rm -rf ios
           npx cap add ios
 
+      - name: Install custom Trackly app icon
+        script: |
+          ICONSET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          mkdir -p "$ICONSET"
+          curl -fsSL "https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/c29d404d0_logo_no_bg_final.png" -o /tmp/icon_src.png
+          if [ ! -s /tmp/icon_src.png ]; then
+            echo "ERROR: Failed to download icon source"; exit 1
+          fi
+          pip3 install Pillow --quiet 2>/dev/null
+          python3 << 'PYEOF'
+          from PIL import Image
+          img = Image.open('/tmp/icon_src.png').convert('RGBA')
+          bg = Image.new('RGBA', img.size, (10, 10, 10, 255))
+          bg.paste(img, (0, 0), img)
+          final = bg.convert('RGB').resize((1024, 1024), Image.LANCZOS)
+          final.save('/tmp/icon_1024.png', 'PNG')
+          print(f"Icon processed: size={final.size}, mode={final.mode}")
+          PYEOF
+          cp /tmp/icon_1024.png "$ICONSET/icon-1024.png"
+          cat > "$ICONSET/Contents.json" << 'JSONEOF'
+          {
+            "images" : [
+              {
+                "filename" : "icon-1024.png",
+                "idiom" : "universal",
+                "platform" : "ios",
+                "size" : "1024x1024"
+              }
+            ],
+            "info" : {
+              "author" : "xcode",
+              "version" : 1
+            }
+          }
+          JSONEOF
+          echo "Custom Trackly app icon installed:"
+          ls -la "$ICONSET"
+
       - name: Inject permissions into Info.plist template (before cap sync)
         script: |
           PLIST="ios/App/App/Info.plist"

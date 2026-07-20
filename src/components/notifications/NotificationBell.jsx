@@ -126,60 +126,55 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown panel — portaled to body with position:absolute */}
+      {/* Dropdown panel — portaled to body. No full-screen backdrop — it sat
+          above the bell (z 99998) and caused a ghost-click double-toggle
+          (close → ghost click re-opens → broken black screen). The document-
+          level pointerdown handler already closes on outside taps. */}
       {open && createPortal(
-        <>
-          {/* Transparent backdrop — catches outside taps */}
-          <div
-            style={{ position: 'absolute', inset: 0, zIndex: 99998 }}
-            onPointerDown={(e) => { e.stopPropagation(); setOpen(false); }}
-          />
-          {/* Panel */}
-          <div
-            data-notif-panel
-            className="bg-card border border-border rounded-xl shadow-2xl overflow-hidden"
-            style={{
-              position: 'absolute',
-              top: pos.top,
-              left: pos.left,
-              width: 300,
-              zIndex: 99999,
-              maxHeight: 400,
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="font-semibold text-sm">Notifications</h3>
-              {unreadCount > 0 && (
-                <p className="text-[11px] text-muted-foreground mt-0.5">{unreadCount} unread</p>
-              )}
-            </div>
-            <div className="overflow-y-auto" style={{ maxHeight: 340, WebkitOverflowScrolling: 'touch' }}>
-              {notifications.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
-              ) : (
-                notifications.map((notif) => (
-                  <button
-                    key={notif.id}
-                    onClick={() => handleNotificationClick(notif)}
-                    className={`w-full text-left px-4 py-3 border-b border-border/40 last:border-0 transition-colors ${
-                      notif.is_read ? 'hover:bg-secondary/40' : 'bg-primary/5 hover:bg-primary/10'
-                    }`}
-                  >
-                    <div className="flex items-start gap-2.5">
-                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${notif.is_read ? 'bg-transparent' : 'bg-primary'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground leading-snug">{notif.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-snug">{notif.message}</p>
-                        <p className="text-[10px] text-muted-foreground/70 mt-1">{format(new Date(notif.created_date), 'MMM d, h:mm a')}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
+        <div
+          data-notif-panel
+          className="bg-card border border-border rounded-xl shadow-2xl overflow-hidden"
+          style={{
+            position: 'absolute',
+            top: pos.top,
+            left: pos.left,
+            width: 300,
+            zIndex: 99999,
+            maxHeight: 400,
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="font-semibold text-sm">Notifications</h3>
+            {unreadCount > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">{unreadCount} unread</p>
+            )}
           </div>
-        </>,
+          <div className="overflow-y-auto" style={{ maxHeight: 340, WebkitOverflowScrolling: 'touch' }}>
+            {notifications.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No notifications yet</p>
+            ) : (
+              notifications.map((notif) => (
+                <button
+                  key={notif.id}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`w-full text-left px-4 py-3 border-b border-border/40 last:border-0 transition-colors ${
+                    notif.is_read ? 'hover:bg-secondary/40' : 'bg-primary/5 hover:bg-primary/10'
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${notif.is_read ? 'bg-transparent' : 'bg-primary'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-snug">{notif.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-snug">{notif.message}</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-1">{format(new Date(notif.created_date), 'MMM d, h:mm a')}</p>
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>,
         document.body
       )}
 

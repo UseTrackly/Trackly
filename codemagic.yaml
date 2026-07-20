@@ -72,17 +72,19 @@ workflows:
           python3 << 'PYEOF'
           from PIL import Image
           logo = Image.open('/tmp/icon_src.png').convert('RGBA')
-          logo = logo.resize((1024, 1024), Image.LANCZOS)
-          # Sample the logo's navy from inside the circle (left edge, away from the T)
-          navy = logo.getpixel((20, 512))[:3]
+          # Sample navy from inside the circle (left edge of the full-size source)
+          navy = logo.getpixel((int(logo.width * 0.02), logo.height // 2))[:3]
           if sum(navy) > 200 or sum(navy) < 30:
               navy = (27, 41, 74)
-          # Start with a solid navy background, then paste the logo on top.
+          # Shrink logo to 85% so the full circle sits inside the iOS squircle
+          # safe area (prevents the top/bottom of the circle from being clipped).
+          sz = int(1024 * 0.85)
+          logo = logo.resize((sz, sz), Image.LANCZOS)
+          offset = (1024 - sz) // 2
           bg = Image.new('RGB', (1024, 1024), navy)
-          bg.paste(logo, (0, 0), logo)
-          # BULLETPROOF: force every near-white pixel OUTSIDE the central circle to
-          # navy. This kills white corners whether the source had transparent or
-          # opaque-white margins, while preserving the white T (inside the circle).
+          bg.paste(logo, (offset, offset), logo)
+          # Replace any near-white pixels outside the central circle with navy
+          # (handles opaque-white source margins; preserves the white T).
           px = bg.load()
           cx = cy = 512
           r2 = 455 * 455
@@ -93,7 +95,7 @@ workflows:
                       if min(p) > 180:
                           px[x, y] = navy
           bg.save('/tmp/icon_1024.png', 'PNG')
-          print(f"Icon bulletproof navy: navy={navy}, size={bg.size}")
+          print(f"Icon: navy={navy}, logo={sz}, offset={offset}")
           PYEOF
           cp /tmp/icon_1024.png "$ICONSET/icon-1024.png"
           cat > "$ICONSET/Contents.json" << 'JSONEOF'

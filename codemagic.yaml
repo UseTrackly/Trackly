@@ -81,7 +81,7 @@ workflows:
           px = bg.load()
           for y in range(1024):
               for x in range(1024):
-                  if max(px[x, y]) < 80:
+                  if max(px[x, y]) < 110:
                       px[x, y] = navy
           bg.save('/tmp/icon_1024.png', 'PNG')
           print(f"Icon full-bleed: navy={navy}")

@@ -238,10 +238,20 @@ PODEOF
           curl -fsSL "https://media.base44.com/images/public/69bfd92e3db7d48eec6c8062/5d245cd07_app_icon_1024.png" \
             -o /tmp/trackly_icon_master.png
 
-          # Flatten to opaque dark background (App Store requires no alpha on 1024 icon)
-          sips --padToHeightWidth 1024 1024 /tmp/trackly_icon_master.png \
-            --out /tmp/trackly_icon_1024.png 2>/dev/null || \
-            cp /tmp/trackly_icon_master.png /tmp/trackly_icon_1024.png
+          # Trim white margins and fill 1024×1024 edge-to-edge (no letterboxing)
+          pip3 install Pillow --quiet 2>/dev/null
+          python3 << 'PYEOF'
+          from PIL import Image, ImageChops
+          img = Image.open('/tmp/trackly_icon_master.png').convert('RGB')
+          # Auto-trim near-white background so the circle fills the frame
+          bg = Image.new('RGB', img.size, (255, 255, 255))
+          bbox = ImageChops.difference(img, bg).getbbox()
+          if bbox:
+              img = img.crop(bbox)
+          img = img.resize((1024, 1024), Image.LANCZOS)
+          img.save('/tmp/trackly_icon_1024.png', 'PNG')
+          print(f"Icon trimmed & filled: {img.size}")
+          PYEOF
 
           # Generate all required sizes using sips
           generate_icon() {

@@ -241,7 +241,7 @@ PODEOF
           # Trim white margins and fill 1024×1024 edge-to-edge (no letterboxing)
           pip3 install Pillow --quiet 2>/dev/null
           python3 << 'PYEOF'
-          from PIL import Image, ImageChops
+          from PIL import Image, ImageChops, ImageDraw
           img = Image.open('/tmp/trackly_icon_master.png').convert('RGBA')
           # Composite transparency onto white (convert('RGB') alone fills alpha with black)
           bg = Image.new('RGBA', img.size, (255, 255, 255, 255))
@@ -252,15 +252,15 @@ PODEOF
           bbox = diff.getbbox()
           if bbox:
               img = img.crop(bbox)
-          # Scale ~10% past the frame and center-crop so the circle bleeds to the
-          # edges (zoomed-in, profile-picture look) instead of sitting small.
-          target = 1126
-          img = img.resize((target, target), Image.LANCZOS)
-          left = (target - 1024) // 2
-          top = (target - 1024) // 2
-          img = img.crop((left, top, left + 1024, top + 1024))
+          # Resize the logo to fill the full 1024×1024 frame
+          img = img.resize((1024, 1024), Image.LANCZOS)
+          # Flood-fill white corner areas (outside a circular logo) with the navy
+          # sampled from the logo edge, so the icon is full-bleed — no white pad.
+          sample = img.getpixel((8, 512))
+          for corner in [(0, 0), (1023, 0), (0, 1023), (1023, 1023)]:
+              ImageDraw.flood_fill(img, corner, sample, thresh=40)
           img.save('/tmp/trackly_icon_1024.png', 'PNG')
-          print(f"Icon trimmed & zoomed: {img.size}, trimmed={bool(bbox)}")
+          print(f"Icon full-bleed: size={img.size}, trimmed={bool(bbox)}")
           PYEOF
           test -s /tmp/trackly_icon_1024.png || { echo "FATAL: icon processing failed"; exit 1; }
 

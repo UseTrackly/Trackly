@@ -427,7 +427,14 @@ export default function InventoryPage() {
           <div className="space-y-3">
             <AnimatePresence>
               {filteredItems.map((item, i) => (
-                <div key={item.id} onClick={() => setSelectedItem(item)}>
+                <div
+                  key={item.id}
+                  onClick={(e) => {
+                    // Don't open ROI dialog if clicking a button (delete/edit/share/photo)
+                    if (e.target.closest('button')) return;
+                    setSelectedItem(item);
+                  }}
+                >
                   <InventoryCard
                     item={item}
                     index={i}

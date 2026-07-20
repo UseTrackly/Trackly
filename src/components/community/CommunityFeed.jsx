@@ -103,7 +103,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer"
-        onClick={() => onClick(flip)}
+        onClick={(e) => { if (e.target.closest('button')) return; onClick(flip); }}
       >
         {/* Full-bleed image with overlay */}
         <div className="relative w-full aspect-square">
@@ -230,7 +230,7 @@ function FlipCard({ flip, user, onInterest, onClick, priority, profiles, onFlipU
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className="bg-card border border-border rounded-xl overflow-hidden cursor-pointer"
-      onClick={() => onClick(flip)}
+      onClick={(e) => { if (e.target.closest('button')) return; onClick(flip); }}
     >
       {/* Compact no-image placeholder */}
       <div className="relative w-full aspect-square bg-secondary flex items-center justify-center border-b border-border">

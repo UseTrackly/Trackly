@@ -33,10 +33,13 @@ export default function NotificationBell() {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const panelWidth = 300;
-    setPos({
-      top: rect.bottom + 4,
-      left: Math.max(8, Math.min(rect.right - panelWidth, window.innerWidth - panelWidth - 8)),
-    });
+    // Right-align the panel flush to the bell's right edge, clamped to the
+    // viewport so it never overflows on narrow screens.
+    const left = Math.max(8, Math.min(
+      rect.right - panelWidth,
+      window.innerWidth - panelWidth - 8
+    ));
+    setPos({ top: rect.bottom + 6, left });
     setOpen(v => !v);
   }, []);
 
